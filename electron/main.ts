@@ -1,7 +1,9 @@
 import { app, BrowserWindow } from "electron";
 import path from "path";
+import { registerIpcHandlers } from "./ipc-handlers";
 
 let mainWindow: BrowserWindow | null = null;
+let cleanup: (() => void) | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -10,12 +12,15 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     backgroundColor: "#1a1a2e",
+    titleBarStyle: "hiddenInset",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  cleanup = registerIpcHandlers(mainWindow);
 
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:3000");
@@ -27,6 +32,7 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
+  cleanup?.();
   if (process.platform !== "darwin") {
     app.quit();
   }
