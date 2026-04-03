@@ -66,7 +66,7 @@ export function PresetCard({ preset, onSend, onUpdate, onRemove }: PresetCardPro
             {arg.type !== "T" && arg.type !== "F" && (
               <input
                 type={arg.type === "s" ? "text" : "number"}
-                value={arg.value}
+                value={arg.value as string | number}
                 onChange={(e) => {
                   const next = [...args];
                   next[i] = {

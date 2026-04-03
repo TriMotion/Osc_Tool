@@ -80,7 +80,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
             {arg.type !== "T" && arg.type !== "F" && (
               <input
                 type={arg.type === "s" ? "text" : "number"}
-                value={arg.value}
+                value={arg.value as string | number}
                 onChange={(e) =>
                   updateArg(i, {
                     value: arg.type === "s" ? e.target.value : Number(e.target.value),
