@@ -2,11 +2,11 @@
   "name": "osc_tool",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "electron:dev": "NODE_ENV=development electron electron/main.ts",
+    "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
     "electron:build": "pnpm build && electron-builder",
     "start": "next start"
   },
@@ -15,7 +15,11 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "electron-winstaller", "sharp"]
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "sharp"
+    ]
   },
   "dependencies": {
     "electron": "^41.1.1",
@@ -35,9 +39,11 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
     "electron-builder": "^26.8.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "wait-on": "^9.0.4"
   }
 }
