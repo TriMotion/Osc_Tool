@@ -125,3 +125,35 @@ export function useDiagnostics() {
 
   return { runLoopback, progress };
 }
+
+export function useWebServer() {
+  const [running, setRunning] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+
+  const start = useCallback(async (port: number) => {
+    const result = (await window.electronAPI.invoke("web:start", port)) as {
+      ok: boolean;
+      url: string;
+    };
+    setRunning(true);
+    setUrl(result.url);
+    return result.url;
+  }, []);
+
+  const stop = useCallback(async () => {
+    await window.electronAPI.invoke("web:stop");
+    setRunning(false);
+    setUrl(null);
+  }, []);
+
+  const checkStatus = useCallback(async () => {
+    const result = (await window.electronAPI.invoke("web:status")) as { running: boolean };
+    setRunning(result.running);
+  }, []);
+
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  return { running, url, start, stop };
+}
