@@ -18,33 +18,56 @@ export class OscManager extends EventEmitter {
       throw new Error(`Already listening on port ${config.port}`);
     }
 
-    const socket = dgram.createSocket("udp4");
+    const socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
 
     socket.on("message", (buf, rinfo) => {
       try {
-        const oscMsg = new OSC.Message();
-        oscMsg.unpack(new DataView(buf.buffer, buf.byteOffset, buf.byteLength));
+        const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+        const header = buf.slice(0, 8).toString();
 
-        const message: OscMessage = {
-          address: oscMsg.address,
-          args: oscMsg.args.map((arg: unknown, idx: number) => ({
-            type: this.inferType(arg),
-            value: arg as number | string | boolean,
-          })),
-          timestamp: Date.now(),
-          sourceIp: rinfo.address,
-          sourcePort: rinfo.port,
-        };
+        if (header === "#bundle\0") {
+          const bundle = new OSC.Bundle();
+          bundle.unpack(dv);
+          const now = Date.now();
+          for (const el of bundle.bundleElements) {
+            if (el.address) {
+              this.throughputCount++;
+              this.emit("message", {
+                address: el.address,
+                args: el.args.map((arg: unknown) => ({
+                  type: this.inferType(arg),
+                  value: arg as number | string | boolean,
+                })),
+                timestamp: now,
+                sourceIp: rinfo.address,
+                sourcePort: rinfo.port,
+              } satisfies OscMessage);
+            }
+          }
+        } else {
+          const oscMsg = new OSC.Message();
+          oscMsg.unpack(dv);
 
-        this.throughputCount++;
-        this.emit("message", message);
+          this.throughputCount++;
+          this.emit("message", {
+            address: oscMsg.address,
+            args: oscMsg.args.map((arg: unknown) => ({
+              type: this.inferType(arg),
+              value: arg as number | string | boolean,
+            })),
+            timestamp: Date.now(),
+            sourceIp: rinfo.address,
+            sourcePort: rinfo.port,
+          } satisfies OscMessage);
+        }
       } catch (err) {
         this.emit("error", `Failed to parse OSC message: ${err}`);
       }
     });
 
     return new Promise((resolve, reject) => {
-      socket.bind(config.port, config.bindAddress, () => {
+      const bindAddr = config.bindAddress === "0.0.0.0" ? undefined : config.bindAddress;
+      socket.bind(config.port, bindAddr, () => {
         socket.setBroadcast(true);
         this.listeners.set(config.port, socket);
         resolve();
