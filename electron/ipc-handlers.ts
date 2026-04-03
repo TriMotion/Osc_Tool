@@ -2,12 +2,14 @@ import { ipcMain, BrowserWindow } from "electron";
 import { OscManager } from "./osc-manager";
 import { PresetsStore } from "./presets-store";
 import { DiagnosticsRunner } from "./diagnostics";
+import { WebServer } from "./web-server";
 import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const oscManager = new OscManager();
   const presetsStore = new PresetsStore();
   const diagnostics = new DiagnosticsRunner();
+  const webServer = new WebServer(oscManager);
 
   // --- Listener ---
   ipcMain.handle("osc:start-listener", async (_e, config: ListenerConfig) => {
@@ -47,6 +49,21 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     return diagnostics.runLoopbackTest(count, rate);
   });
 
+  // --- Web Server ---
+  ipcMain.handle("web:start", (_e, port: number) => {
+    const url = webServer.start(port);
+    return { ok: true, url };
+  });
+
+  ipcMain.handle("web:stop", () => {
+    webServer.stop();
+    return { ok: true };
+  });
+
+  ipcMain.handle("web:status", () => {
+    return { running: webServer.isRunning() };
+  });
+
   // --- Forward OSC messages to renderer ---
   oscManager.on("message", (msg) => {
     mainWindow.webContents.send("osc:message", msg);
@@ -65,5 +82,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // Cleanup
-  return () => oscManager.stopAll();
+  return () => {
+    oscManager.stopAll();
+    webServer.stop();
+  };
 }

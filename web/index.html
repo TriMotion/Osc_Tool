@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSC Tool — Remote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwindcss.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: { DEFAULT: "#1a1a2e", light: "#222244", lighter: "#2a2a4a" },
+            accent: { DEFAULT: "#00d4aa", dim: "#00a080" },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-surface text-gray-100 min-h-screen p-4">
+  <div id="app">
+    <h1 class="text-accent font-bold text-lg mb-4">OSC Tool <span class="text-gray-500 text-sm font-normal">Remote</span></h1>
+
+    <div class="flex gap-2 mb-4 items-end">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Send to Host</label>
+        <input id="host" type="text" value="127.0.0.1" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-36" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Port</label>
+        <input id="port" type="text" value="8000" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-20" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Address</label>
+        <input id="address" type="text" value="/test" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-40 font-mono" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Value (float)</label>
+        <input id="value" type="number" value="1.0" step="0.01" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-24" />
+      </div>
+      <button onclick="sendMsg()" class="px-4 py-2 bg-accent text-surface font-medium rounded-lg text-sm">Send</button>
+    </div>
+
+    <div class="flex items-center gap-2 mb-2 text-xs text-gray-500">
+      <span id="status" class="w-2 h-2 rounded-full bg-gray-600"></span>
+      <span id="throughput">0 msg/s</span>
+      <span class="ml-auto" id="connStatus">Connecting...</span>
+    </div>
+
+    <div id="log" class="bg-surface-lighter border border-white/5 rounded-lg p-3 font-mono text-xs h-[60vh] overflow-auto"></div>
+  </div>
+
+  <script>
+    const log = document.getElementById("log");
+    const statusDot = document.getElementById("status");
+    const throughputEl = document.getElementById("throughput");
+    const connStatus = document.getElementById("connStatus");
+
+    const ws = new WebSocket(`ws://${location.host}`);
+
+    ws.onopen = () => {
+      connStatus.textContent = "Connected";
+      statusDot.className = "w-2 h-2 rounded-full bg-green-400";
+    };
+    ws.onclose = () => {
+      connStatus.textContent = "Disconnected";
+      statusDot.className = "w-2 h-2 rounded-full bg-red-400";
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "message") {
+        const d = msg.data;
+        const t = new Date(d.timestamp);
+        const time = `${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}:${t.getSeconds().toString().padStart(2,"0")}.${t.getMilliseconds().toString().padStart(3,"0")}`;
+        const args = d.args.map(a => `${a.value} (${a.type})`).join(", ");
+        const row = document.createElement("div");
+        row.className = "py-1 border-b border-white/5 flex gap-4";
+        row.innerHTML = `<span class="text-gray-500 w-24">${time}</span><span class="text-gray-400 w-36">${d.sourceIp}:${d.sourcePort}</span><span class="text-accent">${d.address}</span><span class="text-gray-300">${args}</span>`;
+        log.appendChild(row);
+        log.scrollTop = log.scrollHeight;
+      } else if (msg.type === "throughput") {
+        throughputEl.textContent = `${msg.data} msg/s`;
+      }
+    };
+
+    function sendMsg() {
+      ws.send(JSON.stringify({
+        type: "send",
+        host: document.getElementById("host").value,
+        port: parseInt(document.getElementById("port").value),
+        address: document.getElementById("address").value,
+        args: [{ type: "f", value: parseFloat(document.getElementById("value").value) }],
+      }));
+    }
+  </script>
+</body>
+</html>
