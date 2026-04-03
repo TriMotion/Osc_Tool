@@ -64,9 +64,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     return { running: webServer.isRunning() };
   });
 
-  // --- Forward OSC messages to renderer ---
+  // --- Forward OSC messages to renderer (batched) ---
+  let messageBatch: unknown[] = [];
+  const flushMessages = () => {
+    if (messageBatch.length > 0) {
+      mainWindow.webContents.send("osc:messages", messageBatch);
+      messageBatch = [];
+    }
+  };
+  const batchInterval = setInterval(flushMessages, 50);
+
   oscManager.on("message", (msg) => {
-    mainWindow.webContents.send("osc:message", msg);
+    messageBatch.push(msg);
   });
 
   oscManager.on("throughput", (count) => {
@@ -83,6 +92,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // Cleanup
   return () => {
+    clearInterval(batchInterval);
     oscManager.stopAll();
     webServer.stop();
   };

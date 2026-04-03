@@ -17,15 +17,15 @@ function getAPI() {
   return typeof window !== "undefined" ? window.electronAPI : undefined;
 }
 
-export function useOscListener(onMessage: (msg: OscMessage) => void) {
-  const callbackRef = useRef(onMessage);
-  callbackRef.current = onMessage;
+export function useOscListener(onMessages: (msgs: OscMessage[]) => void) {
+  const callbackRef = useRef(onMessages);
+  callbackRef.current = onMessages;
 
   useEffect(() => {
     const api = getAPI();
     if (!api) return;
-    const unsub = api.on("osc:message", (msg) => {
-      callbackRef.current(msg as OscMessage);
+    const unsub = api.on("osc:messages", (msgs) => {
+      callbackRef.current(msgs as OscMessage[]);
     });
     return unsub;
   }, []);

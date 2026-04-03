@@ -15,8 +15,8 @@ export default function ListenerPage() {
   const { start, stop, getActive } = useListenerControl();
 
   useOscListener(
-    useCallback((msg: OscMessage) => {
-      setMessages((prev) => [...prev.slice(-999), msg]);
+    useCallback((msgs: OscMessage[]) => {
+      setMessages((prev) => [...prev, ...msgs].slice(-500));
     }, [])
   );
 

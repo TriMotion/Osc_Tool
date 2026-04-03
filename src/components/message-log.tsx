@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import type { OscMessage } from "@/lib/types";
 
 interface MessageLogProps {
@@ -89,24 +88,19 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence initial={false}>
-              {filtered.map((msg, i) => (
-                <motion.tr
-                  key={`${msg.timestamp}-${i}`}
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.1 }}
-                  className="border-t border-white/5 hover:bg-white/5"
-                >
-                  <td className="px-3 py-1.5 text-gray-500">{formatTime(msg.timestamp)}</td>
-                  <td className="px-3 py-1.5 text-gray-400">
-                    {msg.sourceIp}:{msg.sourcePort}
-                  </td>
-                  <td className="px-3 py-1.5 text-accent">{msg.address}</td>
-                  <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
+            {filtered.map((msg, i) => (
+              <tr
+                key={`${msg.timestamp}-${i}`}
+                className="border-t border-white/5 hover:bg-white/5"
+              >
+                <td className="px-3 py-1.5 text-gray-500">{formatTime(msg.timestamp)}</td>
+                <td className="px-3 py-1.5 text-gray-400">
+                  {msg.sourceIp}:{msg.sourcePort}
+                </td>
+                <td className="px-3 py-1.5 text-accent">{msg.address}</td>
+                <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
