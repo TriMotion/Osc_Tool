@@ -1,0 +1,16 @@
+appId: com.osctool.app
+productName: OSC Tool
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - electron/**/*.js
+mac:
+  target: dmg
+  category: public.app-category.utilities
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
