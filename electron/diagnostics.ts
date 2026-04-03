@@ -48,7 +48,7 @@ export class DiagnosticsRunner extends EventEmitter {
         const sendNext = () => {
           if (sent >= messageCount) return;
 
-          const msg = new OSC.Message("/diag/ping", { type: "f", value: performance.now() }, { type: "i", value: sent });
+          const msg = new OSC.Message("/diag/ping", performance.now(), sent);
           const binary = msg.pack();
           const buffer = Buffer.from(binary);
 

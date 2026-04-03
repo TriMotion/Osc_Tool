@@ -45,6 +45,7 @@ export class OscManager extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       socket.bind(config.port, config.bindAddress, () => {
+        socket.setBroadcast(true);
         this.listeners.set(config.port, socket);
         resolve();
       });
@@ -63,15 +64,15 @@ export class OscManager extends EventEmitter {
   async sendMessage(config: SenderConfig, address: string, args: OscArg[]): Promise<void> {
     const oscArgs = args.map((arg) => {
       switch (arg.type) {
-        case "f": return { type: "f" as const, value: Number(arg.value) };
-        case "i": return { type: "i" as const, value: Math.round(Number(arg.value)) };
-        case "s": return { type: "s" as const, value: String(arg.value) };
-        case "T": return { type: "T" as const, value: true };
-        case "F": return { type: "F" as const, value: false };
+        case "f": return { type: "f", value: Number(arg.value) };
+        case "i": return { type: "i", value: Math.round(Number(arg.value)) };
+        case "s": return { type: "s", value: String(arg.value) };
+        case "T": return { type: "T", value: true };
+        case "F": return { type: "F", value: false };
       }
     });
 
-    const oscMsg = new OSC.Message(address, ...oscArgs);
+    const oscMsg = new OSC.TypedMessage(address, oscArgs);
     const binary = oscMsg.pack();
     const buffer = Buffer.from(binary);
 
