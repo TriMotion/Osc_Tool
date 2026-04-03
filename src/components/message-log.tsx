@@ -1,0 +1,123 @@
+"use client";
+
+import { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { OscMessage } from "@/lib/types";
+
+interface MessageLogProps {
+  messages: OscMessage[];
+  onClear: () => void;
+}
+
+export function MessageLog({ messages, onClear }: MessageLogProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [pinned, setPinned] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    if (pinned && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, pinned]);
+
+  const filtered = filter
+    ? messages.filter(
+        (m) =>
+          m.address.includes(filter) ||
+          m.sourceIp?.includes(filter)
+      )
+    : messages;
+
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}.${d.getMilliseconds().toString().padStart(3, "0")}`;
+  };
+
+  const formatArgs = (msg: OscMessage) =>
+    msg.args.map((a) => `${a.value} (${a.type})`).join(", ");
+
+  return (
+    <div className="flex flex-col h-full gap-3">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Filter by address or IP..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="flex-1 bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent/50"
+        />
+        <button
+          onClick={() => setPaused(!paused)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            paused
+              ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          {paused ? "Resume" : "Pause"}
+        </button>
+        <button
+          onClick={() => setPinned(!pinned)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            pinned
+              ? "bg-accent/20 text-accent border border-accent/30"
+              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          Auto-scroll
+        </button>
+        <button
+          onClick={onClear}
+          className="px-3 py-2 rounded-lg text-sm font-medium bg-surface-lighter border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+        >
+          Clear
+        </button>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-auto rounded-lg bg-surface-lighter border border-white/5 font-mono text-xs"
+      >
+        <table className="w-full">
+          <thead className="sticky top-0 bg-surface-light">
+            <tr className="text-gray-500 text-left">
+              <th className="px-3 py-2 w-28">Time</th>
+              <th className="px-3 py-2 w-40">Source</th>
+              <th className="px-3 py-2">Address</th>
+              <th className="px-3 py-2">Values</th>
+            </tr>
+          </thead>
+          <tbody>
+            <AnimatePresence initial={false}>
+              {filtered.map((msg, i) => (
+                <motion.tr
+                  key={`${msg.timestamp}-${i}`}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="border-t border-white/5 hover:bg-white/5"
+                >
+                  <td className="px-3 py-1.5 text-gray-500">{formatTime(msg.timestamp)}</td>
+                  <td className="px-3 py-1.5 text-gray-400">
+                    {msg.sourceIp}:{msg.sourcePort}
+                  </td>
+                  <td className="px-3 py-1.5 text-accent">{msg.address}</td>
+                  <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-gray-600">
+            {messages.length === 0
+              ? "No messages received yet. Start a listener to begin."
+              : "No messages match your filter."}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
