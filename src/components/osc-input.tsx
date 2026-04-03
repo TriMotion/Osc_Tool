@@ -114,7 +114,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
         disabled={!address.startsWith("/")}
         className="px-4 py-2 bg-accent text-surface font-medium rounded-lg text-sm hover:bg-accent-dim transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-start"
       >
-        Send (Cmd+Enter)
+        Send
       </motion.button>
     </div>
   );
