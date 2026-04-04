@@ -6,12 +6,13 @@ import type { OscMessage } from "@/lib/types";
 interface MessageLogProps {
   messages: OscMessage[];
   onClear: () => void;
+  paused: boolean;
+  onTogglePaused: () => void;
 }
 
-export function MessageLog({ messages, onClear }: MessageLogProps) {
+export function MessageLog({ messages, onClear, paused, onTogglePaused }: MessageLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = useState(true);
-  const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState("");
   const [uniqueOnly, setUniqueOnly] = useState(false);
   const [copied, setCopied] = useState<number | null>(null);
@@ -79,7 +80,7 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
           Unique
         </button>
         <button
-          onClick={() => setPaused(!paused)}
+          onClick={onTogglePaused}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             paused
               ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"

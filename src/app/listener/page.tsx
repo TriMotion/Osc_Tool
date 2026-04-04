@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { MessageLog } from "@/components/message-log";
 import { useOscListener, useListenerControl } from "@/hooks/use-osc";
@@ -8,14 +8,18 @@ import type { OscMessage, ListenerConfig } from "@/lib/types";
 
 export default function ListenerPage() {
   const [messages, setMessages] = useState<OscMessage[]>([]);
+  const [paused, setPaused] = useState(false);
   const [port, setPort] = useState("9000");
   const [bindAddress, setBindAddress] = useState("0.0.0.0");
   const [activePorts, setActivePorts] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { start, stop, getActive } = useListenerControl();
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useOscListener(
     useCallback((msgs: OscMessage[]) => {
+      if (pausedRef.current) return;
       setMessages((prev) => [...prev, ...msgs].slice(-500));
     }, [])
   );
@@ -100,6 +104,8 @@ export default function ListenerPage() {
         <MessageLog
           messages={messages}
           onClear={() => setMessages([])}
+          paused={paused}
+          onTogglePaused={() => setPaused((p) => !p)}
         />
       </div>
     </div>
