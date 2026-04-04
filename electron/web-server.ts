@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import http from "http";
 import path from "path";
 import { OscManager } from "./osc-manager";
+import { DeckStore } from "./deck-store";
 import type { OscMessage, OscArg, SenderConfig } from "../src/lib/types";
 
 export class WebServer {
@@ -10,7 +11,7 @@ export class WebServer {
   private wss: WebSocketServer | null = null;
   private clients: Set<WebSocket> = new Set();
 
-  constructor(private oscManager: OscManager) {}
+  constructor(private oscManager: OscManager, private deckStore: DeckStore) {}
 
   start(port: number): string {
     const app = express();
@@ -21,6 +22,9 @@ export class WebServer {
 
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
+      // Send deck state on connect
+      const deckPayload = JSON.stringify({ type: "deck-state", data: this.deckStore.getDecks() });
+      ws.send(deckPayload);
       ws.on("close", () => this.clients.delete(ws));
 
       ws.on("message", (data) => {
@@ -29,6 +33,47 @@ export class WebServer {
           if (msg.type === "send") {
             const config: SenderConfig = { host: msg.host, port: msg.port };
             this.oscManager.sendMessage(config, msg.address, msg.args as OscArg[]);
+          }
+          if (msg.type === "deck-trigger" || msg.type === "deck-toggle") {
+            const deck = this.deckStore.getDeck(msg.deckId);
+            if (!deck) return;
+            const page = deck.pages.find((p: any) => p.id === msg.pageId);
+            if (!page) return;
+            const item = page.items.find((i: any) => i.id === msg.itemId) ??
+              page.groups.flatMap((g: any) => g.items).find((i: any) => i.id === msg.itemId);
+            if (!item) return;
+            const config = item.config as any;
+            if (msg.type === "deck-trigger" && config.triggerValue) {
+              this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [config.triggerValue]);
+            }
+            if (msg.type === "deck-toggle" && config.toggleOnValue) {
+              const val = msg.state ? config.toggleOnValue : config.toggleOffValue;
+              this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [val]);
+            }
+          }
+          if (msg.type === "deck-slider") {
+            const deck = this.deckStore.getDeck(msg.deckId);
+            if (!deck) return;
+            const page = deck.pages.find((p: any) => p.id === msg.pageId);
+            if (!page) return;
+            const item = page.items.find((i: any) => i.id === msg.itemId) ??
+              page.groups.flatMap((g: any) => g.items).find((i: any) => i.id === msg.itemId);
+            if (!item) return;
+            this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [
+              { type: (item.config as any).valueType || "f", value: msg.value },
+            ]);
+          }
+          if (msg.type === "deck-xy") {
+            const deck = this.deckStore.getDeck(msg.deckId);
+            if (!deck) return;
+            const page = deck.pages.find((p: any) => p.id === msg.pageId);
+            if (!page) return;
+            const item = page.items.find((i: any) => i.id === msg.itemId) ??
+              page.groups.flatMap((g: any) => g.items).find((i: any) => i.id === msg.itemId);
+            if (!item) return;
+            const config = item.config as any;
+            this.oscManager.sendMessage(item.oscTarget, config.xAddress, [{ type: "f", value: msg.x }]);
+            this.oscManager.sendMessage(item.oscTarget, config.yAddress, [{ type: "f", value: msg.y }]);
           }
         } catch {
           // ignore malformed
@@ -69,6 +114,15 @@ export class WebServer {
     }
 
     return `http://${localIp}:${port}`;
+  }
+
+  broadcastDeckUpdate(decks: unknown): void {
+    const payload = JSON.stringify({ type: "deck-state", data: decks });
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
   }
 
   stop(): void {
