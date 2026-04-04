@@ -2,8 +2,21 @@ import { app, BrowserWindow } from "electron";
 import path from "path";
 import { registerIpcHandlers } from "./ipc-handlers";
 
+const gotLock = app.requestSingleInstanceLock();
+
+if (!gotLock) {
+  app.quit();
+} else {
+
 let mainWindow: BrowserWindow | null = null;
 let cleanup: (() => void) | null = null;
+
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -43,3 +56,5 @@ app.on("activate", () => {
     createWindow();
   }
 });
+
+} // end single instance lock
