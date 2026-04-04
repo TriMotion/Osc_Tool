@@ -28,15 +28,27 @@ export function DeckTopbar({
 }: DeckTopbarProps) {
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editPageName, setEditPageName] = useState("");
+  const [creatingDeck, setCreatingDeck] = useState(false);
+  const [newDeckName, setNewDeckName] = useState("");
+  const [creatingPage, setCreatingPage] = useState(false);
+  const [newPageName, setNewPageName] = useState("");
+  const [renamingDeck, setRenamingDeck] = useState(false);
+  const [renameDeckName, setRenameDeckName] = useState("");
 
-  const handleNewDeck = () => {
-    const name = prompt("New deck name:");
-    if (name?.trim()) onCreateDeck(name.trim());
+  const handleCreateDeck = () => {
+    if (newDeckName.trim()) {
+      onCreateDeck(newDeckName.trim());
+      setNewDeckName("");
+      setCreatingDeck(false);
+    }
   };
 
-  const handleNewPage = () => {
-    const name = prompt("New page name:");
-    if (name?.trim()) onCreatePage(name.trim());
+  const handleCreatePage = () => {
+    if (newPageName.trim()) {
+      onCreatePage(newPageName.trim());
+      setNewPageName("");
+      setCreatingPage(false);
+    }
   };
 
   const handlePageDoubleClick = (page: DeckPage) => {
@@ -52,45 +64,84 @@ export function DeckTopbar({
     setEditingPageId(null);
   };
 
-  const handlePageContextMenu = (e: React.MouseEvent, page: DeckPage) => {
-    if (!editMode) return;
-    e.preventDefault();
-    if (confirm(`Delete page "${page.name}"?`)) {
-      onDeletePage(page.id);
+  const handleStartRenameDeck = () => {
+    if (!activeDeck) return;
+    setRenameDeckName(activeDeck.name);
+    setRenamingDeck(true);
+  };
+
+  const handleRenameDeck = () => {
+    if (renameDeckName.trim() && activeDeck) {
+      onRenameDeck(activeDeck.id, renameDeckName.trim());
     }
+    setRenamingDeck(false);
   };
 
   return (
     <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3">
-      <select
-        value={activeDeck?.id ?? ""}
-        onChange={(e) => {
-          if (e.target.value === "__new__") handleNewDeck();
-          else onSelectDeck(e.target.value);
-        }}
-        className="bg-surface-lighter border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-accent/50"
-      >
-        {decks.map((d) => (
-          <option key={d.id} value={d.id}>{d.name}</option>
-        ))}
-        <option value="__new__">+ New Deck</option>
-      </select>
+      {creatingDeck ? (
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            value={newDeckName}
+            onChange={(e) => setNewDeckName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateDeck();
+              if (e.key === "Escape") setCreatingDeck(false);
+            }}
+            placeholder="Deck name..."
+            autoFocus
+            className="bg-surface border border-accent/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
+          />
+          <button onClick={handleCreateDeck} className="text-xs text-accent">ok</button>
+          <button onClick={() => setCreatingDeck(false)} className="text-xs text-gray-500">x</button>
+        </div>
+      ) : renamingDeck ? (
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            value={renameDeckName}
+            onChange={(e) => setRenameDeckName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRenameDeck();
+              if (e.key === "Escape") setRenamingDeck(false);
+            }}
+            autoFocus
+            className="bg-surface border border-accent/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
+          />
+          <button onClick={handleRenameDeck} className="text-xs text-accent">ok</button>
+          <button onClick={() => setRenamingDeck(false)} className="text-xs text-gray-500">x</button>
+        </div>
+      ) : (
+        <select
+          value={activeDeck?.id ?? ""}
+          onChange={(e) => {
+            if (e.target.value === "__new__") {
+              setCreatingDeck(true);
+              setNewDeckName("");
+            } else {
+              onSelectDeck(e.target.value);
+            }
+          }}
+          className="bg-surface-lighter border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-accent/50"
+        >
+          {decks.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+          <option value="__new__">+ New Deck</option>
+        </select>
+      )}
 
-      {editMode && activeDeck && (
+      {editMode && activeDeck && !creatingDeck && !renamingDeck && (
         <>
           <button
-            onClick={() => {
-              const name = prompt("Rename deck:", activeDeck.name);
-              if (name?.trim()) onRenameDeck(activeDeck.id, name.trim());
-            }}
+            onClick={handleStartRenameDeck}
             className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
           >
             rename
           </button>
           <button
-            onClick={() => {
-              if (confirm(`Delete deck "${activeDeck.name}"?`)) onDeleteDeck(activeDeck.id);
-            }}
+            onClick={() => onDeleteDeck(activeDeck.id)}
             className="text-xs text-gray-500 hover:text-red-400 transition-colors"
           >
             delete
@@ -100,13 +151,12 @@ export function DeckTopbar({
 
       <div className="w-px h-5 bg-white/10" />
 
-      <div className="flex gap-1">
+      <div className="flex gap-1 items-center">
         {activeDeck?.pages.map((page) => (
           <button
             key={page.id}
             onClick={() => onSelectPage(page.id)}
             onDoubleClick={() => handlePageDoubleClick(page)}
-            onContextMenu={(e) => handlePageContextMenu(e, page)}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
               activePage?.id === page.id
                 ? "bg-accent/10 text-accent border border-accent/20"
@@ -132,12 +182,31 @@ export function DeckTopbar({
             )}
           </button>
         ))}
-        <button
-          onClick={handleNewPage}
-          className="px-2 py-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
-        >
-          +
-        </button>
+        {creatingPage ? (
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={newPageName}
+              onChange={(e) => setNewPageName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreatePage();
+                if (e.key === "Escape") setCreatingPage(false);
+              }}
+              placeholder="Page name..."
+              autoFocus
+              className="bg-surface border border-accent/30 rounded px-2 py-0.5 text-xs w-20 focus:outline-none"
+            />
+            <button onClick={handleCreatePage} className="text-xs text-accent">ok</button>
+            <button onClick={() => setCreatingPage(false)} className="text-xs text-gray-500">x</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setCreatingPage(true); setNewPageName(""); }}
+            className="px-2 py-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            +
+          </button>
+        )}
       </div>
 
       <div className="flex-1" />
