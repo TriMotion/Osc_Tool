@@ -9,9 +9,9 @@ import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const oscManager = new OscManager();
   const diagnostics = new DiagnosticsRunner();
-  const webServer = new WebServer(oscManager, deckStore);
   const endpointsStore = new EndpointsStore();
   const deckStore = new DeckStore();
+  const webServer = new WebServer(oscManager, deckStore);
 
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
