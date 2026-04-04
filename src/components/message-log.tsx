@@ -15,7 +15,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
   const [pinned, setPinned] = useState(true);
   const [filter, setFilter] = useState("");
   const [uniqueOnly, setUniqueOnly] = useState(false);
-  const [copied, setCopied] = useState<number | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (pinned && !uniqueOnly && scrollRef.current) {
@@ -51,11 +51,9 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
   const formatArgs = (msg: OscMessage) =>
     msg.args.map((a) => `${a.value} (${a.type})`).join(", ");
 
-  const handleCopy = async (msg: OscMessage, index: number) => {
-    const values = msg.args.map((a) => a.value).join(", ");
-    const text = `${msg.address} ${values}`;
+  const copyToClipboard = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
-    setCopied(index);
+    setCopied(key);
     setTimeout(() => setCopied(null), 1000);
   };
 
@@ -118,7 +116,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
               <th className="px-3 py-2 w-40">Source</th>
               <th className="px-3 py-2">Address</th>
               <th className="px-3 py-2">Values</th>
-              <th className="px-3 py-2 w-12"></th>
+              <th className="px-3 py-2 w-24"></th>
             </tr>
           </thead>
           <tbody>
@@ -133,16 +131,29 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
                 </td>
                 <td className="px-3 py-1.5 text-accent">{msg.address}</td>
                 <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
-                <td className="px-3 py-1.5">
+                <td className="px-3 py-1.5 whitespace-nowrap">
                   <button
-                    onClick={() => handleCopy(msg, i)}
+                    onClick={() => copyToClipboard(msg.address, `addr-${i}`)}
                     className={`opacity-0 group-hover:opacity-100 transition-opacity text-xs px-1.5 py-0.5 rounded ${
-                      copied === i
+                      copied === `addr-${i}`
                         ? "text-green-400"
                         : "text-gray-500 hover:text-gray-200"
                     }`}
                   >
-                    {copied === i ? "✓" : "copy"}
+                    {copied === `addr-${i}` ? "✓" : "addr"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const values = msg.args.map((a) => a.value).join(", ");
+                      copyToClipboard(`${msg.address} ${values}`, `line-${i}`);
+                    }}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity text-xs px-1.5 py-0.5 rounded ml-1 ${
+                      copied === `line-${i}`
+                        ? "text-green-400"
+                        : "text-gray-500 hover:text-gray-200"
+                    }`}
+                  >
+                    {copied === `line-${i}` ? "✓" : "all"}
                   </button>
                 </td>
               </tr>
