@@ -229,4 +229,28 @@ export class DeckStore {
     this.save();
     return true;
   }
+
+  updateEndpointTargets(endpointId: string, host: string, port: number): number {
+    let count = 0;
+    for (const deck of this.decks) {
+      for (const page of deck.pages) {
+        for (const item of page.items) {
+          if (item.oscTargetEndpointId === endpointId) {
+            item.oscTarget = { host, port };
+            count++;
+          }
+        }
+        for (const group of page.groups) {
+          for (const item of group.items) {
+            if (item.oscTargetEndpointId === endpointId) {
+              item.oscTarget = { host, port };
+              count++;
+            }
+          }
+        }
+      }
+    }
+    if (count > 0) this.save();
+    return count;
+  }
 }

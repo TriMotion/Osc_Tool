@@ -16,7 +16,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
   ipcMain.handle("endpoints:add", (_e, endpoint) => endpointsStore.add(endpoint));
-  ipcMain.handle("endpoints:update", (_e, id: string, updates) => endpointsStore.update(id, updates));
+  ipcMain.handle("endpoints:update", (_e, id: string, updates) => {
+    const result = endpointsStore.update(id, updates);
+    if (result && (updates.host !== undefined || updates.port !== undefined)) {
+      deckStore.updateEndpointTargets(id, result.host, result.port);
+      webServer.broadcastDeckUpdate(deckStore.getDecks());
+    }
+    return result;
+  });
   ipcMain.handle("endpoints:remove", (_e, id: string) => endpointsStore.remove(id));
 
   // --- Deck ---

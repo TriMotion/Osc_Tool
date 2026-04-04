@@ -74,6 +74,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
   const [oscAddress, setOscAddress] = useState("");
   const [targetHost, setTargetHost] = useState("127.0.0.1");
   const [targetPort, setTargetPort] = useState("8000");
+  const [linkedEndpointId, setLinkedEndpointId] = useState<string | undefined>(undefined);
 
   const [buttonMode, setButtonMode] = useState<"trigger" | "toggle">("trigger");
   const [triggerValue, setTriggerValue] = useState("1");
@@ -102,6 +103,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
     setOscAddress(src.oscAddress);
     setTargetHost(src.oscTarget.host);
     setTargetPort(String(src.oscTarget.port));
+    setLinkedEndpointId(src.oscTargetEndpointId);
     if (src.type === "button") {
       const c = src.config as ButtonConfig;
       setButtonMode(c.mode);
@@ -167,6 +169,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
     const base: Partial<Omit<DeckItem, "id">> = {
       name, color, oscAddress,
       oscTarget: { host: targetHost, port: parseInt(targetPort, 10) },
+      oscTargetEndpointId: linkedEndpointId,
     };
 
     if (item.type === "button") {
@@ -192,7 +195,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
     }
 
     onUpdateItem(base);
-  }, [group, item, onUpdateGroup, onUpdateItem, name, color, oscAddress, targetHost, targetPort,
+  }, [group, item, onUpdateGroup, onUpdateItem, name, color, oscAddress, targetHost, targetPort, linkedEndpointId,
       buttonMode, triggerValue, triggerType, toggleOnValue, toggleOffValue,
       sliderOrientation, sliderMin, sliderMax, sliderValueType,
       xAddress, yAddress, xMin, xMax, yMin, yMax]);
@@ -243,11 +246,17 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
             <div>
               <label className="block text-xs text-gray-500 mb-1">Target</label>
               <div className="flex gap-2">
-                <input type="text" value={targetHost} onChange={(e) => setTargetHost(e.target.value)}
+                <input type="text" value={targetHost} onChange={(e) => { setTargetHost(e.target.value); setLinkedEndpointId(undefined); }}
                   className="flex-1 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-accent/50" />
-                <input type="text" value={targetPort} onChange={(e) => setTargetPort(e.target.value)}
+                <input type="text" value={targetPort} onChange={(e) => { setTargetPort(e.target.value); setLinkedEndpointId(undefined); }}
                   className="w-20 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-accent/50" />
               </div>
+              {linkedEndpointId && (
+                <div className="mt-1 flex items-center gap-1">
+                  <span className="text-[10px] text-accent">Linked to: {allEndpoints.find(e => e.id === linkedEndpointId)?.name ?? "unknown"}</span>
+                  <button onClick={() => setLinkedEndpointId(undefined)} className="text-[10px] text-gray-500 hover:text-gray-300">unlink</button>
+                </div>
+              )}
               {allEndpoints.length > 0 && (
                 <div className="mt-2">
                   <label className="block text-xs text-gray-500 mb-1">Saved Endpoints</label>
@@ -256,7 +265,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                       <SavedEndpointRow
                         key={ep.id}
                         endpoint={ep}
-                        onSelect={() => { setTargetHost(ep.host); setTargetPort(String(ep.port)); }}
+                        onSelect={() => { setTargetHost(ep.host); setTargetPort(String(ep.port)); setLinkedEndpointId(ep.id); }}
                         onUpdate={(updates) => {
                           const updater = ep.type === "sender" ? updateSenderEndpoint : updateListenerEndpoint;
                           updater(ep.id, updates);

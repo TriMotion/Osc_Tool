@@ -77,6 +77,7 @@ export interface DeckItem {
   rowSpan: number;
   oscAddress: string;
   oscTarget: { host: string; port: number };
+  oscTargetEndpointId?: string;
   color: string;
   config: ButtonConfig | SliderConfig | XYPadConfig;
 }
