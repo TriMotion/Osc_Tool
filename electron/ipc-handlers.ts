@@ -1,6 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { OscManager } from "./osc-manager";
-import { PresetsStore } from "./presets-store";
 import { DiagnosticsRunner } from "./diagnostics";
 import { WebServer } from "./web-server";
 import { EndpointsStore } from "./endpoints-store";
@@ -8,7 +7,6 @@ import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const oscManager = new OscManager();
-  const presetsStore = new PresetsStore();
   const diagnostics = new DiagnosticsRunner();
   const webServer = new WebServer(oscManager);
   const endpointsStore = new EndpointsStore();
@@ -39,18 +37,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     await oscManager.sendMessage(config, address, args);
     return { ok: true };
   });
-
-  // --- Presets ---
-  ipcMain.handle("presets:get-all", () => presetsStore.getAll());
-  ipcMain.handle("presets:add", (_e, preset) => presetsStore.add(preset));
-  ipcMain.handle("presets:update", (_e, id: string, updates) => presetsStore.update(id, updates));
-  ipcMain.handle("presets:remove", (_e, id: string) => presetsStore.remove(id));
-  ipcMain.handle("presets:reorder", (_e, ids: string[]) => {
-    presetsStore.reorder(ids);
-    return { ok: true };
-  });
-  ipcMain.handle("presets:export", () => presetsStore.exportAll());
-  ipcMain.handle("presets:import", (_e, json: string) => presetsStore.importPresets(json));
 
   // --- Diagnostics ---
   ipcMain.handle("diag:run-loopback", async (_e, count: number, rate: number) => {

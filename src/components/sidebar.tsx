@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 const navItems = [
   { href: "/listener", label: "Listener", icon: "📡" },
   { href: "/sender", label: "Sender", icon: "📤" },
-  { href: "/presets", label: "Presets", icon: "⚡" },
+  { href: "/deck", label: "Deck", icon: "🎛" },
   { href: "/diagnostics", label: "Diagnostics", icon: "🔬" },
 ];
 

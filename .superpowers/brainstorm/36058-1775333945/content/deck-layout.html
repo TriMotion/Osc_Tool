@@ -1,0 +1,173 @@
+<h2>Deck View Layout</h2>
+<p class="subtitle">How the deck tab looks in the app — dark theme, grid-based</p>
+
+<div class="mockup">
+  <div class="mockup-header">OSC Tool — Deck View</div>
+  <div class="mockup-body" style="background: #1a1a2e; padding: 0; display: flex; height: 500px;">
+
+    <!-- Sidebar (existing) -->
+    <div style="width: 180px; background: #222244; border-right: 1px solid rgba(255,255,255,0.05); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="color: #00d4aa; font-weight: bold; font-size: 14px; padding: 0 12px; margin-bottom: 20px;">OSC Tool</div>
+      <div style="padding: 8px 12px; border-radius: 8px; color: #9ca3af; font-size: 13px;">📡 Listener</div>
+      <div style="padding: 8px 12px; border-radius: 8px; color: #9ca3af; font-size: 13px;">📤 Sender</div>
+      <div style="padding: 8px 12px; border-radius: 8px; background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2); color: white; font-size: 13px;">🎛 Deck</div>
+      <div style="padding: 8px 12px; border-radius: 8px; color: #9ca3af; font-size: 13px;">🔬 Diagnostics</div>
+    </div>
+
+    <!-- Main content -->
+    <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+
+      <!-- Top bar: deck selector + pages + edit toggle -->
+      <div style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+        <!-- Deck selector -->
+        <select style="background: #2a2a4a; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 6px 10px; border-radius: 8px; font-size: 12px;">
+          <option>Resolume Show</option>
+          <option>Unreal Debug</option>
+        </select>
+        <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1);"></div>
+
+        <!-- Page tabs -->
+        <div style="display: flex; gap: 4px;">
+          <div style="padding: 5px 14px; background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2); border-radius: 6px; color: #00d4aa; font-size: 12px; font-weight: 500;">Main</div>
+          <div style="padding: 5px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: #6b7280; font-size: 12px;">Effects</div>
+          <div style="padding: 5px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: #6b7280; font-size: 12px;">Camera</div>
+          <div style="padding: 5px 14px; color: #4b5563; font-size: 12px;">+</div>
+        </div>
+
+        <div style="flex:1;"></div>
+
+        <!-- Edit mode toggle -->
+        <button style="padding: 5px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #9ca3af; font-size: 12px; cursor: pointer;">Edit Mode</button>
+      </div>
+
+      <!-- Grid area -->
+      <div style="flex: 1; padding: 16px; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr); gap: 8px;">
+
+        <!-- Trigger button -->
+        <div style="grid-column: 1 / 3; grid-row: 1 / 2; background: #1e3a5f; border: 1px solid #2563eb40; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 13px; font-weight: 600; color: #93c5fd;">Layer 1 On</div>
+          <div style="font-size: 9px; color: #6b7280; margin-top: 4px;">/composition/layers/1/connect</div>
+        </div>
+
+        <!-- Toggle button (active) -->
+        <div style="grid-column: 3 / 5; grid-row: 1 / 2; background: #164e3a; border: 1px solid #00d4aa40; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 12px rgba(0,212,170,0.15);">
+          <div style="font-size: 13px; font-weight: 600; color: #6ee7b7;">Master On</div>
+          <div style="font-size: 9px; color: #6b7280; margin-top: 4px;">/composition/master/active</div>
+          <div style="font-size: 8px; color: #00d4aa; margin-top: 2px; background: rgba(0,212,170,0.15); padding: 1px 6px; border-radius: 4px;">ON</div>
+        </div>
+
+        <!-- Trigger button -->
+        <div style="grid-column: 5 / 7; grid-row: 1 / 2; background: #3b1f4e; border: 1px solid #8b5cf640; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 13px; font-weight: 600; color: #c4b5fd;">Blackout</div>
+          <div style="font-size: 9px; color: #6b7280; margin-top: 4px;">/composition/master/opacity</div>
+        </div>
+
+        <!-- Small trigger -->
+        <div style="grid-column: 7 / 8; grid-row: 1 / 2; background: #4a2020; border: 1px solid #ef444440; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 11px; font-weight: 600; color: #fca5a5;">Reset</div>
+        </div>
+
+        <!-- Another button -->
+        <div style="grid-column: 8 / 9; grid-row: 1 / 2; background: #4a3920; border: 1px solid #f59e0b40; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 11px; font-weight: 600; color: #fcd34d;">Flash</div>
+        </div>
+
+        <!-- Vertical slider -->
+        <div style="grid-column: 1 / 2; grid-row: 2 / 5; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 10px 8px; gap: 6px;">
+          <div style="font-size: 10px; color: #9ca3af; font-weight: 500;">Opacity</div>
+          <div style="flex: 1; width: 28px; background: #1a1a2e; border-radius: 6px; position: relative; overflow: hidden;">
+            <div style="position: absolute; bottom: 0; width: 100%; height: 72%; background: linear-gradient(to top, #00d4aa, #00d4aa80); border-radius: 6px;"></div>
+          </div>
+          <div style="font-size: 10px; color: #00d4aa; font-weight: 600;">0.72</div>
+          <div style="font-size: 8px; color: #4b5563;">/master/opacity</div>
+        </div>
+
+        <!-- Vertical slider -->
+        <div style="grid-column: 2 / 3; grid-row: 2 / 5; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 10px 8px; gap: 6px;">
+          <div style="font-size: 10px; color: #9ca3af; font-weight: 500;">Layer 1</div>
+          <div style="flex: 1; width: 28px; background: #1a1a2e; border-radius: 6px; position: relative; overflow: hidden;">
+            <div style="position: absolute; bottom: 0; width: 100%; height: 45%; background: linear-gradient(to top, #2563eb, #2563eb80); border-radius: 6px;"></div>
+          </div>
+          <div style="font-size: 10px; color: #93c5fd; font-weight: 600;">0.45</div>
+          <div style="font-size: 8px; color: #4b5563;">/layers/1/opacity</div>
+        </div>
+
+        <!-- Vertical slider -->
+        <div style="grid-column: 3 / 4; grid-row: 2 / 5; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 10px 8px; gap: 6px;">
+          <div style="font-size: 10px; color: #9ca3af; font-weight: 500;">Layer 2</div>
+          <div style="flex: 1; width: 28px; background: #1a1a2e; border-radius: 6px; position: relative; overflow: hidden;">
+            <div style="position: absolute; bottom: 0; width: 100%; height: 88%; background: linear-gradient(to top, #8b5cf6, #8b5cf680); border-radius: 6px;"></div>
+          </div>
+          <div style="font-size: 10px; color: #c4b5fd; font-weight: 600;">0.88</div>
+          <div style="font-size: 8px; color: #4b5563;">/layers/2/opacity</div>
+        </div>
+
+        <!-- Horizontal slider spanning multiple columns -->
+        <div style="grid-column: 4 / 9; grid-row: 2 / 3; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; align-items: center; padding: 8px 14px; gap: 10px;">
+          <div style="font-size: 10px; color: #9ca3af; font-weight: 500; min-width: 50px;">Speed</div>
+          <div style="flex: 1; height: 24px; background: #1a1a2e; border-radius: 6px; position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; height: 100%; width: 35%; background: linear-gradient(to right, #f59e0b, #f59e0b80); border-radius: 6px;"></div>
+          </div>
+          <div style="font-size: 10px; color: #fcd34d; font-weight: 600; min-width: 30px;">0.35</div>
+        </div>
+
+        <!-- XY Pad -->
+        <div style="grid-column: 4 / 7; grid-row: 3 / 6; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; padding: 10px;">
+          <div style="font-size: 10px; color: #9ca3af; font-weight: 500; margin-bottom: 6px;">Camera Position</div>
+          <div style="flex: 1; background: #1a1a2e; border-radius: 8px; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+            <!-- Grid lines -->
+            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.05);"></div>
+            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.05);"></div>
+            <!-- Dot -->
+            <div style="position: absolute; left: 62%; top: 38%; width: 14px; height: 14px; background: #00d4aa; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(0,212,170,0.5);"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+            <div style="font-size: 8px; color: #4b5563;">X: /cam/pos/x</div>
+            <div style="font-size: 9px; color: #00d4aa;">0.62, 0.38</div>
+            <div style="font-size: 8px; color: #4b5563;">Y: /cam/pos/y</div>
+          </div>
+        </div>
+
+        <!-- More buttons in bottom right -->
+        <div style="grid-column: 7 / 9; grid-row: 3 / 4; background: #1e3a5f; border: 1px solid #2563eb40; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 12px; font-weight: 600; color: #93c5fd;">Cam 1</div>
+          <div style="font-size: 8px; color: #6b7280; margin-top: 3px;">/cam/select 1</div>
+        </div>
+        <div style="grid-column: 7 / 9; grid-row: 4 / 5; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 12px; font-weight: 600; color: #9ca3af;">Cam 2</div>
+          <div style="font-size: 8px; color: #6b7280; margin-top: 3px;">/cam/select 2</div>
+        </div>
+        <div style="grid-column: 7 / 9; grid-row: 5 / 6; background: #222244; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 12px; font-weight: 600; color: #9ca3af;">Cam 3</div>
+          <div style="font-size: 8px; color: #6b7280; margin-top: 3px;">/cam/select 3</div>
+        </div>
+
+        <!-- Bottom row: more buttons -->
+        <div style="grid-column: 1 / 3; grid-row: 5 / 7; background: #164e3a; border: 1px solid #00d4aa40; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 14px; font-weight: 600; color: #6ee7b7;">GO</div>
+          <div style="font-size: 9px; color: #6b7280; margin-top: 3px;">/composition/trigger</div>
+        </div>
+        <div style="grid-column: 3 / 4; grid-row: 5 / 7; background: #4a2020; border: 1px solid #ef444440; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="font-size: 12px; font-weight: 600; color: #fca5a5;">STOP</div>
+        </div>
+
+        <!-- Status area bottom right -->
+        <div style="grid-column: 7 / 9; grid-row: 6 / 7; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.06); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+          <div style="font-size: 9px; color: #4b5563;">empty</div>
+        </div>
+
+      </div>
+
+      <!-- Status bar -->
+      <div style="height: 28px; background: #222244; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 16px; font-size: 11px; color: #6b7280; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 6px; height: 6px; border-radius: 50%; background: #00d4aa;"></div>
+          <span>248 msg/s</span>
+        </div>
+        <div style="margin-left: auto;">Web: http://192.168.1.98:4000</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 20px;">Features shown: trigger buttons (blue), toggle button with ON state (green), sliders (vertical + horizontal), XY pad, color coding, OSC address labels, current values, page tabs, deck selector, edit mode toggle</p>

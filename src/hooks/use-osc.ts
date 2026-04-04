@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useState } from "react";
-import type { OscMessage, ListenerConfig, SenderConfig, OscArg, Preset, DiagnosticsResult, SavedEndpoint } from "@/lib/types";
+import type { OscMessage, ListenerConfig, SenderConfig, OscArg, DiagnosticsResult, SavedEndpoint } from "@/lib/types";
 
 declare global {
   interface Window {
@@ -76,64 +76,6 @@ export function useListenerControl() {
   }, []);
 
   return { start, stop, getActive };
-}
-
-export function usePresets() {
-  const [presets, setPresets] = useState<Preset[]>([]);
-
-  const refresh = useCallback(async () => {
-    const api = getAPI();
-    if (!api) return;
-    const all = (await api.invoke("presets:get-all")) as Preset[];
-    setPresets(all);
-  }, []);
-
-  const add = useCallback(async (preset: Omit<Preset, "id" | "order">) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("presets:add", preset);
-    await refresh();
-  }, [refresh]);
-
-  const update = useCallback(async (id: string, updates: Partial<Omit<Preset, "id">>) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("presets:update", id, updates);
-    await refresh();
-  }, [refresh]);
-
-  const remove = useCallback(async (id: string) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("presets:remove", id);
-    await refresh();
-  }, [refresh]);
-
-  const reorder = useCallback(async (ids: string[]) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("presets:reorder", ids);
-    await refresh();
-  }, [refresh]);
-
-  const exportAll = useCallback(async (): Promise<string> => {
-    const api = getAPI();
-    if (!api) return "[]";
-    return (await api.invoke("presets:export")) as string;
-  }, []);
-
-  const importPresets = useCallback(async (json: string) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("presets:import", json);
-    await refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  return { presets, add, update, remove, reorder, exportAll, importPresets, refresh };
 }
 
 export function useDiagnostics() {
