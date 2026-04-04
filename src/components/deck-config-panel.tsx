@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg } from "@/lib/types";
 import { useEndpoints } from "@/hooks/use-osc";
 
@@ -45,42 +45,71 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
   const [yMin, setYMin] = useState("0");
   const [yMax, setYMax] = useState("1");
 
+  const initialSnapshot = useRef<string | null>(null);
+  const isInitializing = useRef(true);
+
+  const loadFromItem = useCallback((src: DeckItem) => {
+    setName(src.name);
+    setColor(src.color);
+    setOscAddress(src.oscAddress);
+    setTargetHost(src.oscTarget.host);
+    setTargetPort(String(src.oscTarget.port));
+    if (src.type === "button") {
+      const c = src.config as ButtonConfig;
+      setButtonMode(c.mode);
+      setTriggerValue(String(c.triggerValue.value));
+      setTriggerType(c.triggerValue.type);
+      setToggleOnValue(String(c.toggleOnValue.value));
+      setToggleOffValue(String(c.toggleOffValue.value));
+    } else if (src.type === "slider") {
+      const c = src.config as SliderConfig;
+      setSliderOrientation(c.orientation);
+      setSliderMin(String(c.min));
+      setSliderMax(String(c.max));
+      setSliderValueType(c.valueType);
+    } else if (src.type === "xy-pad") {
+      const c = src.config as XYPadConfig;
+      setXAddress(c.xAddress);
+      setYAddress(c.yAddress);
+      setXMin(String(c.xMin));
+      setXMax(String(c.xMax));
+      setYMin(String(c.yMin));
+      setYMax(String(c.yMax));
+    }
+  }, []);
+
   useEffect(() => {
+    isInitializing.current = true;
     if (item) {
-      setName(item.name);
-      setColor(item.color);
-      setOscAddress(item.oscAddress);
-      setTargetHost(item.oscTarget.host);
-      setTargetPort(String(item.oscTarget.port));
-      if (item.type === "button") {
-        const c = item.config as ButtonConfig;
-        setButtonMode(c.mode);
-        setTriggerValue(String(c.triggerValue.value));
-        setTriggerType(c.triggerValue.type);
-        setToggleOnValue(String(c.toggleOnValue.value));
-        setToggleOffValue(String(c.toggleOffValue.value));
-      } else if (item.type === "slider") {
-        const c = item.config as SliderConfig;
-        setSliderOrientation(c.orientation);
-        setSliderMin(String(c.min));
-        setSliderMax(String(c.max));
-        setSliderValueType(c.valueType);
-      } else if (item.type === "xy-pad") {
-        const c = item.config as XYPadConfig;
-        setXAddress(c.xAddress);
-        setYAddress(c.yAddress);
-        setXMin(String(c.xMin));
-        setXMax(String(c.xMax));
-        setYMin(String(c.yMin));
-        setYMax(String(c.yMax));
-      }
+      initialSnapshot.current = JSON.stringify(item);
+      loadFromItem(item);
     } else if (group) {
+      initialSnapshot.current = JSON.stringify(group);
       setName(group.name);
       setColor(group.color);
     }
-  }, [item, group]);
+    // Allow auto-save after initial load settles
+    const timer = setTimeout(() => { isInitializing.current = false; }, 50);
+    return () => clearTimeout(timer);
+  }, [item?.id, group?.id, loadFromItem]);
 
-  const handleSave = () => {
+  const handleReset = () => {
+    if (!initialSnapshot.current) return;
+    isInitializing.current = true;
+    if (item) {
+      const original = JSON.parse(initialSnapshot.current) as DeckItem;
+      loadFromItem(original);
+      onUpdateItem?.(original);
+    } else if (group) {
+      const original = JSON.parse(initialSnapshot.current) as DeckGroup;
+      setName(original.name);
+      setColor(original.color);
+      onUpdateGroup?.({ name: original.name, color: original.color });
+    }
+    setTimeout(() => { isInitializing.current = false; }, 50);
+  };
+
+  const buildAndSave = useCallback(() => {
     if (group && onUpdateGroup) {
       onUpdateGroup({ name, color });
       return;
@@ -115,7 +144,16 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
     }
 
     onUpdateItem(base);
-  };
+  }, [group, item, onUpdateGroup, onUpdateItem, name, color, oscAddress, targetHost, targetPort,
+      buttonMode, triggerValue, triggerType, toggleOnValue, toggleOffValue,
+      sliderOrientation, sliderMin, sliderMax, sliderValueType,
+      xAddress, yAddress, xMin, xMax, yMin, yMax]);
+
+  // Auto-save on any field change
+  useEffect(() => {
+    if (isInitializing.current) return;
+    buildAndSave();
+  }, [buildAndSave]);
 
   const isGroup = !!group;
 
@@ -300,9 +338,9 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
       </div>
 
       <div className="mt-auto p-4 border-t border-white/5 flex gap-2">
-        <button onClick={handleSave}
-          className="flex-1 py-2 bg-accent text-surface rounded-lg text-sm font-medium hover:bg-accent-dim transition-colors">
-          Save
+        <button onClick={handleReset}
+          className="flex-1 py-2 bg-surface border border-white/10 text-gray-400 hover:text-gray-200 rounded-lg text-sm font-medium transition-colors">
+          Reset
         </button>
         <button onClick={onDelete}
           className="px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors">
