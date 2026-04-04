@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/presets-store.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts --outdir=electron --platform=node --format=cjs --packages=external",
+    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts --outdir=electron --platform=node --format=cjs --packages=external",
     "electron:dev": "pnpm electron:compile && concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
     "electron:build": "pnpm electron:compile && pnpm build && electron-builder",
     "start": "next start"
