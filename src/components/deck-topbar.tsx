@@ -34,6 +34,8 @@ export function DeckTopbar({
   const [newPageName, setNewPageName] = useState("");
   const [renamingDeck, setRenamingDeck] = useState(false);
   const [renameDeckName, setRenameDeckName] = useState("");
+  const [confirmDeleteDeck, setConfirmDeleteDeck] = useState(false);
+  const [confirmDeletePageId, setConfirmDeletePageId] = useState<string | null>(null);
 
   const handleCreateDeck = () => {
     if (newDeckName.trim()) {
@@ -133,54 +135,81 @@ export function DeckTopbar({
       )}
 
       {editMode && activeDeck && !creatingDeck && !renamingDeck && (
-        <>
-          <button
-            onClick={handleStartRenameDeck}
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            rename
-          </button>
-          <button
-            onClick={() => onDeleteDeck(activeDeck.id)}
-            className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-          >
-            delete
-          </button>
-        </>
+        confirmDeleteDeck ? (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-red-400">Delete deck &quot;{activeDeck.name}&quot;?</span>
+            <button onClick={() => { onDeleteDeck(activeDeck.id); setConfirmDeleteDeck(false); }}
+              className="text-xs text-red-400 font-medium hover:text-red-300">yes</button>
+            <button onClick={() => setConfirmDeleteDeck(false)}
+              className="text-xs text-gray-500 hover:text-gray-300">no</button>
+          </div>
+        ) : (
+          <>
+            <button onClick={handleStartRenameDeck}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+              rename
+            </button>
+            <button onClick={() => setConfirmDeleteDeck(true)}
+              className="text-xs text-gray-500 hover:text-red-400 transition-colors">
+              delete deck
+            </button>
+          </>
+        )
       )}
 
       <div className="w-px h-5 bg-white/10" />
 
       <div className="flex gap-1 items-center">
         {activeDeck?.pages.map((page) => (
-          <button
-            key={page.id}
-            onClick={() => onSelectPage(page.id)}
-            onDoubleClick={() => handlePageDoubleClick(page)}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              activePage?.id === page.id
-                ? "bg-accent/10 text-accent border border-accent/20"
-                : "bg-white/3 text-gray-500 border border-white/5 hover:text-gray-300"
-            }`}
-          >
-            {editingPageId === page.id ? (
-              <input
-                type="text"
-                value={editPageName}
-                onChange={(e) => setEditPageName(e.target.value)}
-                onBlur={() => handlePageRename(page.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handlePageRename(page.id);
-                  if (e.key === "Escape") setEditingPageId(null);
-                }}
-                autoFocus
-                className="bg-transparent border-none outline-none w-16 text-xs"
-                onClick={(e) => e.stopPropagation()}
-              />
+          <div key={page.id} className="flex items-center gap-0.5">
+            {confirmDeletePageId === page.id ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
+                <span className="text-[10px] text-red-400">Delete?</span>
+                <button onClick={() => { onDeletePage(page.id); setConfirmDeletePageId(null); }}
+                  className="text-[10px] text-red-400 font-medium hover:text-red-300">yes</button>
+                <button onClick={() => setConfirmDeletePageId(null)}
+                  className="text-[10px] text-gray-500 hover:text-gray-300">no</button>
+              </div>
             ) : (
-              page.name
+              <>
+                <button
+                  onClick={() => onSelectPage(page.id)}
+                  onDoubleClick={() => handlePageDoubleClick(page)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    activePage?.id === page.id
+                      ? "bg-accent/10 text-accent border border-accent/20"
+                      : "bg-white/3 text-gray-500 border border-white/5 hover:text-gray-300"
+                  }`}
+                >
+                  {editingPageId === page.id ? (
+                    <input
+                      type="text"
+                      value={editPageName}
+                      onChange={(e) => setEditPageName(e.target.value)}
+                      onBlur={() => handlePageRename(page.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handlePageRename(page.id);
+                        if (e.key === "Escape") setEditingPageId(null);
+                      }}
+                      autoFocus
+                      className="bg-transparent border-none outline-none w-16 text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    page.name
+                  )}
+                </button>
+                {editMode && activeDeck.pages.length > 1 && (
+                  <button
+                    onClick={() => setConfirmDeletePageId(page.id)}
+                    className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-0.5"
+                  >
+                    x
+                  </button>
+                )}
+              </>
             )}
-          </button>
+          </div>
         ))}
         {creatingPage ? (
           <div className="flex items-center gap-1">
