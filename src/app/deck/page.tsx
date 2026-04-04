@@ -1,0 +1,173 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { useDeck } from "@/hooks/use-deck";
+import { DeckTopbar } from "@/components/deck-topbar";
+import { DeckToolbar } from "@/components/deck-toolbar";
+import { DeckGrid } from "@/components/deck-grid";
+import { DeckConfigPanel } from "@/components/deck-config-panel";
+import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig } from "@/lib/types";
+
+function defaultButtonConfig(): ButtonConfig {
+  return {
+    mode: "trigger",
+    triggerValue: { type: "f", value: 1 },
+    toggleOnValue: { type: "f", value: 1 },
+    toggleOffValue: { type: "f", value: 0 },
+  };
+}
+
+function defaultSliderConfig(): SliderConfig {
+  return { orientation: "vertical", min: 0, max: 1, valueType: "f" };
+}
+
+function defaultXYPadConfig(): XYPadConfig {
+  return {
+    xAddress: "/x", yAddress: "/y",
+    xMin: 0, xMax: 1, yMin: 0, yMax: 1,
+  };
+}
+
+export default function DeckPage() {
+  const {
+    decks, activeDeck, activePage,
+    selectDeck, selectPage,
+    createDeck, updateDeck, deleteDeck,
+    createPage, updatePage, deletePage,
+    addItem, updateItem, removeItem,
+    addGroup, updateGroup, removeGroup,
+    sendOsc,
+  } = useDeck();
+
+  const [editMode, setEditMode] = useState(false);
+  const [placingType, setPlacingType] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
+  const selectedItem = activePage
+    ? activePage.items.find((i) => i.id === selectedItemId) ??
+      activePage.groups.flatMap((g) => g.items).find((i) => i.id === selectedItemId) ??
+      null
+    : null;
+
+  const selectedGroup = activePage?.groups.find((g) => g.id === selectedGroupId) ?? null;
+
+  const handlePlaceItem = useCallback(async (col: number, row: number) => {
+    if (!placingType) return;
+
+    if (placingType === "group") {
+      await addGroup({
+        name: "Group",
+        color: "gray",
+        col, row, colSpan: 3, rowSpan: 3,
+      });
+    } else {
+      const configs: Record<string, ButtonConfig | SliderConfig | XYPadConfig> = {
+        button: defaultButtonConfig(),
+        slider: defaultSliderConfig(),
+        "xy-pad": defaultXYPadConfig(),
+      };
+      const spans: Record<string, { colSpan: number; rowSpan: number }> = {
+        button: { colSpan: 2, rowSpan: 1 },
+        slider: { colSpan: 1, rowSpan: 3 },
+        "xy-pad": { colSpan: 3, rowSpan: 3 },
+      };
+      const s = spans[placingType] ?? { colSpan: 1, rowSpan: 1 };
+      await addItem({
+        name: placingType.charAt(0).toUpperCase() + placingType.slice(1),
+        type: placingType as DeckItem["type"],
+        col, row, ...s,
+        oscAddress: "/address",
+        oscTarget: { host: "127.0.0.1", port: 8000 },
+        color: "gray",
+        config: configs[placingType],
+      });
+    }
+    setPlacingType(null);
+  }, [placingType, addItem, addGroup]);
+
+  const handleSelectItem = useCallback((itemId: string) => {
+    if (!editMode) return;
+    setSelectedItemId(itemId);
+    setSelectedGroupId(null);
+  }, [editMode]);
+
+  const handleSelectGroup = useCallback((groupId: string) => {
+    if (!editMode) return;
+    setSelectedGroupId(groupId);
+    setSelectedItemId(null);
+  }, [editMode]);
+
+  const handleCloseConfig = () => {
+    setSelectedItemId(null);
+    setSelectedGroupId(null);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <DeckTopbar
+        decks={decks}
+        activeDeck={activeDeck}
+        activePage={activePage}
+        editMode={editMode}
+        onSelectDeck={selectDeck}
+        onSelectPage={selectPage}
+        onCreateDeck={createDeck}
+        onDeleteDeck={deleteDeck}
+        onRenameDeck={(id, name) => updateDeck(id, { name })}
+        onCreatePage={createPage}
+        onDeletePage={deletePage}
+        onRenamePage={(id, name) => updatePage(id, { name })}
+        onToggleEdit={() => {
+          setEditMode(!editMode);
+          setPlacingType(null);
+          handleCloseConfig();
+        }}
+      />
+
+      {editMode && (
+        <DeckToolbar
+          placingType={placingType}
+          onStartPlace={(type) => setPlacingType(type)}
+          onCancelPlace={() => setPlacingType(null)}
+        />
+      )}
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {activePage && activeDeck ? (
+          <DeckGrid
+            page={activePage}
+            gridColumns={activeDeck.gridColumns}
+            gridRows={activeDeck.gridRows}
+            editMode={editMode}
+            placingType={placingType}
+            onSendOsc={sendOsc}
+            onSelectItem={handleSelectItem}
+            onSelectGroup={handleSelectGroup}
+            onPlaceItem={handlePlaceItem}
+            onMoveItem={() => {}}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-600">
+            No deck selected. Create one to get started.
+          </div>
+        )}
+
+        {editMode && (selectedItem || selectedGroup) && (
+          <DeckConfigPanel
+            item={selectedItem}
+            group={selectedGroup}
+            onUpdateItem={selectedItemId ? (updates) => updateItem(selectedItemId, updates) : undefined}
+            onUpdateGroup={selectedGroupId ? (updates) => updateGroup(selectedGroupId, updates) : undefined}
+            onDelete={() => {
+              if (selectedItemId) removeItem(selectedItemId);
+              if (selectedGroupId) removeGroup(selectedGroupId);
+              handleCloseConfig();
+            }}
+            onClose={handleCloseConfig}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
