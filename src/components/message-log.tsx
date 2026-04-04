@@ -37,7 +37,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
       for (const msg of result) {
         seen.set(msg.address, msg);
       }
-      result = Array.from(seen.values());
+      result = Array.from(seen.values()).sort((a, b) => a.address.localeCompare(b.address));
     }
 
     return result;
