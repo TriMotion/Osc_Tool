@@ -3,6 +3,7 @@ import { OscManager } from "./osc-manager";
 import { DiagnosticsRunner } from "./diagnostics";
 import { WebServer } from "./web-server";
 import { EndpointsStore } from "./endpoints-store";
+import { DeckStore } from "./deck-store";
 import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
@@ -10,12 +11,37 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const diagnostics = new DiagnosticsRunner();
   const webServer = new WebServer(oscManager);
   const endpointsStore = new EndpointsStore();
+  const deckStore = new DeckStore();
 
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
   ipcMain.handle("endpoints:add", (_e, endpoint) => endpointsStore.add(endpoint));
   ipcMain.handle("endpoints:update", (_e, id: string, updates) => endpointsStore.update(id, updates));
   ipcMain.handle("endpoints:remove", (_e, id: string) => endpointsStore.remove(id));
+
+  // --- Deck ---
+  ipcMain.handle("deck:get-all", () => deckStore.getDecks());
+  ipcMain.handle("deck:get", (_e, id: string) => deckStore.getDeck(id));
+  ipcMain.handle("deck:create", (_e, name: string) => deckStore.createDeck(name));
+  ipcMain.handle("deck:update", (_e, id: string, updates) => deckStore.updateDeck(id, updates));
+  ipcMain.handle("deck:delete", (_e, id: string) => deckStore.deleteDeck(id));
+  ipcMain.handle("deck:create-page", (_e, deckId: string, name: string) => deckStore.createPage(deckId, name));
+  ipcMain.handle("deck:update-page", (_e, deckId: string, pageId: string, updates) => deckStore.updatePage(deckId, pageId, updates));
+  ipcMain.handle("deck:delete-page", (_e, deckId: string, pageId: string) => deckStore.deletePage(deckId, pageId));
+  ipcMain.handle("deck:add-item", (_e, deckId: string, pageId: string, item) => deckStore.addItem(deckId, pageId, item));
+  ipcMain.handle("deck:update-item", (_e, deckId: string, pageId: string, itemId: string, updates) => deckStore.updateItem(deckId, pageId, itemId, updates));
+  ipcMain.handle("deck:remove-item", (_e, deckId: string, pageId: string, itemId: string) => deckStore.removeItem(deckId, pageId, itemId));
+  ipcMain.handle("deck:add-group", (_e, deckId: string, pageId: string, group) => deckStore.addGroup(deckId, pageId, group));
+  ipcMain.handle("deck:update-group", (_e, deckId: string, pageId: string, groupId: string, updates) => deckStore.updateGroup(deckId, pageId, groupId, updates));
+  ipcMain.handle("deck:remove-group", (_e, deckId: string, pageId: string, groupId: string) => deckStore.removeGroup(deckId, pageId, groupId));
+  ipcMain.handle("deck:move-item-to-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => deckStore.moveItemToGroup(deckId, pageId, itemId, groupId));
+  ipcMain.handle("deck:move-item-out-of-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => deckStore.moveItemOutOfGroup(deckId, pageId, itemId, groupId));
+
+  // --- Deck interaction (send OSC from deck items) ---
+  ipcMain.handle("deck:send-osc", async (_e, host: string, port: number, address: string, args: OscArg[]) => {
+    await oscManager.sendMessage({ host, port }, address, args);
+    return { ok: true };
+  });
 
   // --- Listener ---
   ipcMain.handle("osc:start-listener", async (_e, config: ListenerConfig) => {
