@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import type { OscMessage } from "@/lib/types";
 
 interface MessageLogProps {
@@ -13,20 +13,34 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
   const [pinned, setPinned] = useState(true);
   const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState("");
+  const [uniqueOnly, setUniqueOnly] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
 
   useEffect(() => {
-    if (pinned && scrollRef.current) {
+    if (pinned && !uniqueOnly && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, pinned]);
+  }, [messages, pinned, uniqueOnly]);
 
-  const filtered = filter
-    ? messages.filter(
-        (m) =>
-          m.address.includes(filter) ||
-          m.sourceIp?.includes(filter)
-      )
-    : messages;
+  const filtered = useMemo(() => {
+    let result = filter
+      ? messages.filter(
+          (m) =>
+            m.address.includes(filter) ||
+            m.sourceIp?.includes(filter)
+        )
+      : messages;
+
+    if (uniqueOnly) {
+      const seen = new Map<string, OscMessage>();
+      for (const msg of result) {
+        seen.set(msg.address, msg);
+      }
+      result = Array.from(seen.values());
+    }
+
+    return result;
+  }, [messages, filter, uniqueOnly]);
 
   const formatTime = (ts: number) => {
     const d = new Date(ts);
@@ -35,6 +49,14 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
 
   const formatArgs = (msg: OscMessage) =>
     msg.args.map((a) => `${a.value} (${a.type})`).join(", ");
+
+  const handleCopy = async (msg: OscMessage, index: number) => {
+    const values = msg.args.map((a) => a.value).join(", ");
+    const text = `${msg.address} ${values}`;
+    await navigator.clipboard.writeText(text);
+    setCopied(index);
+    setTimeout(() => setCopied(null), 1000);
+  };
 
   return (
     <div className="flex flex-col h-full gap-3">
@@ -46,6 +68,16 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent/50"
         />
+        <button
+          onClick={() => setUniqueOnly(!uniqueOnly)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            uniqueOnly
+              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          Unique
+        </button>
         <button
           onClick={() => setPaused(!paused)}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -85,13 +117,14 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
               <th className="px-3 py-2 w-40">Source</th>
               <th className="px-3 py-2">Address</th>
               <th className="px-3 py-2">Values</th>
+              <th className="px-3 py-2 w-12"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((msg, i) => (
               <tr
-                key={`${msg.timestamp}-${i}`}
-                className="border-t border-white/5 hover:bg-white/5"
+                key={uniqueOnly ? msg.address : `${msg.timestamp}-${i}`}
+                className="border-t border-white/5 hover:bg-white/5 group"
               >
                 <td className="px-3 py-1.5 text-gray-500">{formatTime(msg.timestamp)}</td>
                 <td className="px-3 py-1.5 text-gray-400">
@@ -99,6 +132,18 @@ export function MessageLog({ messages, onClear }: MessageLogProps) {
                 </td>
                 <td className="px-3 py-1.5 text-accent">{msg.address}</td>
                 <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
+                <td className="px-3 py-1.5">
+                  <button
+                    onClick={() => handleCopy(msg, i)}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity text-xs px-1.5 py-0.5 rounded ${
+                      copied === i
+                        ? "text-green-400"
+                        : "text-gray-500 hover:text-gray-200"
+                    }`}
+                  >
+                    {copied === i ? "✓" : "copy"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

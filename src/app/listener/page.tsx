@@ -83,7 +83,7 @@ export default function ListenerPage() {
                 key={p}
                 className="inline-flex items-center gap-2 bg-accent/10 text-accent text-xs px-3 py-1 rounded-full border border-accent/20"
               >
-                :{p}
+                {bindAddress}:{p}
                 <button
                   onClick={() => handleStop(p)}
                   className="hover:text-red-400 transition-colors"
