@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDeck } from "@/hooks/use-deck";
+import { useEndpoints } from "@/hooks/use-osc";
 import { DeckTopbar } from "@/components/deck-topbar";
 import { DeckToolbar } from "@/components/deck-toolbar";
 import { DeckGrid } from "@/components/deck-grid";
@@ -39,10 +40,15 @@ export default function DeckPage() {
     sendOsc,
   } = useDeck();
 
+  const { endpoints: senderEndpoints } = useEndpoints("sender");
+  const { endpoints: listenerEndpoints } = useEndpoints("listener");
+  const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
+
   const [editMode, setEditMode] = useState(false);
   const [placingType, setPlacingType] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const lastUsedEndpointId = useRef<string | undefined>(undefined);
 
   const selectedItem = activePage
     ? activePage.items.find((i) => i.id === selectedItemId) ??
@@ -73,18 +79,24 @@ export default function DeckPage() {
         "xy-pad": { colSpan: 3, rowSpan: 3 },
       };
       const s = spans[placingType] ?? { colSpan: 1, rowSpan: 1 };
+      const lastEp = lastUsedEndpointId.current
+        ? allEndpoints.find((e) => e.id === lastUsedEndpointId.current)
+        : undefined;
       await addItem({
         name: placingType.charAt(0).toUpperCase() + placingType.slice(1),
         type: placingType as DeckItem["type"],
         col, row, ...s,
         oscAddress: "/address",
-        oscTarget: { host: "127.0.0.1", port: 8000 },
+        oscTarget: lastEp
+          ? { host: lastEp.host, port: lastEp.port }
+          : { host: "127.0.0.1", port: 8000 },
+        oscTargetEndpointId: lastEp?.id,
         color: "gray",
         config: configs[placingType],
       });
     }
     setPlacingType(null);
-  }, [placingType, addItem, addGroup]);
+  }, [placingType, addItem, addGroup, allEndpoints]);
 
   const handleSelectItem = useCallback((itemId: string) => {
     if (!editMode) return;
@@ -157,7 +169,12 @@ export default function DeckPage() {
           <DeckConfigPanel
             item={selectedItem}
             group={selectedGroup}
-            onUpdateItem={selectedItemId ? (updates) => updateItem(selectedItemId, updates) : undefined}
+            onUpdateItem={selectedItemId ? (updates) => {
+              if (updates.oscTargetEndpointId) {
+                lastUsedEndpointId.current = updates.oscTargetEndpointId;
+              }
+              updateItem(selectedItemId, updates);
+            } : undefined}
             onUpdateGroup={selectedGroupId ? (updates) => updateGroup(selectedGroupId, updates) : undefined}
             onDelete={() => {
               if (selectedItemId) removeItem(selectedItemId);
