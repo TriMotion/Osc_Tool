@@ -1,8 +1,54 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg } from "@/lib/types";
+import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg, SavedEndpoint } from "@/lib/types";
 import { useEndpoints } from "@/hooks/use-osc";
+
+function SavedEndpointRow({ endpoint, onSelect, onUpdate }: {
+  endpoint: SavedEndpoint;
+  onSelect: () => void;
+  onUpdate: (updates: Partial<Omit<SavedEndpoint, "id">>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [host, setHost] = useState(endpoint.host);
+  const [port, setPort] = useState(String(endpoint.port));
+
+  useEffect(() => { setHost(endpoint.host); setPort(String(endpoint.port)); }, [endpoint]);
+
+  const handleSave = () => {
+    onUpdate({ host, port: parseInt(port, 10) });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 bg-surface border border-accent/20 rounded-lg px-2 py-1">
+        <span className="text-[10px] text-gray-400 min-w-[40px]">{endpoint.name}</span>
+        <input type="text" value={host} onChange={(e) => setHost(e.target.value)}
+          className="flex-1 bg-surface-lighter border border-white/10 rounded px-1 py-0.5 text-[10px] w-20 focus:outline-none" />
+        <span className="text-gray-600 text-[10px]">:</span>
+        <input type="text" value={port} onChange={(e) => setPort(e.target.value)}
+          className="bg-surface-lighter border border-white/10 rounded px-1 py-0.5 text-[10px] w-12 focus:outline-none" />
+        <button onClick={handleSave} className="text-[10px] text-accent hover:text-accent-dim">ok</button>
+        <button onClick={() => setEditing(false)} className="text-[10px] text-gray-500 hover:text-gray-300">x</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 bg-surface rounded-lg px-2 py-1 group hover:bg-surface-lighter transition-colors">
+      <button onClick={onSelect} className="flex-1 text-left text-[10px]">
+        <span className="text-gray-400">{endpoint.name}</span>
+        <span className="text-gray-600 ml-1">{endpoint.host}:{endpoint.port}</span>
+        <span className="text-gray-700 ml-1">({endpoint.type})</span>
+      </button>
+      <button onClick={() => setEditing(true)}
+        className="opacity-0 group-hover:opacity-100 text-[10px] text-gray-500 hover:text-gray-300 transition-all">
+        edit
+      </button>
+    </div>
+  );
+}
 
 interface ConfigPanelProps {
   item?: DeckItem | null;
@@ -20,7 +66,9 @@ const swatchColors: Record<string, string> = {
 };
 
 export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onClose }: ConfigPanelProps) {
-  const { endpoints } = useEndpoints("sender");
+  const { endpoints: senderEndpoints, update: updateSenderEndpoint } = useEndpoints("sender");
+  const { endpoints: listenerEndpoints, update: updateListenerEndpoint } = useEndpoints("listener");
+  const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
   const [name, setName] = useState("");
   const [color, setColor] = useState("gray");
   const [oscAddress, setOscAddress] = useState("");
@@ -200,14 +248,22 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 <input type="text" value={targetPort} onChange={(e) => setTargetPort(e.target.value)}
                   className="w-20 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-accent/50" />
               </div>
-              {endpoints.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {endpoints.map((ep) => (
-                    <button key={ep.id} onClick={() => { setTargetHost(ep.host); setTargetPort(String(ep.port)); }}
-                      className="text-[10px] text-gray-500 hover:text-accent bg-surface px-1.5 py-0.5 rounded transition-colors">
-                      {ep.name}
-                    </button>
-                  ))}
+              {allEndpoints.length > 0 && (
+                <div className="mt-2">
+                  <label className="block text-xs text-gray-500 mb-1">Saved Endpoints</label>
+                  <div className="flex flex-col gap-1">
+                    {allEndpoints.map((ep) => (
+                      <SavedEndpointRow
+                        key={ep.id}
+                        endpoint={ep}
+                        onSelect={() => { setTargetHost(ep.host); setTargetPort(String(ep.port)); }}
+                        onUpdate={(updates) => {
+                          const updater = ep.type === "sender" ? updateSenderEndpoint : updateListenerEndpoint;
+                          updater(ep.id, updates);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
