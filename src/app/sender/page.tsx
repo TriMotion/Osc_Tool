@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { OscInput } from "@/components/osc-input";
+import { EndpointPicker } from "@/components/endpoint-picker";
 import { useOscSender } from "@/hooks/use-osc";
 import type { OscArg } from "@/lib/types";
 
@@ -66,6 +67,13 @@ export default function SenderPage() {
           />
         </div>
       </div>
+
+      <EndpointPicker
+        type="sender"
+        currentHost={host}
+        currentPort={port}
+        onSelect={(h, p) => { setHost(h); setPort(p); }}
+      />
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 

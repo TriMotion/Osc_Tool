@@ -38,3 +38,11 @@ export interface SenderConfig {
   host: string;
   port: number;
 }
+
+export interface SavedEndpoint {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  type: "listener" | "sender";
+}

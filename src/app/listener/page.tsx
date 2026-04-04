@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { MessageLog } from "@/components/message-log";
+import { EndpointPicker } from "@/components/endpoint-picker";
 import { useOscListener, useListenerControl } from "@/hooks/use-osc";
 import type { OscMessage, ListenerConfig } from "@/lib/types";
 
@@ -99,6 +100,13 @@ export default function ListenerPage() {
           </div>
         )}
       </div>
+
+      <EndpointPicker
+        type="listener"
+        currentHost={bindAddress}
+        currentPort={port}
+        onSelect={(host, p) => { setBindAddress(host); setPort(p); }}
+      />
 
       <div className="flex-1 min-h-0">
         <MessageLog

@@ -3,6 +3,7 @@ import { OscManager } from "./osc-manager";
 import { PresetsStore } from "./presets-store";
 import { DiagnosticsRunner } from "./diagnostics";
 import { WebServer } from "./web-server";
+import { EndpointsStore } from "./endpoints-store";
 import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
@@ -10,6 +11,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const presetsStore = new PresetsStore();
   const diagnostics = new DiagnosticsRunner();
   const webServer = new WebServer(oscManager);
+  const endpointsStore = new EndpointsStore();
+
+  // --- Endpoints ---
+  ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
+  ipcMain.handle("endpoints:add", (_e, endpoint) => endpointsStore.add(endpoint));
+  ipcMain.handle("endpoints:update", (_e, id: string, updates) => endpointsStore.update(id, updates));
+  ipcMain.handle("endpoints:remove", (_e, id: string) => endpointsStore.remove(id));
 
   // --- Listener ---
   ipcMain.handle("osc:start-listener", async (_e, config: ListenerConfig) => {

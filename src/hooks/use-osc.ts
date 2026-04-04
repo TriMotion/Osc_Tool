@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useState } from "react";
-import type { OscMessage, ListenerConfig, SenderConfig, OscArg, Preset, DiagnosticsResult } from "@/lib/types";
+import type { OscMessage, ListenerConfig, SenderConfig, OscArg, Preset, DiagnosticsResult, SavedEndpoint } from "@/lib/types";
 
 declare global {
   interface Window {
@@ -196,4 +196,42 @@ export function useWebServer() {
   }, [checkStatus]);
 
   return { running, url, start, stop };
+}
+
+export function useEndpoints(type: "listener" | "sender") {
+  const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
+
+  const refresh = useCallback(async () => {
+    const api = getAPI();
+    if (!api) return;
+    const all = (await api.invoke("endpoints:get-all", type)) as SavedEndpoint[];
+    setEndpoints(all);
+  }, [type]);
+
+  const add = useCallback(async (endpoint: Omit<SavedEndpoint, "id">) => {
+    const api = getAPI();
+    if (!api) return;
+    await api.invoke("endpoints:add", endpoint);
+    await refresh();
+  }, [refresh]);
+
+  const update = useCallback(async (id: string, updates: Partial<Omit<SavedEndpoint, "id">>) => {
+    const api = getAPI();
+    if (!api) return;
+    await api.invoke("endpoints:update", id, updates);
+    await refresh();
+  }, [refresh]);
+
+  const remove = useCallback(async (id: string) => {
+    const api = getAPI();
+    if (!api) return;
+    await api.invoke("endpoints:remove", id);
+    await refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { endpoints, add, update, remove, refresh };
 }
