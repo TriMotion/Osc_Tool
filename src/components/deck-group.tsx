@@ -7,6 +7,8 @@ interface DeckGroupProps {
   group: DeckGroup;
   editMode: boolean;
   onSendOsc: (host: string, port: number, address: string, args: OscArg[]) => void;
+  onValueChange: (itemId: string, value: unknown) => void;
+  itemValues: Record<string, unknown>;
   onSelectItem?: (itemId: string) => void;
   onSelectGroup?: () => void;
   onDragStart?: (e: React.MouseEvent) => void;
@@ -22,7 +24,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string }> = {
   gray:   { bg: "rgba(255,255,255,0.02)", border: "rgba(255,255,255,0.08)", text: "#9ca3af" },
 };
 
-export function DeckGroupView({ group, editMode, onSendOsc, onSelectItem, onSelectGroup, onDragStart }: DeckGroupProps) {
+export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onDragStart }: DeckGroupProps) {
   const colors = colorMap[group.color] ?? colorMap.gray;
 
   return (
@@ -58,7 +60,9 @@ export function DeckGroupView({ group, editMode, onSendOsc, onSelectItem, onSele
             <DeckItemView
               item={item}
               editMode={editMode}
+              value={itemValues[item.id]}
               onSendOsc={onSendOsc}
+              onValueChange={onValueChange}
               onSelect={() => onSelectItem?.(item.id)}
             />
           </div>

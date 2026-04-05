@@ -44,10 +44,32 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("deck:move-item-to-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => { const r = deckStore.moveItemToGroup(deckId, pageId, itemId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
   ipcMain.handle("deck:move-item-out-of-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => { const r = deckStore.moveItemOutOfGroup(deckId, pageId, itemId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
 
-  // --- Deck interaction (send OSC from deck items) ---
+  // --- Deck live values (synced across all clients) ---
+  const itemValues: Map<string, unknown> = new Map();
+
+  function broadcastValue(itemId: string, value: unknown) {
+    itemValues.set(itemId, value);
+    const payload = { type: "deck-value", itemId, value };
+    mainWindow.webContents.send("deck:value", payload);
+    webServer.broadcastMessage(payload);
+  }
+
+  webServer.setValueChangeHandler((itemId, value) => {
+    broadcastValue(itemId, value);
+  });
+
   ipcMain.handle("deck:send-osc", async (_e, host: string, port: number, address: string, args: OscArg[]) => {
     await oscManager.sendMessage({ host, port }, address, args);
     return { ok: true };
+  });
+
+  ipcMain.handle("deck:set-value", (_e, itemId: string, value: unknown) => {
+    broadcastValue(itemId, value);
+    return { ok: true };
+  });
+
+  ipcMain.handle("deck:get-values", () => {
+    return Object.fromEntries(itemValues);
   });
 
   // --- Listener ---

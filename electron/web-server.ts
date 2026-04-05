@@ -11,7 +11,13 @@ export class WebServer {
   private wss: WebSocketServer | null = null;
   private clients: Set<WebSocket> = new Set();
 
+  private onValueChange?: (itemId: string, value: unknown) => void;
+
   constructor(private oscManager: OscManager, private deckStore: DeckStore) {}
+
+  setValueChangeHandler(handler: (itemId: string, value: unknown) => void) {
+    this.onValueChange = handler;
+  }
 
   start(port: number): string {
     const app = express();
@@ -45,10 +51,12 @@ export class WebServer {
             const config = item.config as any;
             if (msg.type === "deck-trigger" && config.triggerValue) {
               this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [config.triggerValue]);
+              this.onValueChange?.(item.id, { triggered: true });
             }
             if (msg.type === "deck-toggle" && config.toggleOnValue) {
               const val = msg.state ? config.toggleOnValue : config.toggleOffValue;
               this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [val]);
+              this.onValueChange?.(item.id, { toggled: msg.state });
             }
           }
           if (msg.type === "deck-slider") {
@@ -62,6 +70,7 @@ export class WebServer {
             this.oscManager.sendMessage(item.oscTarget, item.oscAddress, [
               { type: (item.config as any).valueType || "f", value: msg.value },
             ]);
+            this.onValueChange?.(item.id, { slider: msg.value });
           }
           if (msg.type === "deck-xy") {
             const deck = this.deckStore.getDeck(msg.deckId);
@@ -74,6 +83,7 @@ export class WebServer {
             const config = item.config as any;
             this.oscManager.sendMessage(item.oscTarget, config.xAddress, [{ type: "f", value: msg.x }]);
             this.oscManager.sendMessage(item.oscTarget, config.yAddress, [{ type: "f", value: msg.y }]);
+            this.onValueChange?.(item.id, { xy: { x: msg.x, y: msg.y } });
           }
         } catch {
           // ignore malformed
@@ -127,6 +137,15 @@ export class WebServer {
     }
 
     return `http://${localIp}:${port}`;
+  }
+
+  broadcastMessage(msg: unknown): void {
+    const payload = JSON.stringify(msg);
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
   }
 
   broadcastDeckUpdate(decks: unknown): void {

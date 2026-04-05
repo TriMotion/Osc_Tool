@@ -7,7 +7,9 @@ import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig, OscArg } from "
 interface DeckItemProps {
   item: DeckItem;
   editMode: boolean;
+  value?: unknown;
   onSendOsc: (host: string, port: number, address: string, args: OscArg[]) => void;
+  onValueChange?: (itemId: string, value: unknown) => void;
   onSelect?: () => void;
   onDragStart?: (e: React.MouseEvent) => void;
 }
@@ -22,10 +24,11 @@ const colorMap: Record<string, { bg: string; border: string; text: string; fill:
   gray:   { bg: "#222244", border: "rgba(255,255,255,0.08)", text: "#9ca3af", fill: "#6b7280" },
 };
 
-export function DeckItemView({ item, editMode, onSendOsc, onSelect, onDragStart }: DeckItemProps) {
-  const [toggled, setToggled] = useState(false);
-  const [sliderValue, setSliderValue] = useState(0.5);
-  const [xyValue, setXyValue] = useState({ x: 0.5, y: 0.5 });
+export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, onSelect, onDragStart }: DeckItemProps) {
+  const extVal = value as Record<string, unknown> | undefined;
+  const toggled = !!(extVal?.toggled);
+  const sliderValue = typeof extVal?.slider === "number" ? extVal.slider : 0.5;
+  const xyValue = extVal?.xy as { x: number; y: number } | undefined ?? { x: 0.5, y: 0.5 };
 
   const colors = colorMap[item.color] ?? colorMap.gray;
 
@@ -34,11 +37,12 @@ export function DeckItemView({ item, editMode, onSendOsc, onSelect, onDragStart 
     const config = item.config as ButtonConfig;
     if (config.mode === "trigger") {
       onSendOsc(item.oscTarget.host, item.oscTarget.port, item.oscAddress, [config.triggerValue]);
+      onValueChange?.(item.id, { triggered: true });
     } else {
       const newToggled = !toggled;
-      setToggled(newToggled);
       const val = newToggled ? config.toggleOnValue : config.toggleOffValue;
       onSendOsc(item.oscTarget.host, item.oscTarget.port, item.oscAddress, [val]);
+      onValueChange?.(item.id, { toggled: newToggled });
     }
   };
 
@@ -59,10 +63,10 @@ export function DeckItemView({ item, editMode, onSendOsc, onSelect, onDragStart 
       ratio = Math.max(0, Math.min(1, ratio));
       const value = config.min + ratio * (config.max - config.min);
       const rounded = config.valueType === "i" ? Math.round(value) : parseFloat(value.toFixed(3));
-      setSliderValue(ratio);
       onSendOsc(item.oscTarget.host, item.oscTarget.port, item.oscAddress, [
         { type: config.valueType, value: rounded },
       ]);
+      onValueChange?.(item.id, { slider: ratio });
     };
 
     const onMouseMove = (ev: MouseEvent) => updateValue(ev.clientX, ev.clientY);
@@ -85,7 +89,6 @@ export function DeckItemView({ item, editMode, onSendOsc, onSelect, onDragStart 
     const updateValue = (clientX: number, clientY: number) => {
       const xRatio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const yRatio = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height));
-      setXyValue({ x: xRatio, y: yRatio });
       const xVal = config.xMin + xRatio * (config.xMax - config.xMin);
       const yVal = config.yMin + yRatio * (config.yMax - config.yMin);
       onSendOsc(item.oscTarget.host, item.oscTarget.port, config.xAddress, [
@@ -94,6 +97,7 @@ export function DeckItemView({ item, editMode, onSendOsc, onSelect, onDragStart 
       onSendOsc(item.oscTarget.host, item.oscTarget.port, config.yAddress, [
         { type: "f", value: parseFloat(yVal.toFixed(3)) },
       ]);
+      onValueChange?.(item.id, { xy: { x: xRatio, y: yRatio } });
     };
 
     const onMouseMove = (ev: MouseEvent) => updateValue(ev.clientX, ev.clientY);

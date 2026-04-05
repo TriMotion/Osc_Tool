@@ -37,7 +37,7 @@ export default function DeckPage() {
     createPage, updatePage, deletePage,
     addItem, updateItem, removeItem,
     addGroup, updateGroup, removeGroup,
-    sendOsc,
+    sendOsc, setValue, itemValues,
   } = useDeck();
 
   const { endpoints: senderEndpoints } = useEndpoints("sender");
@@ -154,6 +154,8 @@ export default function DeckPage() {
             editMode={editMode}
             placingType={placingType}
             onSendOsc={sendOsc}
+            onValueChange={setValue}
+            itemValues={itemValues}
             onSelectItem={handleSelectItem}
             onSelectGroup={handleSelectGroup}
             onPlaceItem={handlePlaceItem}

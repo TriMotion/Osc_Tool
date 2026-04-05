@@ -11,6 +11,8 @@ interface DeckGridProps {
   editMode: boolean;
   placingType: string | null;
   onSendOsc: (host: string, port: number, address: string, args: OscArg[]) => void;
+  onValueChange: (itemId: string, value: unknown) => void;
+  itemValues: Record<string, unknown>;
   onSelectItem: (itemId: string) => void;
   onSelectGroup: (groupId: string) => void;
   onPlaceItem: (col: number, row: number) => void;
@@ -19,7 +21,7 @@ interface DeckGridProps {
 
 export function DeckGrid({
   page, gridColumns, gridRows, editMode, placingType,
-  onSendOsc, onSelectItem, onSelectGroup, onPlaceItem, onMoveItem,
+  onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onPlaceItem, onMoveItem,
 }: DeckGridProps) {
 
   const handleCellClick = (col: number, row: number) => {
@@ -91,6 +93,8 @@ export function DeckGrid({
             group={group}
             editMode={editMode}
             onSendOsc={onSendOsc}
+            onValueChange={onValueChange}
+            itemValues={itemValues}
             onSelectItem={(itemId) => onSelectItem(itemId)}
             onSelectGroup={() => onSelectGroup(group.id)}
           />
@@ -108,7 +112,9 @@ export function DeckGrid({
           <DeckItemView
             item={item}
             editMode={editMode}
+            value={itemValues[item.id]}
             onSendOsc={onSendOsc}
+            onValueChange={onValueChange}
             onSelect={() => onSelectItem(item.id)}
           />
         </div>

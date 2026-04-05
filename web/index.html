@@ -192,7 +192,7 @@
     const colorClasses = { blue:"item-blue", green:"item-green", purple:"item-purple", red:"item-red", orange:"item-orange", yellow:"item-yellow", gray:"item-gray" };
 
     let decks = [], activeDeckId = null, activePageId = null;
-    const toggleStates = {};
+    const itemValues = {};
 
     // WebSocket
     const ws = new WebSocket(`ws://${location.host}`);
@@ -214,6 +214,9 @@
         document.getElementById("throughput").textContent = `${msg.data} msg/s`;
       } else if (msg.type === "deck-state") {
         decks = msg.data; renderDeckUI();
+      } else if (msg.type === "deck-value") {
+        itemValues[msg.itemId] = msg.value;
+        applyValueUpdate(msg.itemId, msg.value);
       }
     };
 
@@ -289,6 +292,7 @@
     function renderItem(item,deck,page) {
       const el = document.createElement("div");
       el.className = "deck-item " + (colorClasses[item.color]||"item-gray");
+      el.setAttribute("data-item-id", item.id);
       el.style.gridColumn = `${item.col+1}/span ${item.colSpan}`;
       el.style.gridRow = `${item.row+1}/span ${item.rowSpan}`;
 
@@ -299,12 +303,12 @@
     }
 
     function renderButton(el,item,deck,page) {
-      const cfg=item.config, isToggle=cfg.mode==="toggle", on=toggleStates[item.id]||false;
+      const cfg=item.config, isToggle=cfg.mode==="toggle", val=itemValues[item.id], on=!!(val&&val.toggled);
       const btn = document.createElement("div");
       btn.className = "deck-btn" + (on?" on":"");
       btn.innerHTML = `<div class="name">${esc(item.name)}</div><div class="addr">${esc(item.oscAddress)}</div>${isToggle?`<div class="badge" style="color:var(--item-fill);background:${on?"rgba(255,255,255,0.08)":"transparent"}">${on?"ON":"OFF"}</div>`:""}`;
       if (isToggle) {
-        btn.addEventListener("pointerdown", e => { e.preventDefault(); const s=!toggleStates[item.id]; toggleStates[item.id]=s; ws.send(JSON.stringify({type:"deck-toggle",deckId:deck.id,pageId:page.id,itemId:item.id,state:s})); renderGrid(); });
+        btn.addEventListener("pointerdown", e => { e.preventDefault(); const cur=itemValues[item.id]; const s=!(cur&&cur.toggled); itemValues[item.id]={toggled:s}; ws.send(JSON.stringify({type:"deck-toggle",deckId:deck.id,pageId:page.id,itemId:item.id,state:s})); renderGrid(); });
       } else {
         btn.addEventListener("pointerdown", e => { e.preventDefault(); ws.send(JSON.stringify({type:"deck-trigger",deckId:deck.id,pageId:page.id,itemId:item.id})); btn.style.transform="scale(0.93)"; btn.style.boxShadow="0 0 16px var(--item-border)"; });
         btn.addEventListener("pointerup", ()=>{ btn.style.transform=""; btn.style.boxShadow=""; });
@@ -315,14 +319,15 @@
 
     function renderSlider(el,item,deck,page) {
       const cfg=item.config, isVert=cfg.orientation==="vertical", min=cfg.min??0, max=cfg.max??1;
-      let norm = 0.5;
+      const curVal = itemValues[item.id];
+      let norm = (curVal && typeof curVal.slider === "number") ? curVal.slider : 0.5;
       const wrap = document.createElement("div");
       wrap.className = "deck-slider" + (isVert?"":" horizontal");
 
       const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=item.name;
       const track = document.createElement("div"); track.className="track";
-      const fill = document.createElement("div"); fill.className="fill";
-      const valEl = document.createElement("div"); valEl.className="val"; valEl.textContent=(min+(max-min)*norm).toFixed(2);
+      const fill = document.createElement("div"); fill.className="fill"; fill.id=`sf-${item.id}`;
+      const valEl = document.createElement("div"); valEl.className="val"; valEl.id=`sv-${item.id}`; valEl.textContent=(min+(max-min)*norm).toFixed(2);
 
       if (isVert) fill.style.height=`${norm*100}%`; else fill.style.width=`${norm*100}%`;
       track.appendChild(fill);
@@ -351,13 +356,14 @@
 
     function renderXYPad(el,item,deck,page) {
       const cfg=item.config, xMin=cfg.xMin??0, xMax=cfg.xMax??1, yMin=cfg.yMin??0, yMax=cfg.yMax??1;
-      let nx=0.5, ny=0.5;
+      const curVal = itemValues[item.id];
+      let nx = (curVal?.xy?.x) ?? 0.5, ny = (curVal?.xy?.y) ?? 0.5;
       const wrap = document.createElement("div"); wrap.className="deck-xy";
       const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=item.name;
       const pad = document.createElement("div"); pad.className="pad";
-      const ch = document.createElement("div"); ch.className="crosshair-h"; ch.style.top="50%";
-      const cv = document.createElement("div"); cv.className="crosshair-v"; cv.style.left="50%";
-      const dot = document.createElement("div"); dot.className="dot"; dot.style.left="50%"; dot.style.top="50%";
+      const ch = document.createElement("div"); ch.className="crosshair-h"; ch.id=`xyh-${item.id}`; ch.style.top=`${(1-ny)*100}%`;
+      const cv = document.createElement("div"); cv.className="crosshair-v"; cv.id=`xyv-${item.id}`; cv.style.left=`${nx*100}%`;
+      const dot = document.createElement("div"); dot.className="dot"; dot.id=`xyd-${item.id}`; dot.style.left=`${nx*100}%`; dot.style.top=`${(1-ny)*100}%`;
       pad.appendChild(ch); pad.appendChild(cv); pad.appendChild(dot);
       const coords = document.createElement("div"); coords.className="coords"; coords.innerHTML=`<span>${esc(cfg.xAddress||"")}</span><span>${nx.toFixed(2)}, ${(1-ny).toFixed(2)}</span><span>${esc(cfg.yAddress||"")}</span>`;
 
@@ -379,6 +385,36 @@
         ws.send(JSON.stringify({type:"deck-xy",deckId:deck.id,pageId:page.id,itemId:item.id,x,y}));
       }
       el.appendChild(wrap);
+    }
+
+    function applyValueUpdate(itemId, value) {
+      if (!value) return;
+      // Toggle
+      if (value.toggled !== undefined) {
+        const btn = document.querySelector(`[data-item-id="${itemId}"] .deck-btn`);
+        if (btn) {
+          btn.classList.toggle("on", value.toggled);
+          const badge = btn.querySelector(".badge");
+          if (badge) badge.textContent = value.toggled ? "ON" : "OFF";
+        }
+      }
+      // Slider
+      if (value.slider !== undefined) {
+        const fill = document.getElementById(`sf-${itemId}`);
+        if (fill) {
+          if (fill.style.height) fill.style.height = `${value.slider * 100}%`;
+          else fill.style.width = `${value.slider * 100}%`;
+        }
+      }
+      // XY
+      if (value.xy) {
+        const dot = document.getElementById(`xyd-${itemId}`);
+        const ch = document.getElementById(`xyh-${itemId}`);
+        const cv = document.getElementById(`xyv-${itemId}`);
+        if (dot) { dot.style.left = `${value.xy.x*100}%`; dot.style.top = `${(1-value.xy.y)*100}%`; }
+        if (ch) ch.style.top = `${(1-value.xy.y)*100}%`;
+        if (cv) cv.style.left = `${value.xy.x*100}%`;
+      }
     }
 
     function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }

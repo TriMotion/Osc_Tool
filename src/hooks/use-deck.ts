@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import type { Deck, DeckPage, DeckItem, DeckGroup, OscArg } from "@/lib/types";
 
 function getAPI() {
@@ -152,6 +152,31 @@ export function useDeck() {
     await api.invoke("deck:send-osc", host, port, address, args);
   }, []);
 
+  // --- Live value syncing ---
+  const [itemValues, setItemValues] = useState<Record<string, unknown>>({});
+
+  const setValue = useCallback(async (itemId: string, value: unknown) => {
+    const api = getAPI();
+    if (!api) return;
+    setItemValues((prev) => ({ ...prev, [itemId]: value }));
+    await api.invoke("deck:set-value", itemId, value);
+  }, []);
+
+  useEffect(() => {
+    const api = getAPI();
+    if (!api) return;
+    // Load initial values
+    api.invoke("deck:get-values").then((vals) => {
+      if (vals) setItemValues(vals as Record<string, unknown>);
+    });
+    // Listen for value updates from other clients
+    const unsub = api.on("deck:value", (payload) => {
+      const { itemId, value } = payload as { itemId: string; value: unknown };
+      setItemValues((prev) => ({ ...prev, [itemId]: value }));
+    });
+    return unsub;
+  }, []);
+
   return {
     decks, activeDeck, activePage,
     selectDeck, selectPage,
@@ -160,6 +185,6 @@ export function useDeck() {
     addItem, updateItem, removeItem,
     addGroup, updateGroup, removeGroup,
     moveItemToGroup, moveItemOutOfGroup,
-    sendOsc, refresh,
+    sendOsc, setValue, itemValues, refresh,
   };
 }
