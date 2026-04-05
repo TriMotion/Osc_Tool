@@ -1,577 +1,389 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>OSC Tool — Remote</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwindcss.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            surface: { DEFAULT: "#1a1a2e", light: "#222244", lighter: "#2a2a4a" },
-            accent: { DEFAULT: "#00d4aa", dim: "#00a080" },
-          },
-        },
-      },
-    };
-  </script>
   <style>
-    .deck-grid {
-      display: grid;
-      gap: 6px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --surface: #1a1a2e;
+      --surface-light: #222244;
+      --surface-lighter: #2a2a4a;
+      --accent: #00d4aa;
+      --accent-dim: #00a080;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --text-muted: #6b7280;
+      --border: rgba(255,255,255,0.08);
     }
-    .deck-item {
-      min-height: 56px;
-      user-select: none;
-      touch-action: none;
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
     }
-    .btn-trigger {
-      transition: background-color 0.08s, transform 0.08s;
-    }
-    .btn-trigger:active {
-      transform: scale(0.95);
-    }
-    .btn-on {
-      filter: brightness(1.2);
-      box-shadow: 0 0 10px currentColor;
-    }
-    .slider-track {
-      position: relative;
-      background: #2a2a4a;
-      border-radius: 6px;
-      overflow: hidden;
-      cursor: pointer;
-    }
-    .slider-fill {
-      background: #00d4aa;
-      border-radius: 6px;
-      transition: none;
-      pointer-events: none;
-    }
-    .xy-pad {
-      position: relative;
-      background: #222244;
-      border-radius: 8px;
-      cursor: crosshair;
-      overflow: hidden;
-    }
-    .xy-dot {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #00d4aa;
-      box-shadow: 0 0 8px #00d4aa;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      transition: none;
-    }
-    .xy-crosshair-h, .xy-crosshair-v {
-      position: absolute;
-      background: rgba(0, 212, 170, 0.2);
-      pointer-events: none;
-    }
-    .xy-crosshair-h { height: 1px; left: 0; right: 0; }
-    .xy-crosshair-v { width: 1px; top: 0; bottom: 0; }
-    .group-box {
-      border-radius: 8px;
-      border: 1.5px solid;
-      padding: 4px;
-    }
-    .tab-btn {
-      padding: 6px 16px;
-      border-radius: 6px 6px 0 0;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      border: 1px solid transparent;
-      border-bottom: none;
-    }
-    .tab-btn.active {
-      background: #222244;
-      color: #00d4aa;
-      border-color: rgba(255,255,255,0.1);
-    }
-    .tab-btn:not(.active) {
-      background: transparent;
-      color: #6b7280;
-    }
-    .tab-btn:not(.active):hover {
-      color: #9ca3af;
-    }
-    .tab-panel { display: none; }
+
+    .app { max-width: 1200px; margin: 0 auto; padding: 12px; }
+
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; margin-bottom: 8px; }
+    .header h1 { font-size: 16px; font-weight: 700; color: var(--accent); }
+    .header h1 span { color: var(--text-muted); font-weight: 400; font-size: 12px; }
+    .status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+    .status-dot.connected { background: #4ade80; }
+    .status-dot.disconnected { background: #ef4444; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+    .tab { padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text-muted); border-radius: 6px 6px 0 0; transition: all 0.15s; }
+    .tab:hover { color: var(--text-dim); }
+    .tab.active { background: var(--surface-light); color: var(--accent); }
+    .tab-panel { display: none; background: var(--surface-light); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 16px; }
     .tab-panel.active { display: block; }
+
+    /* Inputs */
+    input, select { background: var(--surface-lighter); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; outline: none; }
+    input:focus, select:focus { border-color: rgba(0,212,170,0.4); }
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+    .btn { background: var(--accent); color: var(--surface); font-weight: 600; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+    .btn:active { background: var(--accent-dim); }
+
+    /* Monitor */
+    .monitor-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+    .monitor-form > div { display: flex; flex-direction: column; }
+    .monitor-form input { width: 100%; }
+    .log { background: var(--surface-lighter); border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; height: 55vh; overflow: auto; }
+    .log-row { display: flex; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .log-time { color: var(--text-muted); min-width: 70px; }
+    .log-src { color: var(--text-dim); min-width: 100px; }
+    .log-addr { color: var(--accent); }
+    .log-vals { color: var(--text-dim); }
+
+    /* Deck */
+    .deck-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .deck-bar select { min-width: 120px; }
+    .page-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .page-tab { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface-lighter); color: var(--text-muted); transition: all 0.15s; }
+    .page-tab:hover { color: var(--text-dim); }
+    .page-tab.active { background: rgba(0,212,170,0.1); color: var(--accent); border-color: rgba(0,212,170,0.3); }
+
+    /* Grid */
+    .deck-grid { display: grid; gap: 6px; }
+
+    /* Color map */
+    .item-blue { --item-bg: #1e3a5f; --item-border: rgba(37,99,235,0.25); --item-text: #93c5fd; --item-fill: #2563eb; }
+    .item-green { --item-bg: #164e3a; --item-border: rgba(0,212,170,0.25); --item-text: #6ee7b7; --item-fill: #00d4aa; }
+    .item-purple { --item-bg: #3b1f4e; --item-border: rgba(139,92,246,0.25); --item-text: #c4b5fd; --item-fill: #8b5cf6; }
+    .item-red { --item-bg: #4a2020; --item-border: rgba(239,68,68,0.25); --item-text: #fca5a5; --item-fill: #ef4444; }
+    .item-orange { --item-bg: #4a3920; --item-border: rgba(245,158,11,0.25); --item-text: #fcd34d; --item-fill: #f59e0b; }
+    .item-yellow { --item-bg: #4a4520; --item-border: rgba(234,179,8,0.25); --item-text: #fde68a; --item-fill: #eab308; }
+    .item-gray { --item-bg: var(--surface-light); --item-border: var(--border); --item-text: var(--text-dim); --item-fill: #6b7280; }
+
+    /* Deck items */
+    .deck-item { border-radius: 10px; overflow: hidden; user-select: none; touch-action: none; }
+
+    .deck-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; height: 100%; border-radius: 10px; cursor: pointer;
+      background: var(--item-bg); border: 1px solid var(--item-border);
+      transition: transform 0.08s, box-shadow 0.08s; padding: 6px;
+    }
+    .deck-btn:active { transform: scale(0.95); }
+    .deck-btn.on { box-shadow: 0 0 12px var(--item-border); }
+    .deck-btn .name { font-size: 13px; font-weight: 600; color: var(--item-text); text-align: center; word-break: break-word; }
+    .deck-btn .addr { font-size: 8px; color: var(--text-muted); margin-top: 3px; }
+    .deck-btn .badge { font-size: 8px; margin-top: 2px; padding: 1px 5px; border-radius: 3px; }
+
+    .deck-slider {
+      display: flex; flex-direction: column; align-items: center; padding: 8px 6px; gap: 4px;
+      background: var(--surface-light); border: 1px solid var(--border); border-radius: 10px; height: 100%;
+    }
+    .deck-slider.horizontal { flex-direction: row; padding: 6px 10px; }
+    .deck-slider .name { font-size: 10px; font-weight: 500; color: var(--item-text); }
+    .deck-slider .track { flex: 1; background: var(--surface); border-radius: 6px; position: relative; overflow: hidden; cursor: pointer; }
+    .deck-slider:not(.horizontal) .track { width: 28px; }
+    .deck-slider.horizontal .track { height: 24px; width: 100%; }
+    .deck-slider .fill { position: absolute; border-radius: 6px; background: var(--item-fill); }
+    .deck-slider:not(.horizontal) .fill { bottom: 0; left: 0; right: 0; }
+    .deck-slider.horizontal .fill { top: 0; left: 0; bottom: 0; }
+    .deck-slider .val { font-size: 10px; font-weight: 600; color: var(--item-text); font-family: monospace; }
+    .deck-slider .saddr { font-size: 8px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+    .deck-xy {
+      display: flex; flex-direction: column; padding: 8px; gap: 4px;
+      background: var(--surface-light); border: 1px solid var(--border); border-radius: 10px; height: 100%;
+    }
+    .deck-xy .name { font-size: 10px; font-weight: 500; color: var(--item-text); }
+    .deck-xy .pad { flex: 1; background: var(--surface); border-radius: 8px; position: relative; cursor: crosshair; border: 1px solid rgba(255,255,255,0.03); overflow: hidden; }
+    .deck-xy .crosshair-h { position: absolute; height: 1px; left: 0; right: 0; background: rgba(255,255,255,0.06); pointer-events: none; }
+    .deck-xy .crosshair-v { position: absolute; width: 1px; top: 0; bottom: 0; background: rgba(255,255,255,0.06); pointer-events: none; }
+    .deck-xy .dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--item-fill); box-shadow: 0 0 8px var(--item-fill); transform: translate(-50%, -50%); pointer-events: none; }
+    .deck-xy .coords { display: flex; justify-content: space-between; font-size: 9px; color: var(--item-text); }
+
+    .group-box {
+      border-radius: 10px; border: 1px solid var(--item-border); background: var(--item-bg); padding: 4px; position: relative;
+    }
+    .group-box .group-label { font-size: 10px; font-weight: 500; color: var(--item-text); padding: 2px 6px 4px; }
+    .group-box .group-inner { display: grid; gap: 4px; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .app { padding: 8px; }
+      .monitor-form { flex-direction: column; }
+      .monitor-form > div { width: 100%; }
+      .monitor-form input { width: 100%; }
+      .log { height: 40vh; font-size: 10px; }
+      .log-row { gap: 6px; }
+      .log-src { display: none; }
+      .tab { padding: 8px 14px; font-size: 12px; }
+      .tab-panel { padding: 10px; }
+      .deck-btn .name { font-size: 11px; }
+    }
   </style>
 </head>
-<body class="bg-surface text-gray-100 min-h-screen p-4">
-  <div id="app">
-    <div class="flex items-center justify-between mb-3">
-      <h1 class="text-accent font-bold text-lg">OSC Tool <span class="text-gray-500 text-sm font-normal">Remote</span></h1>
-      <div class="flex items-center gap-2 text-xs text-gray-500">
-        <span id="status" class="w-2 h-2 rounded-full bg-gray-600"></span>
-        <span id="connStatus">Connecting...</span>
-        <span class="text-gray-600">·</span>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>OSC Tool <span>Remote</span></h1>
+      <div class="status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="conn-status">Connecting...</span>
+        <span style="color:var(--text-muted)">·</span>
         <span id="throughput">0 msg/s</span>
       </div>
     </div>
 
-    <!-- Tab bar -->
-    <div class="flex border-b border-white/10 mb-0">
-      <button class="tab-btn active" onclick="switchTab('monitor')">Monitor</button>
-      <button class="tab-btn" onclick="switchTab('deck')">Deck</button>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('monitor')">Monitor</button>
+      <button class="tab" onclick="switchTab('deck')">Deck</button>
     </div>
 
-    <!-- Monitor tab -->
-    <div id="tab-monitor" class="tab-panel active bg-surface-light border border-white/10 border-t-0 rounded-b-lg rounded-tr-lg p-4">
-      <div class="flex gap-2 mb-4 items-end flex-wrap">
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Send to Host</label>
-          <input id="host" type="text" value="127.0.0.1" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-36" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Port</label>
-          <input id="port" type="text" value="8000" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-20" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Address</label>
-          <input id="address" type="text" value="/test" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-40 font-mono" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Value (float)</label>
-          <input id="value" type="number" value="1.0" step="0.01" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-24" />
-        </div>
-        <button onclick="sendMsg()" class="px-4 py-2 bg-accent text-surface font-medium rounded-lg text-sm">Send</button>
+    <!-- Monitor -->
+    <div id="tab-monitor" class="tab-panel active">
+      <div class="monitor-form">
+        <div><label>Host</label><input id="host" type="text" value="127.0.0.1" style="width:130px" /></div>
+        <div><label>Port</label><input id="port" type="text" value="8000" style="width:70px" /></div>
+        <div><label>Address</label><input id="address" type="text" value="/test" style="width:140px;font-family:monospace" /></div>
+        <div><label>Value</label><input id="value" type="number" value="1.0" step="0.01" style="width:80px" /></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" onclick="sendMsg()">Send</button></div>
       </div>
-      <div id="log" class="bg-surface-lighter border border-white/5 rounded-lg p-3 font-mono text-xs h-[55vh] overflow-auto"></div>
+      <div class="log" id="log"></div>
     </div>
 
-    <!-- Deck tab -->
-    <div id="tab-deck" class="tab-panel bg-surface-light border border-white/10 border-t-0 rounded-b-lg rounded-tr-lg p-4">
-      <div id="deck-empty" class="text-gray-500 text-sm py-8 text-center">Waiting for deck data...</div>
-      <div id="deck-ui" class="hidden">
-        <!-- Deck + Page selectors -->
-        <div class="flex gap-3 mb-4 items-center flex-wrap">
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Deck</label>
-            <select id="deck-select" onchange="onDeckSelect()" class="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm min-w-32"></select>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Page</label>
-            <div id="page-tabs" class="flex gap-1"></div>
-          </div>
+    <!-- Deck -->
+    <div id="tab-deck" class="tab-panel">
+      <div id="deck-empty" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:13px">Waiting for deck data...</div>
+      <div id="deck-ui" style="display:none">
+        <div class="deck-bar">
+          <div><label>Deck</label><select id="deck-select" onchange="onDeckSelect()"></select></div>
+          <div><label>Page</label><div id="page-tabs" class="page-tabs"></div></div>
         </div>
-        <!-- Grid container -->
-        <div id="grid-container" class="overflow-auto"></div>
+        <div id="grid-container"></div>
       </div>
     </div>
   </div>
 
   <script>
-    // ---- State ----
-    let decks = [];
-    let activeDeckId = null;
-    let activePageId = null;
-    // Toggle states: itemId -> bool
+    const colorClasses = { blue:"item-blue", green:"item-green", purple:"item-purple", red:"item-red", orange:"item-orange", yellow:"item-yellow", gray:"item-gray" };
+
+    let decks = [], activeDeckId = null, activePageId = null;
     const toggleStates = {};
 
-    // ---- WebSocket ----
-    const log = document.getElementById("log");
-    const statusDot = document.getElementById("status");
-    const throughputEl = document.getElementById("throughput");
-    const connStatus = document.getElementById("connStatus");
-
+    // WebSocket
     const ws = new WebSocket(`ws://${location.host}`);
-
-    ws.onopen = () => {
-      connStatus.textContent = "Connected";
-      statusDot.className = "w-2 h-2 rounded-full bg-green-400";
-    };
-    ws.onclose = () => {
-      connStatus.textContent = "Disconnected";
-      statusDot.className = "w-2 h-2 rounded-full bg-red-400";
-    };
+    ws.onopen = () => { document.getElementById("conn-status").textContent = "Connected"; document.getElementById("status-dot").className = "status-dot connected"; };
+    ws.onclose = () => { document.getElementById("conn-status").textContent = "Disconnected"; document.getElementById("status-dot").className = "status-dot disconnected"; };
 
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "message") {
-        const d = msg.data;
-        const t = new Date(d.timestamp);
+        const d = msg.data, t = new Date(d.timestamp);
         const time = `${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}:${t.getSeconds().toString().padStart(2,"0")}.${t.getMilliseconds().toString().padStart(3,"0")}`;
         const args = d.args.map(a => `${a.value} (${a.type})`).join(", ");
         const row = document.createElement("div");
-        row.className = "py-1 border-b border-white/5 flex gap-4";
-        row.innerHTML = `<span class="text-gray-500 w-24">${time}</span><span class="text-gray-400 w-36">${d.sourceIp}:${d.sourcePort}</span><span class="text-accent">${d.address}</span><span class="text-gray-300">${args}</span>`;
-        log.appendChild(row);
-        log.scrollTop = log.scrollHeight;
+        row.className = "log-row";
+        row.innerHTML = `<span class="log-time">${time}</span><span class="log-src">${d.sourceIp}:${d.sourcePort}</span><span class="log-addr">${d.address}</span><span class="log-vals">${args}</span>`;
+        document.getElementById("log").appendChild(row);
+        document.getElementById("log").scrollTop = 99999;
       } else if (msg.type === "throughput") {
-        throughputEl.textContent = `${msg.data} msg/s`;
+        document.getElementById("throughput").textContent = `${msg.data} msg/s`;
       } else if (msg.type === "deck-state") {
-        decks = msg.data;
-        renderDeckUI();
+        decks = msg.data; renderDeckUI();
       }
     };
 
     function sendMsg() {
-      ws.send(JSON.stringify({
-        type: "send",
-        host: document.getElementById("host").value,
-        port: parseInt(document.getElementById("port").value),
-        address: document.getElementById("address").value,
-        args: [{ type: "f", value: parseFloat(document.getElementById("value").value) }],
-      }));
+      ws.send(JSON.stringify({ type:"send", host:document.getElementById("host").value, port:parseInt(document.getElementById("port").value), address:document.getElementById("address").value, args:[{type:"f",value:parseFloat(document.getElementById("value").value)}] }));
     }
 
-    // ---- Tab switching ----
     function switchTab(name) {
-      document.querySelectorAll(".tab-btn").forEach((b, i) => {
-        b.classList.toggle("active", ["monitor","deck"][i] === name);
-      });
-      document.querySelectorAll(".tab-panel").forEach((p, i) => {
-        p.classList.toggle("active", ["tab-monitor","tab-deck"][i] === `tab-${name}`);
-      });
+      document.querySelectorAll(".tab").forEach((b,i) => b.classList.toggle("active", ["monitor","deck"][i]===name));
+      document.querySelectorAll(".tab-panel").forEach((p,i) => p.classList.toggle("active", ["tab-monitor","tab-deck"][i]===`tab-${name}`));
     }
 
-    // ---- Deck rendering ----
     function renderDeckUI() {
-      const empty = document.getElementById("deck-empty");
-      const ui = document.getElementById("deck-ui");
-      if (!decks || decks.length === 0) {
-        empty.classList.remove("hidden");
-        ui.classList.add("hidden");
-        return;
-      }
-      empty.classList.add("hidden");
-      ui.classList.remove("hidden");
-
-      // Populate deck select
-      const sel = document.getElementById("deck-select");
-      const prevDeck = activeDeckId;
+      if (!decks||!decks.length) { document.getElementById("deck-empty").style.display=""; document.getElementById("deck-ui").style.display="none"; return; }
+      document.getElementById("deck-empty").style.display="none"; document.getElementById("deck-ui").style.display="";
+      const sel = document.getElementById("deck-select"), prev = activeDeckId;
       sel.innerHTML = "";
-      for (const d of decks) {
-        const opt = document.createElement("option");
-        opt.value = d.id;
-        opt.textContent = d.name;
-        sel.appendChild(opt);
-      }
-      // Restore or default
-      if (prevDeck && decks.find(d => d.id === prevDeck)) {
-        sel.value = prevDeck;
-        activeDeckId = prevDeck;
-      } else {
-        activeDeckId = decks[0].id;
-        sel.value = activeDeckId;
-      }
+      for (const d of decks) { const o = document.createElement("option"); o.value=d.id; o.textContent=d.name; sel.appendChild(o); }
+      if (prev && decks.find(d=>d.id===prev)) { sel.value=prev; activeDeckId=prev; } else { activeDeckId=decks[0].id; sel.value=activeDeckId; }
       renderPageTabs();
     }
 
-    function onDeckSelect() {
-      activeDeckId = document.getElementById("deck-select").value;
-      activePageId = null;
-      renderPageTabs();
-    }
+    function onDeckSelect() { activeDeckId=document.getElementById("deck-select").value; activePageId=null; renderPageTabs(); }
 
     function renderPageTabs() {
-      const deck = decks.find(d => d.id === activeDeckId);
-      if (!deck) return;
-      const container = document.getElementById("page-tabs");
-      container.innerHTML = "";
-      if (!activePageId || !deck.pages.find(p => p.id === activePageId)) {
-        activePageId = deck.pages[0]?.id ?? null;
-      }
-      for (const page of deck.pages) {
-        const btn = document.createElement("button");
-        btn.textContent = page.name;
-        btn.className = `px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-          page.id === activePageId
-            ? "bg-accent/20 text-accent border-accent/40"
-            : "bg-surface-lighter text-gray-400 border-white/10 hover:text-gray-200"
-        }`;
-        btn.onclick = () => {
-          activePageId = page.id;
-          renderPageTabs();
-          renderGrid();
-        };
-        container.appendChild(btn);
+      const deck = decks.find(d=>d.id===activeDeckId); if (!deck) return;
+      const c = document.getElementById("page-tabs"); c.innerHTML="";
+      if (!activePageId||!deck.pages.find(p=>p.id===activePageId)) activePageId=deck.pages[0]?.id??null;
+      for (const p of deck.pages) {
+        const b = document.createElement("button"); b.textContent=p.name;
+        b.className = "page-tab" + (p.id===activePageId?" active":"");
+        b.onclick = () => { activePageId=p.id; renderPageTabs(); };
+        c.appendChild(b);
       }
       renderGrid();
     }
 
     function renderGrid() {
-      const deck = decks.find(d => d.id === activeDeckId);
-      const page = deck?.pages.find(p => p.id === activePageId);
-      const container = document.getElementById("grid-container");
-      container.innerHTML = "";
-      if (!deck || !page) return;
+      const deck = decks.find(d=>d.id===activeDeckId), page = deck?.pages.find(p=>p.id===activePageId);
+      const container = document.getElementById("grid-container"); container.innerHTML="";
+      if (!deck||!page) return;
+      const cols=deck.gridColumns||8, rows=deck.gridRows||6;
+      const avail = Math.min(container.parentElement.clientWidth - 32, 1100);
+      const cellW = Math.max(50, Math.floor(avail/cols));
+      const cellH = Math.max(50, Math.min(cellW, 96));
 
-      const cols = deck.gridColumns || 8;
-      const rows = deck.gridRows || 6;
-      const cellSize = Math.min(Math.floor((window.innerWidth - 64) / cols), 96);
+      const grid = document.createElement("div"); grid.className="deck-grid";
+      grid.style.gridTemplateColumns = `repeat(${cols},${cellW}px)`;
+      grid.style.gridTemplateRows = `repeat(${rows},${cellH}px)`;
 
-      const grid = document.createElement("div");
-      grid.className = "deck-grid";
-      grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-      grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-      grid.style.width = `${cols * cellSize + (cols - 1) * 6}px`;
-
-      // Render groups
-      for (const group of page.groups) {
-        const el = renderGroup(group, deck, page, cellSize);
-        grid.appendChild(el);
-      }
-
-      // Render loose items
-      for (const item of page.items) {
-        const el = renderItem(item, deck, page, cellSize, false, 0, 0);
-        grid.appendChild(el);
-      }
-
+      for (const g of page.groups) grid.appendChild(renderGroup(g,deck,page,cellW,cellH));
+      for (const item of page.items) grid.appendChild(renderItem(item,deck,page));
       container.appendChild(grid);
     }
 
-    function renderGroup(group, deck, page, cellSize) {
+    function renderGroup(group,deck,page,cellW,cellH) {
       const el = document.createElement("div");
-      el.className = "group-box";
-      el.style.gridColumn = `${group.col + 1} / span ${group.colSpan}`;
-      el.style.gridRow = `${group.row + 1} / span ${group.rowSpan}`;
-      el.style.borderColor = group.color || "#444466";
-      el.style.backgroundColor = hexWithAlpha(group.color || "#444466", 0.08);
+      el.className = "group-box " + (colorClasses[group.color]||"item-gray");
+      el.style.gridColumn = `${group.col+1}/span ${group.colSpan}`;
+      el.style.gridRow = `${group.row+1}/span ${group.rowSpan}`;
 
-      const label = document.createElement("div");
-      label.className = "text-xs font-medium mb-1 px-1";
-      label.style.color = group.color || "#aaaacc";
-      label.textContent = group.name;
+      const label = document.createElement("div"); label.className="group-label"; label.textContent=group.name;
       el.appendChild(label);
 
-      const innerGrid = document.createElement("div");
-      innerGrid.className = "deck-grid";
-      innerGrid.style.gridTemplateColumns = `repeat(${group.colSpan}, ${cellSize}px)`;
-      innerGrid.style.gridTemplateRows = `repeat(${group.rowSpan}, ${cellSize}px)`;
-
-      for (const item of group.items) {
-        const itemEl = renderItem(item, deck, page, cellSize, true, group.col, group.row);
-        innerGrid.appendChild(itemEl);
-      }
-      el.appendChild(innerGrid);
+      const inner = document.createElement("div"); inner.className="group-inner";
+      inner.style.gridTemplateColumns = `repeat(${group.colSpan},1fr)`;
+      inner.style.gridTemplateRows = `repeat(${Math.max(1,group.rowSpan-1)},1fr)`;
+      for (const item of group.items) inner.appendChild(renderItem(item,deck,page));
+      el.appendChild(inner);
       return el;
     }
 
-    function renderItem(item, deck, page, cellSize, inGroup, groupCol, groupRow) {
+    function renderItem(item,deck,page) {
       const el = document.createElement("div");
-      el.className = "deck-item";
-      if (inGroup) {
-        el.style.gridColumn = `${item.col + 1} / span ${item.colSpan}`;
-        el.style.gridRow = `${item.row + 1} / span ${item.rowSpan}`;
-      } else {
-        el.style.gridColumn = `${item.col + 1} / span ${item.colSpan}`;
-        el.style.gridRow = `${item.row + 1} / span ${item.rowSpan}`;
-      }
+      el.className = "deck-item " + (colorClasses[item.color]||"item-gray");
+      el.style.gridColumn = `${item.col+1}/span ${item.colSpan}`;
+      el.style.gridRow = `${item.row+1}/span ${item.rowSpan}`;
 
-      const w = item.colSpan * cellSize + (item.colSpan - 1) * 6;
-      const h = item.rowSpan * cellSize + (item.rowSpan - 1) * 6;
-      el.style.width = `${w}px`;
-      el.style.height = `${h}px`;
-
-      if (item.type === "button") {
-        renderButton(el, item, deck, page, w, h);
-      } else if (item.type === "slider") {
-        renderSlider(el, item, deck, page, w, h);
-      } else if (item.type === "xy-pad") {
-        renderXYPad(el, item, deck, page, w, h);
-      }
-
+      if (item.type==="button") renderButton(el,item,deck,page);
+      else if (item.type==="slider") renderSlider(el,item,deck,page);
+      else if (item.type==="xy-pad") renderXYPad(el,item,deck,page);
       return el;
     }
 
-    function renderButton(el, item, deck, page, w, h) {
-      const cfg = item.config;
-      const isToggle = cfg.mode === "toggle";
-      const color = item.color || "#00d4aa";
-      const on = toggleStates[item.id] || false;
-
-      el.innerHTML = `
-        <div class="btn-trigger flex items-center justify-center rounded-lg w-full h-full font-medium text-sm text-center select-none cursor-pointer ${on ? "btn-on" : ""}"
-          style="background:${hexWithAlpha(color, on ? 0.4 : 0.15)};border:1.5px solid ${hexWithAlpha(color, on ? 0.8 : 0.3)};color:${color};padding:6px;word-break:break-word;">
-          ${escHtml(item.name)}
-        </div>`;
-
-      const btn = el.querySelector("div");
+    function renderButton(el,item,deck,page) {
+      const cfg=item.config, isToggle=cfg.mode==="toggle", on=toggleStates[item.id]||false;
+      const btn = document.createElement("div");
+      btn.className = "deck-btn" + (on?" on":"");
+      btn.innerHTML = `<div class="name">${esc(item.name)}</div><div class="addr">${esc(item.oscAddress)}</div>${isToggle?`<div class="badge" style="color:var(--item-fill);background:${on?"rgba(255,255,255,0.08)":"transparent"}">${on?"ON":"OFF"}</div>`:""}`;
       if (isToggle) {
-        btn.addEventListener("pointerdown", (e) => {
-          e.preventDefault();
-          const newState = !toggleStates[item.id];
-          toggleStates[item.id] = newState;
-          ws.send(JSON.stringify({ type: "deck-toggle", deckId: deck.id, pageId: page.id, itemId: item.id, state: newState }));
-          // Update visual immediately
-          btn.style.background = hexWithAlpha(color, newState ? 0.4 : 0.15);
-          btn.style.borderColor = hexWithAlpha(color, newState ? 0.8 : 0.3);
-          btn.classList.toggle("btn-on", newState);
-        });
+        btn.addEventListener("pointerdown", e => { e.preventDefault(); const s=!toggleStates[item.id]; toggleStates[item.id]=s; ws.send(JSON.stringify({type:"deck-toggle",deckId:deck.id,pageId:page.id,itemId:item.id,state:s})); renderGrid(); });
       } else {
-        btn.addEventListener("pointerdown", (e) => {
-          e.preventDefault();
-          ws.send(JSON.stringify({ type: "deck-trigger", deckId: deck.id, pageId: page.id, itemId: item.id }));
-          btn.style.background = hexWithAlpha(color, 0.6);
-          btn.style.borderColor = hexWithAlpha(color, 1);
-        });
-        btn.addEventListener("pointerup", () => {
-          btn.style.background = hexWithAlpha(color, 0.15);
-          btn.style.borderColor = hexWithAlpha(color, 0.3);
-        });
-        btn.addEventListener("pointerleave", () => {
-          btn.style.background = hexWithAlpha(color, 0.15);
-          btn.style.borderColor = hexWithAlpha(color, 0.3);
-        });
+        btn.addEventListener("pointerdown", e => { e.preventDefault(); ws.send(JSON.stringify({type:"deck-trigger",deckId:deck.id,pageId:page.id,itemId:item.id})); btn.style.transform="scale(0.93)"; btn.style.boxShadow="0 0 16px var(--item-border)"; });
+        btn.addEventListener("pointerup", ()=>{ btn.style.transform=""; btn.style.boxShadow=""; });
+        btn.addEventListener("pointerleave", ()=>{ btn.style.transform=""; btn.style.boxShadow=""; });
       }
+      el.appendChild(btn);
     }
 
-    function renderSlider(el, item, deck, page, w, h) {
-      const cfg = item.config;
-      const color = item.color || "#00d4aa";
-      const isVert = cfg.orientation === "vertical";
-      const min = cfg.min ?? 0;
-      const max = cfg.max ?? 1;
+    function renderSlider(el,item,deck,page) {
+      const cfg=item.config, isVert=cfg.orientation==="vertical", min=cfg.min??0, max=cfg.max??1;
+      let norm = 0.5;
+      const wrap = document.createElement("div");
+      wrap.className = "deck-slider" + (isVert?"":" horizontal");
 
-      // Default to midpoint
-      let normalizedVal = 0.5;
+      const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=item.name;
+      const track = document.createElement("div"); track.className="track";
+      const fill = document.createElement("div"); fill.className="fill";
+      const valEl = document.createElement("div"); valEl.className="val"; valEl.textContent=(min+(max-min)*norm).toFixed(2);
 
-      el.innerHTML = `
-        <div style="width:${w}px;height:${h}px;display:flex;flex-direction:column;gap:4px;align-items:center;">
-          <div class="text-xs font-medium" style="color:${color}">${escHtml(item.name)}</div>
-          <div class="slider-track flex-1 w-full" style="position:relative;">
-            <div class="slider-fill" id="sf-${item.id}" style="${isVert
-              ? `position:absolute;bottom:0;left:0;right:0;height:${normalizedVal * 100}%;`
-              : `position:absolute;top:0;left:0;bottom:0;width:${normalizedVal * 100}%;`}background:${color}"></div>
-            <div class="absolute inset-0 flex items-center justify-center text-xs font-mono" style="color:${color};pointer-events:none;" id="sv-${item.id}">${(min + (max - min) * normalizedVal).toFixed(2)}</div>
-          </div>
-        </div>`;
+      if (isVert) fill.style.height=`${norm*100}%`; else fill.style.width=`${norm*100}%`;
+      track.appendChild(fill);
 
-      const track = el.querySelector(".slider-track");
+      wrap.appendChild(nameEl); wrap.appendChild(track); wrap.appendChild(valEl);
+      if (isVert) { const addr=document.createElement("div"); addr.className="saddr"; addr.textContent=item.oscAddress; wrap.appendChild(addr); }
 
-      function getValueFromEvent(e) {
-        const rect = track.getBoundingClientRect();
-        if (isVert) {
-          const rel = 1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-          return rel;
-        } else {
-          return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        }
-      }
-
-      function updateVisual(norm) {
-        const fill = document.getElementById(`sf-${item.id}`);
-        const valEl = document.getElementById(`sv-${item.id}`);
-        if (fill) {
-          if (isVert) fill.style.height = `${norm * 100}%`;
-          else fill.style.width = `${norm * 100}%`;
-        }
-        if (valEl) valEl.textContent = (min + (max - min) * norm).toFixed(2);
-      }
-
-      let dragging = false;
-      track.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        dragging = true;
-        track.setPointerCapture(e.pointerId);
-        normalizedVal = getValueFromEvent(e);
-        updateVisual(normalizedVal);
-        sendSlider(normalizedVal);
+      let dragging=false;
+      track.addEventListener("pointerdown", e => {
+        e.preventDefault(); dragging=true; track.setPointerCapture(e.pointerId);
+        update(e);
       });
-      track.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        normalizedVal = getValueFromEvent(e);
-        updateVisual(normalizedVal);
-        sendSlider(normalizedVal);
-      });
-      track.addEventListener("pointerup", () => { dragging = false; });
+      track.addEventListener("pointermove", e => { if (dragging) update(e); });
+      track.addEventListener("pointerup", () => { dragging=false; });
 
-      function sendSlider(norm) {
-        const val = min + (max - min) * norm;
-        ws.send(JSON.stringify({ type: "deck-slider", deckId: deck.id, pageId: page.id, itemId: item.id, value: val }));
+      function update(e) {
+        const r=track.getBoundingClientRect();
+        norm = isVert ? Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height)) : Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+        if (isVert) fill.style.height=`${norm*100}%`; else fill.style.width=`${norm*100}%`;
+        const val = min+(max-min)*norm;
+        valEl.textContent = (cfg.valueType==="i"?Math.round(val):val.toFixed(2));
+        ws.send(JSON.stringify({type:"deck-slider",deckId:deck.id,pageId:page.id,itemId:item.id,value:val}));
       }
+      el.appendChild(wrap);
     }
 
-    function renderXYPad(el, item, deck, page, w, h) {
-      const cfg = item.config;
-      const color = item.color || "#00d4aa";
-      const xMin = cfg.xMin ?? 0, xMax = cfg.xMax ?? 1;
-      const yMin = cfg.yMin ?? 0, yMax = cfg.yMax ?? 1;
+    function renderXYPad(el,item,deck,page) {
+      const cfg=item.config, xMin=cfg.xMin??0, xMax=cfg.xMax??1, yMin=cfg.yMin??0, yMax=cfg.yMax??1;
+      let nx=0.5, ny=0.5;
+      const wrap = document.createElement("div"); wrap.className="deck-xy";
+      const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=item.name;
+      const pad = document.createElement("div"); pad.className="pad";
+      const ch = document.createElement("div"); ch.className="crosshair-h"; ch.style.top="50%";
+      const cv = document.createElement("div"); cv.className="crosshair-v"; cv.style.left="50%";
+      const dot = document.createElement("div"); dot.className="dot"; dot.style.left="50%"; dot.style.top="50%";
+      pad.appendChild(ch); pad.appendChild(cv); pad.appendChild(dot);
+      const coords = document.createElement("div"); coords.className="coords"; coords.innerHTML=`<span>${esc(cfg.xAddress||"")}</span><span>${nx.toFixed(2)}, ${(1-ny).toFixed(2)}</span><span>${esc(cfg.yAddress||"")}</span>`;
 
-      let nx = 0.5, ny = 0.5;
+      wrap.appendChild(nameEl); wrap.appendChild(pad); wrap.appendChild(coords);
 
-      el.innerHTML = `
-        <div style="width:${w}px;height:${h}px;display:flex;flex-direction:column;gap:2px;">
-          <div class="text-xs font-medium px-1" style="color:${color}">${escHtml(item.name)}</div>
-          <div class="xy-pad flex-1" id="xy-${item.id}" style="border:1.5px solid ${hexWithAlpha(color,0.3)};">
-            <div class="xy-crosshair-h" id="xyh-${item.id}" style="top:${ny*100}%"></div>
-            <div class="xy-crosshair-v" id="xyv-${item.id}" style="left:${nx*100}%"></div>
-            <div class="xy-dot" id="xyd-${item.id}" style="left:${nx*100}%;top:${ny*100}%;background:${color};box-shadow:0 0 8px ${color}"></div>
-          </div>
-        </div>`;
+      let dragging=false;
+      pad.addEventListener("pointerdown", e => { e.preventDefault(); dragging=true; pad.setPointerCapture(e.pointerId); update(e); });
+      pad.addEventListener("pointermove", e => { if (dragging) update(e); });
+      pad.addEventListener("pointerup", () => { dragging=false; });
 
-      const pad = el.querySelector(".xy-pad");
-
-      function getXY(e) {
-        const rect = pad.getBoundingClientRect();
-        return {
-          nx: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-          ny: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
-        };
+      function update(e) {
+        const r=pad.getBoundingClientRect();
+        nx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+        ny=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+        dot.style.left=`${nx*100}%`; dot.style.top=`${ny*100}%`;
+        ch.style.top=`${ny*100}%`; cv.style.left=`${nx*100}%`;
+        const x=xMin+(xMax-xMin)*nx, y=yMin+(yMax-yMin)*(1-ny);
+        coords.children[1].textContent=`${x.toFixed(2)}, ${y.toFixed(2)}`;
+        ws.send(JSON.stringify({type:"deck-xy",deckId:deck.id,pageId:page.id,itemId:item.id,x,y}));
       }
-
-      function updateVisual(nx, ny) {
-        const dot = document.getElementById(`xyd-${item.id}`);
-        const h = document.getElementById(`xyh-${item.id}`);
-        const v = document.getElementById(`xyv-${item.id}`);
-        if (dot) { dot.style.left = `${nx*100}%`; dot.style.top = `${ny*100}%`; }
-        if (h) h.style.top = `${ny*100}%`;
-        if (v) v.style.left = `${nx*100}%`;
-      }
-
-      let dragging = false;
-      pad.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        dragging = true;
-        pad.setPointerCapture(e.pointerId);
-        const pos = getXY(e);
-        nx = pos.nx; ny = pos.ny;
-        updateVisual(nx, ny);
-        sendXY(nx, ny);
-      });
-      pad.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        const pos = getXY(e);
-        nx = pos.nx; ny = pos.ny;
-        updateVisual(nx, ny);
-        sendXY(nx, ny);
-      });
-      pad.addEventListener("pointerup", () => { dragging = false; });
-
-      function sendXY(nx, ny) {
-        const x = xMin + (xMax - xMin) * nx;
-        const y = yMin + (yMax - yMin) * ny;
-        ws.send(JSON.stringify({ type: "deck-xy", deckId: deck.id, pageId: page.id, itemId: item.id, x, y }));
-      }
+      el.appendChild(wrap);
     }
 
-    // ---- Helpers ----
-    function hexWithAlpha(hex, alpha) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r},${g},${b},${alpha})`;
-    }
+    function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-    function escHtml(str) {
-      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    }
-
-    window.addEventListener("resize", () => {
-      if (activeDeckId && activePageId) renderGrid();
-    });
+    window.addEventListener("resize", () => { if (activeDeckId&&activePageId) renderGrid(); });
   </script>
 </body>
 </html>
