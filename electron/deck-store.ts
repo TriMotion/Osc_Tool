@@ -163,6 +163,7 @@ export class DeckStore {
       const groupLen = group.items.length;
       group.items = group.items.filter((i) => i.id !== itemId);
       if (group.items.length < groupLen) {
+        this.autoLayoutGroup(group);
         this.save();
         return true;
       }
@@ -210,11 +211,57 @@ export class DeckStore {
     const [item] = found.page.items.splice(itemIdx, 1);
     if (absCol !== undefined) item.col = absCol;
     if (absRow !== undefined) item.row = absRow;
-    item.col = item.col - group.col;
-    item.row = item.row - group.row;
     group.items.push(item);
+    this.autoLayoutGroup(group);
     this.save();
     return true;
+  }
+
+  private autoLayoutGroup(group: DeckGroup): void {
+    const count = group.items.length;
+    if (count === 0) return;
+    const cols = group.colSpan;
+    const rows = Math.max(1, group.rowSpan - 1); // -1 for the title row
+
+    if (count === 1) {
+      group.items[0].col = 0;
+      group.items[0].row = 0;
+      group.items[0].colSpan = cols;
+      group.items[0].rowSpan = rows;
+      return;
+    }
+
+    // Try to fit in a single row first
+    if (count <= cols) {
+      const itemWidth = Math.floor(cols / count);
+      let remainder = cols % count;
+      let col = 0;
+      for (let i = 0; i < count; i++) {
+        const w = itemWidth + (i < remainder ? 1 : 0);
+        group.items[i].col = col;
+        group.items[i].row = 0;
+        group.items[i].colSpan = w;
+        group.items[i].rowSpan = rows;
+        col += w;
+      }
+      return;
+    }
+
+    // Multiple rows: grid layout
+    const gridCols = Math.ceil(Math.sqrt(count * (cols / rows)));
+    const perRow = Math.min(cols, Math.max(1, gridCols));
+    const numRows = Math.ceil(count / perRow);
+    const rowHeight = Math.max(1, Math.floor(rows / numRows));
+    const itemWidth = Math.floor(cols / perRow);
+
+    for (let i = 0; i < count; i++) {
+      const r = Math.floor(i / perRow);
+      const c = i % perRow;
+      group.items[i].col = c * itemWidth;
+      group.items[i].row = r * rowHeight;
+      group.items[i].colSpan = itemWidth;
+      group.items[i].rowSpan = rowHeight;
+    }
   }
 
   moveItemOutOfGroup(deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number): boolean {
@@ -227,7 +274,10 @@ export class DeckStore {
     const [item] = group.items.splice(itemIdx, 1);
     item.col = absCol !== undefined ? absCol : item.col + group.col;
     item.row = absRow !== undefined ? absRow : item.row + group.row;
+    item.colSpan = 2;
+    item.rowSpan = 1;
     found.page.items.push(item);
+    this.autoLayoutGroup(group);
     this.save();
     return true;
   }
