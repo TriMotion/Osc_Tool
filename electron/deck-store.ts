@@ -234,10 +234,10 @@ export class DeckStore {
     // Try to fit in a single row first
     if (count <= cols) {
       const itemWidth = Math.floor(cols / count);
-      let remainder = cols % count;
       let col = 0;
       for (let i = 0; i < count; i++) {
-        const w = itemWidth + (i < remainder ? 1 : 0);
+        const isLast = i === count - 1;
+        const w = isLast ? cols - col : itemWidth;
         group.items[i].col = col;
         group.items[i].row = 0;
         group.items[i].colSpan = w;
@@ -248,8 +248,7 @@ export class DeckStore {
     }
 
     // Multiple rows: grid layout
-    const gridCols = Math.ceil(Math.sqrt(count * (cols / rows)));
-    const perRow = Math.min(cols, Math.max(1, gridCols));
+    const perRow = Math.min(cols, Math.max(1, Math.ceil(Math.sqrt(count))));
     const numRows = Math.ceil(count / perRow);
     const rowHeight = Math.max(1, Math.floor(rows / numRows));
     const itemWidth = Math.floor(cols / perRow);
@@ -257,10 +256,12 @@ export class DeckStore {
     for (let i = 0; i < count; i++) {
       const r = Math.floor(i / perRow);
       const c = i % perRow;
+      const itemsInThisRow = Math.min(perRow, count - r * perRow);
+      const isLastInRow = c === itemsInThisRow - 1;
       group.items[i].col = c * itemWidth;
       group.items[i].row = r * rowHeight;
-      group.items[i].colSpan = itemWidth;
-      group.items[i].rowSpan = rowHeight;
+      group.items[i].colSpan = isLastInRow ? cols - c * itemWidth : itemWidth;
+      group.items[i].rowSpan = r === numRows - 1 ? rows - r * rowHeight : rowHeight;
     }
   }
 

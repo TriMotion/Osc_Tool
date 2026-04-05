@@ -58,6 +58,9 @@ export default function DeckPage() {
     : null;
 
   const selectedGroup = activePage?.groups.find((g) => g.id === selectedGroupId) ?? null;
+  const selectedItemParentGroup = selectedItemId && activePage
+    ? activePage.groups.find((g) => g.items.some((i) => i.id === selectedItemId)) ?? null
+    : null;
 
   const handlePlaceItem = useCallback(async (col: number, row: number) => {
     if (!placingType) return;
@@ -171,18 +174,18 @@ export default function DeckPage() {
               const cols = activeDeck.gridColumns;
               const rows = activeDeck.gridRows;
 
-              // Build a list of items to process (excluding the dragged one)
-              type Pos = { id: string; col: number; row: number; colSpan: number; rowSpan: number };
-              const positions: Pos[] = activePage.items
-                .filter(i => i.id !== draggedId)
-                .map(i => ({ id: i.id, col: i.col, row: i.row, colSpan: i.colSpan, rowSpan: i.rowSpan }));
+              type Pos = { id: string; col: number; row: number; colSpan: number; rowSpan: number; isGroup: boolean };
+              const positions: Pos[] = [
+                ...activePage.items.filter(i => i.id !== draggedId).map(i => ({ id: i.id, col: i.col, row: i.row, colSpan: i.colSpan, rowSpan: i.rowSpan, isGroup: false })),
+                ...activePage.groups.filter(g => g.id !== draggedId).map(g => ({ id: g.id, col: g.col, row: g.row, colSpan: g.colSpan, rowSpan: g.rowSpan, isGroup: true })),
+              ];
 
               const overlaps = (a: Pos, b: Pos) =>
                 a.col < b.col + b.colSpan && a.col + a.colSpan > b.col &&
                 a.row < b.row + b.rowSpan && a.row + a.rowSpan > b.row;
 
               const isOccupied = (pos: Pos, exclude: string) => {
-                const dragged = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan };
+                const dragged: Pos = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan, isGroup: false };
                 if (overlaps(pos, dragged)) return true;
                 return positions.some(p => p.id !== exclude && overlaps(pos, p));
               };
@@ -190,48 +193,33 @@ export default function DeckPage() {
               const fitsInGrid = (p: Pos) =>
                 p.col >= 0 && p.row >= 0 && p.col + p.colSpan <= cols && p.row + p.rowSpan <= rows;
 
-              const dropArea: Pos = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan };
+              const dropArea: Pos = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan, isGroup: false };
+              const move = (item: Pos, col: number, row: number) => {
+                if (item.isGroup) updateGroup(item.id, { col, row });
+                else updateItem(item.id, { col, row });
+                item.col = col;
+                item.row = row;
+              };
 
-              // Find all overlapping items and try to resolve
               for (const item of positions) {
                 if (!overlaps(item, dropArea)) continue;
 
-                // 1. Try pushing right
                 const rightPos = { ...item, col: dropCol + dropColSpan };
-                if (fitsInGrid(rightPos) && !isOccupied(rightPos, item.id)) {
-                  updateItem(item.id, { col: rightPos.col, row: rightPos.row });
-                  item.col = rightPos.col;
-                  continue;
-                }
+                if (fitsInGrid(rightPos) && !isOccupied(rightPos, item.id)) { move(item, rightPos.col, rightPos.row); continue; }
 
-                // 2. Try pushing left
                 const leftPos = { ...item, col: dropCol - item.colSpan };
-                if (fitsInGrid(leftPos) && !isOccupied(leftPos, item.id)) {
-                  updateItem(item.id, { col: leftPos.col, row: leftPos.row });
-                  item.col = leftPos.col;
-                  continue;
-                }
+                if (fitsInGrid(leftPos) && !isOccupied(leftPos, item.id)) { move(item, leftPos.col, leftPos.row); continue; }
 
-                // 3. Try pushing down
                 const downPos = { ...item, row: dropRow + dropRowSpan };
-                if (fitsInGrid(downPos) && !isOccupied(downPos, item.id)) {
-                  updateItem(item.id, { col: downPos.col, row: downPos.row });
-                  item.row = downPos.row;
-                  continue;
-                }
+                if (fitsInGrid(downPos) && !isOccupied(downPos, item.id)) { move(item, downPos.col, downPos.row); continue; }
 
-                // 4. Find any free spot (scan right-to-left, top-to-bottom)
-                let placed = false;
-                for (let r = 0; r <= rows - item.rowSpan && !placed; r++) {
-                  for (let c = 0; c <= cols - item.colSpan && !placed; c++) {
+                for (let r = 0; r <= rows - item.rowSpan; r++) {
+                  let placed = false;
+                  for (let c = 0; c <= cols - item.colSpan; c++) {
                     const candidate = { ...item, col: c, row: r };
-                    if (!isOccupied(candidate, item.id)) {
-                      updateItem(item.id, { col: c, row: r });
-                      item.col = c;
-                      item.row = r;
-                      placed = true;
-                    }
+                    if (!isOccupied(candidate, item.id)) { move(item, c, r); placed = true; break; }
                   }
+                  if (placed) break;
                 }
               }
             }}
@@ -258,6 +246,11 @@ export default function DeckPage() {
               if (selectedGroupId) removeGroup(selectedGroupId);
               handleCloseConfig();
             }}
+            inGroup={!!selectedItemParentGroup}
+            onRemoveFromGroup={selectedItemParentGroup && selectedItemId ? () => {
+              moveItemOutOfGroup(selectedItemId, selectedItemParentGroup.id);
+              handleCloseConfig();
+            } : undefined}
             onClose={handleCloseConfig}
           />
         )}

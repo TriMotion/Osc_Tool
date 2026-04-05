@@ -56,6 +56,8 @@ interface ConfigPanelProps {
   onUpdateItem?: (updates: Partial<Omit<DeckItem, "id">>) => void;
   onUpdateGroup?: (updates: Partial<Omit<DeckGroup, "id" | "items">>) => void;
   onDelete?: () => void;
+  onRemoveFromGroup?: () => void;
+  inGroup?: boolean;
   onClose: () => void;
 }
 
@@ -65,7 +67,7 @@ const swatchColors: Record<string, string> = {
   red: "#ef4444", orange: "#f59e0b", yellow: "#eab308", gray: "#6b7280",
 };
 
-export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onClose }: ConfigPanelProps) {
+export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onRemoveFromGroup, inGroup, onClose }: ConfigPanelProps) {
   const { endpoints: senderEndpoints, update: updateSenderEndpoint } = useEndpoints("sender");
   const { endpoints: listenerEndpoints, update: updateListenerEndpoint } = useEndpoints("listener");
   const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
@@ -402,15 +404,23 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
         )}
       </div>
 
-      <div className="mt-auto p-4 border-t border-white/5 flex gap-2">
-        <button onClick={handleReset}
-          className="flex-1 py-2 bg-surface border border-white/10 text-gray-400 hover:text-gray-200 rounded-lg text-sm font-medium transition-colors">
-          Reset
-        </button>
-        <button onClick={onDelete}
-          className="px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors">
-          Delete
-        </button>
+      <div className="mt-auto p-4 border-t border-white/5 flex flex-col gap-2">
+        {inGroup && onRemoveFromGroup && (
+          <button onClick={onRemoveFromGroup}
+            className="w-full py-2 bg-surface border border-white/10 text-gray-400 hover:text-accent rounded-lg text-sm font-medium transition-colors">
+            Remove from group
+          </button>
+        )}
+        <div className="flex gap-2">
+          <button onClick={handleReset}
+            className="flex-1 py-2 bg-surface border border-white/10 text-gray-400 hover:text-gray-200 rounded-lg text-sm font-medium transition-colors">
+            Reset
+          </button>
+          <button onClick={onDelete}
+            className="px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors">
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );
