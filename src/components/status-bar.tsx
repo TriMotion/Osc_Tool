@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useOscThroughput, useWebServer } from "@/hooks/use-osc";
 
 export function StatusBar() {
   const throughput = useOscThroughput();
   const { running, url, start, stop } = useWebServer();
   const [webPort, setWebPort] = useState("4000");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUrl = useCallback(async () => {
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [url]);
 
   const handleToggle = async () => {
     if (running) {
@@ -37,15 +45,23 @@ export function StatusBar() {
             placeholder="Port"
           />
         )}
+        {running && (
+          <button
+            onClick={handleCopyUrl}
+            className="px-2 py-0.5 rounded text-xs text-accent hover:text-accent-dim transition-colors"
+          >
+            {copied ? "Copied!" : url}
+          </button>
+        )}
         <button
           onClick={handleToggle}
           className={`px-2 py-0.5 rounded text-xs transition-colors ${
             running
-              ? "bg-accent/20 text-accent border border-accent/30"
+              ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
               : "bg-surface border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
-          {running ? `Web: ${url}` : "Start Web UI"}
+          {running ? "Stop" : "Start Web UI"}
         </button>
       </div>
     </div>
