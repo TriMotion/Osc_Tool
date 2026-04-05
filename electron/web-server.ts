@@ -104,12 +104,25 @@ export class WebServer {
     const { networkInterfaces } = require("os");
     const nets = networkInterfaces();
     let localIp = "localhost";
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === "IPv4" && !net.internal) {
-          localIp = net.address;
-          break;
+    // Prefer common LAN interfaces (en0, eth0, Wi-Fi) over VPN/tunnel interfaces
+    const preferred = ["en0", "en1", "eth0", "Wi-Fi", "Ethernet"];
+    for (const ifName of preferred) {
+      const addrs = nets[ifName];
+      if (!addrs) continue;
+      const ipv4 = addrs.find((n: any) => n.family === "IPv4" && !n.internal);
+      if (ipv4) { localIp = ipv4.address; break; }
+    }
+    // Fallback: any non-internal, non-tunnel IPv4
+    if (localIp === "localhost") {
+      for (const name of Object.keys(nets)) {
+        if (name.startsWith("utun") || name.startsWith("tun")) continue;
+        for (const net of nets[name]) {
+          if (net.family === "IPv4" && !net.internal) {
+            localIp = net.address;
+            break;
+          }
         }
+        if (localIp !== "localhost") break;
       }
     }
 
