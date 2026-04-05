@@ -15,8 +15,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <nav className="w-56 bg-surface-light border-r border-white/5 flex flex-col py-6 px-3 gap-1">
-      <h1 className="text-accent font-bold text-lg px-3 mb-6 tracking-tight">
+    <nav className="w-56 bg-surface-light border-r border-white/5 flex flex-col pt-3 pb-6 px-3 gap-1">
+      <div className="h-8 mb-2" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
+      <h1 className="text-accent font-bold text-lg px-3 mb-4 tracking-tight">
         OSC Tool
       </h1>
       {navItems.map((item) => {

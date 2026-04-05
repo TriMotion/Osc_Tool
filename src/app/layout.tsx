@@ -18,7 +18,10 @@ export default function RootLayout({
       <body className="bg-surface text-gray-100 h-screen flex flex-col overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-auto p-6">{children}</main>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="h-8 shrink-0" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
+            <main className="flex-1 overflow-auto px-6 pb-6">{children}</main>
+          </div>
         </div>
         <StatusBar />
       </body>
