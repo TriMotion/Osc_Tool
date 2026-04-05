@@ -163,6 +163,28 @@ export default function DeckPage() {
             onResizeItem={(itemId, colSpan, rowSpan) => updateItem(itemId, { colSpan, rowSpan })}
             onMoveGroup={(groupId, col, row) => updateGroup(groupId, { col, row })}
             onResizeGroup={(groupId, colSpan, rowSpan) => updateGroup(groupId, { colSpan, rowSpan })}
+            onMoveItemToGroup={(itemId, groupId) => moveItemToGroup(itemId, groupId)}
+            onMoveItemOutOfGroup={(itemId, groupId) => moveItemOutOfGroup(itemId, groupId)}
+            onPushItems={(draggedId, col, row, colSpan, rowSpan) => {
+              if (!activePage) return;
+              for (const other of activePage.items) {
+                if (other.id === draggedId) continue;
+                const overlaps =
+                  other.col < col + colSpan && other.col + other.colSpan > col &&
+                  other.row < row + rowSpan && other.row + other.rowSpan > row;
+                if (overlaps) {
+                  const newRow = row + rowSpan;
+                  if (newRow + other.rowSpan <= activeDeck.gridRows) {
+                    updateItem(other.id, { row: newRow });
+                  } else {
+                    const newCol = col + colSpan;
+                    if (newCol + other.colSpan <= activeDeck.gridColumns) {
+                      updateItem(other.id, { col: newCol });
+                    }
+                  }
+                }
+              }
+            }}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-600">

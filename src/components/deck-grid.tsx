@@ -21,12 +21,16 @@ interface DeckGridProps {
   onResizeItem: (itemId: string, colSpan: number, rowSpan: number) => void;
   onMoveGroup: (groupId: string, col: number, row: number) => void;
   onResizeGroup: (groupId: string, colSpan: number, rowSpan: number) => void;
+  onMoveItemToGroup: (itemId: string, groupId: string) => void;
+  onMoveItemOutOfGroup: (itemId: string, groupId: string) => void;
+  onPushItems: (draggedId: string, col: number, row: number, colSpan: number, rowSpan: number) => void;
 }
 
 export function DeckGrid({
   page, gridColumns, gridRows, editMode, placingType,
   onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup,
   onPlaceItem, onMoveItem, onResizeItem, onMoveGroup, onResizeGroup,
+  onMoveItemToGroup, onMoveItemOutOfGroup, onPushItems,
 }: DeckGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragPreview, setDragPreview] = useState<{ col: number; row: number; colSpan: number; rowSpan: number } | null>(null);
@@ -42,6 +46,25 @@ export function DeckGrid({
     const row = Math.max(0, Math.min(gridRows - 1, Math.floor(y / cellH)));
     return { col, row };
   }, [gridColumns, gridRows]);
+
+  // Find which group (if any) covers a cell
+  const findGroupAtCell = useCallback((col: number, row: number): DeckGroup | null => {
+    for (const group of page.groups) {
+      if (col >= group.col && col < group.col + group.colSpan &&
+          row >= group.row && row < group.row + group.rowSpan) {
+        return group;
+      }
+    }
+    return null;
+  }, [page.groups]);
+
+  // Check if item is inside a group
+  const findItemGroup = useCallback((itemId: string): DeckGroup | null => {
+    for (const group of page.groups) {
+      if (group.items.some(i => i.id === itemId)) return group;
+    }
+    return null;
+  }, [page.groups]);
 
   const handleDragStart = useCallback((
     e: React.MouseEvent,
@@ -78,15 +101,40 @@ export function DeckGrid({
       if (cell) {
         const newCol = Math.max(0, Math.min(gridColumns - colSpan, cell.col - offsetCol));
         const newRow = Math.max(0, Math.min(gridRows - rowSpan, cell.row - offsetRow));
-        if (isGroup) onMoveGroup(id, newCol, newRow);
-        else onMoveItem(id, newCol, newRow);
+
+        if (isGroup) {
+          onPushItems(id, newCol, newRow, colSpan, rowSpan);
+          onMoveGroup(id, newCol, newRow);
+        } else {
+          // Check if dropped onto a group
+          const currentGroup = findItemGroup(id);
+          const targetGroup = findGroupAtCell(newCol, newRow);
+
+          if (targetGroup && (!currentGroup || currentGroup.id !== targetGroup.id)) {
+            // Moving into a (different) group
+            if (currentGroup) {
+              onMoveItemOutOfGroup(id, currentGroup.id);
+            }
+            onMoveItem(id, newCol, newRow);
+            // After position update, move into group
+            setTimeout(() => onMoveItemToGroup(id, targetGroup.id), 50);
+          } else if (!targetGroup && currentGroup) {
+            // Moving out of a group
+            onMoveItemOutOfGroup(id, currentGroup.id);
+            setTimeout(() => onMoveItem(id, newCol, newRow), 50);
+          } else {
+            // Normal move within same context — push overlapping items
+            onPushItems(id, newCol, newRow, colSpan, rowSpan);
+            onMoveItem(id, newCol, newRow);
+          }
+        }
       }
       setDragPreview(null);
     };
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [editMode, getCellFromMouse, gridColumns, gridRows, onMoveItem, onMoveGroup]);
+  }, [editMode, getCellFromMouse, gridColumns, gridRows, onMoveItem, onMoveGroup, onMoveItemToGroup, onMoveItemOutOfGroup, onPushItems, findGroupAtCell, findItemGroup]);
 
   const handleResizeStart = useCallback((
     e: React.MouseEvent,
@@ -106,8 +154,8 @@ export function DeckGrid({
     const onMove = (ev: MouseEvent) => {
       const cell = getCellFromMouse(ev.clientX, ev.clientY);
       if (!cell) return;
-      const newColSpan = Math.max(1, cell.col - startCol + 1);
-      const newRowSpan = Math.max(1, cell.row - startRow + 1);
+      const newColSpan = Math.max(1, Math.min(gridColumns - startCol, cell.col - startCol + 1));
+      const newRowSpan = Math.max(1, Math.min(gridRows - startRow, cell.row - startRow + 1));
       setDragPreview({ col: startCol, row: startRow, colSpan: newColSpan, rowSpan: newRowSpan });
     };
 
@@ -116,8 +164,8 @@ export function DeckGrid({
       window.removeEventListener("mouseup", onUp);
       const cell = getCellFromMouse(ev.clientX, ev.clientY);
       if (cell) {
-        const newColSpan = Math.max(1, cell.col - startCol + 1);
-        const newRowSpan = Math.max(1, cell.row - startRow + 1);
+        const newColSpan = Math.max(1, Math.min(gridColumns - startCol, cell.col - startCol + 1));
+        const newRowSpan = Math.max(1, Math.min(gridRows - startRow, cell.row - startRow + 1));
         if (isGroup) onResizeGroup(id, newColSpan, newRowSpan);
         else onResizeItem(id, newColSpan, newRowSpan);
       }
@@ -126,7 +174,7 @@ export function DeckGrid({
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [editMode, getCellFromMouse, onResizeItem, onResizeGroup]);
+  }, [editMode, getCellFromMouse, gridColumns, gridRows, onResizeItem, onResizeGroup]);
 
   const handleCellClick = (col: number, row: number) => {
     if (!editMode || !placingType) return;
@@ -186,7 +234,6 @@ export function DeckGrid({
         />
       ))}
 
-      {/* Drag preview */}
       {dragPreview && (
         <div
           className="rounded-xl border-2 border-dashed border-accent/50 bg-accent/5 pointer-events-none"
