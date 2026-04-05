@@ -37,6 +37,7 @@ export default function DeckPage() {
     createPage, updatePage, deletePage,
     addItem, updateItem, removeItem,
     addGroup, updateGroup, removeGroup,
+    moveItemToGroup, moveItemOutOfGroup,
     sendOsc, setValue, itemValues,
   } = useDeck();
 
