@@ -159,7 +159,10 @@ export default function DeckPage() {
             onSelectItem={handleSelectItem}
             onSelectGroup={handleSelectGroup}
             onPlaceItem={handlePlaceItem}
-            onMoveItem={() => {}}
+            onMoveItem={(itemId, col, row) => updateItem(itemId, { col, row })}
+            onResizeItem={(itemId, colSpan, rowSpan) => updateItem(itemId, { colSpan, rowSpan })}
+            onMoveGroup={(groupId, col, row) => updateGroup(groupId, { col, row })}
+            onResizeGroup={(groupId, colSpan, rowSpan) => updateGroup(groupId, { colSpan, rowSpan })}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-600">
