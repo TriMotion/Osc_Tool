@@ -21,8 +21,8 @@ interface DeckGridProps {
   onResizeItem: (itemId: string, colSpan: number, rowSpan: number) => void;
   onMoveGroup: (groupId: string, col: number, row: number) => void;
   onResizeGroup: (groupId: string, colSpan: number, rowSpan: number) => void;
-  onMoveItemToGroup: (itemId: string, groupId: string) => void;
-  onMoveItemOutOfGroup: (itemId: string, groupId: string) => void;
+  onMoveItemToGroup: (itemId: string, groupId: string, absCol: number, absRow: number) => void;
+  onMoveItemOutOfGroup: (itemId: string, groupId: string, absCol?: number, absRow?: number) => void;
   onPushItems: (draggedId: string, col: number, row: number, colSpan: number, rowSpan: number) => void;
 }
 
@@ -115,13 +115,10 @@ export function DeckGrid({
             if (currentGroup) {
               onMoveItemOutOfGroup(id, currentGroup.id);
             }
-            onMoveItem(id, newCol, newRow);
-            // After position update, move into group
-            setTimeout(() => onMoveItemToGroup(id, targetGroup.id), 50);
+            onMoveItemToGroup(id, targetGroup.id, newCol, newRow);
           } else if (!targetGroup && currentGroup) {
-            // Moving out of a group
-            onMoveItemOutOfGroup(id, currentGroup.id);
-            setTimeout(() => onMoveItem(id, newCol, newRow), 50);
+            // Moving out of a group to the main grid
+            onMoveItemOutOfGroup(id, currentGroup.id, newCol, newRow);
           } else {
             // Normal move within same context — push overlapping items
             onPushItems(id, newCol, newRow, colSpan, rowSpan);

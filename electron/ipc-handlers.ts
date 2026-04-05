@@ -41,8 +41,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("deck:add-group", (_e, deckId: string, pageId: string, group) => { const r = deckStore.addGroup(deckId, pageId, group); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
   ipcMain.handle("deck:update-group", (_e, deckId: string, pageId: string, groupId: string, updates) => { const r = deckStore.updateGroup(deckId, pageId, groupId, updates); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
   ipcMain.handle("deck:remove-group", (_e, deckId: string, pageId: string, groupId: string) => { const r = deckStore.removeGroup(deckId, pageId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:move-item-to-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => { const r = deckStore.moveItemToGroup(deckId, pageId, itemId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:move-item-out-of-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string) => { const r = deckStore.moveItemOutOfGroup(deckId, pageId, itemId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
+  ipcMain.handle("deck:move-item-to-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number) => { const r = deckStore.moveItemToGroup(deckId, pageId, itemId, groupId, absCol, absRow); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
+  ipcMain.handle("deck:move-item-out-of-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number) => { const r = deckStore.moveItemOutOfGroup(deckId, pageId, itemId, groupId, absCol, absRow); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
 
   // --- Deck live values (synced across all clients) ---
   const itemValues: Map<string, unknown> = new Map();

@@ -132,17 +132,17 @@ export function useDeck() {
     await refresh();
   }, [activeDeckId, activePageId, refresh]);
 
-  const moveItemToGroup = useCallback(async (itemId: string, groupId: string) => {
+  const moveItemToGroup = useCallback(async (itemId: string, groupId: string, absCol?: number, absRow?: number) => {
     const api = getAPI();
     if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:move-item-to-group", activeDeckId, activePageId, itemId, groupId);
+    await api.invoke("deck:move-item-to-group", activeDeckId, activePageId, itemId, groupId, absCol, absRow);
     await refresh();
   }, [activeDeckId, activePageId, refresh]);
 
-  const moveItemOutOfGroup = useCallback(async (itemId: string, groupId: string) => {
+  const moveItemOutOfGroup = useCallback(async (itemId: string, groupId: string, absCol?: number, absRow?: number) => {
     const api = getAPI();
     if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:move-item-out-of-group", activeDeckId, activePageId, itemId, groupId);
+    await api.invoke("deck:move-item-out-of-group", activeDeckId, activePageId, itemId, groupId, absCol, absRow);
     await refresh();
   }, [activeDeckId, activePageId, refresh]);
 

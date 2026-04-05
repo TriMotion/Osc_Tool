@@ -200,7 +200,7 @@ export class DeckStore {
     return true;
   }
 
-  moveItemToGroup(deckId: string, pageId: string, itemId: string, groupId: string): boolean {
+  moveItemToGroup(deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number): boolean {
     const found = this.findPage(deckId, pageId);
     if (!found) return false;
     const group = found.page.groups.find((g) => g.id === groupId);
@@ -208,6 +208,8 @@ export class DeckStore {
     const itemIdx = found.page.items.findIndex((i) => i.id === itemId);
     if (itemIdx === -1) return false;
     const [item] = found.page.items.splice(itemIdx, 1);
+    if (absCol !== undefined) item.col = absCol;
+    if (absRow !== undefined) item.row = absRow;
     item.col = item.col - group.col;
     item.row = item.row - group.row;
     group.items.push(item);
@@ -215,7 +217,7 @@ export class DeckStore {
     return true;
   }
 
-  moveItemOutOfGroup(deckId: string, pageId: string, itemId: string, groupId: string): boolean {
+  moveItemOutOfGroup(deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number): boolean {
     const found = this.findPage(deckId, pageId);
     if (!found) return false;
     const group = found.page.groups.find((g) => g.id === groupId);
@@ -223,8 +225,8 @@ export class DeckStore {
     const itemIdx = group.items.findIndex((i) => i.id === itemId);
     if (itemIdx === -1) return false;
     const [item] = group.items.splice(itemIdx, 1);
-    item.col = item.col + group.col;
-    item.row = item.row + group.row;
+    item.col = absCol !== undefined ? absCol : item.col + group.col;
+    item.row = absRow !== undefined ? absRow : item.row + group.row;
     found.page.items.push(item);
     this.save();
     return true;

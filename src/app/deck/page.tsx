@@ -163,8 +163,8 @@ export default function DeckPage() {
             onResizeItem={(itemId, colSpan, rowSpan) => updateItem(itemId, { colSpan, rowSpan })}
             onMoveGroup={(groupId, col, row) => updateGroup(groupId, { col, row })}
             onResizeGroup={(groupId, colSpan, rowSpan) => updateGroup(groupId, { colSpan, rowSpan })}
-            onMoveItemToGroup={(itemId, groupId) => moveItemToGroup(itemId, groupId)}
-            onMoveItemOutOfGroup={(itemId, groupId) => moveItemOutOfGroup(itemId, groupId)}
+            onMoveItemToGroup={(itemId, groupId, absCol, absRow) => moveItemToGroup(itemId, groupId, absCol, absRow)}
+            onMoveItemOutOfGroup={(itemId, groupId, absCol, absRow) => moveItemOutOfGroup(itemId, groupId, absCol, absRow)}
             onPushItems={(draggedId, dropCol, dropRow, dropColSpan, dropRowSpan) => {
               if (!activePage || !activeDeck) return;
               const cols = activeDeck.gridColumns;
