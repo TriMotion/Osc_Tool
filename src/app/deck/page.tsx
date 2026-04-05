@@ -165,21 +165,70 @@ export default function DeckPage() {
             onResizeGroup={(groupId, colSpan, rowSpan) => updateGroup(groupId, { colSpan, rowSpan })}
             onMoveItemToGroup={(itemId, groupId) => moveItemToGroup(itemId, groupId)}
             onMoveItemOutOfGroup={(itemId, groupId) => moveItemOutOfGroup(itemId, groupId)}
-            onPushItems={(draggedId, col, row, colSpan, rowSpan) => {
-              if (!activePage) return;
-              for (const other of activePage.items) {
-                if (other.id === draggedId) continue;
-                const overlaps =
-                  other.col < col + colSpan && other.col + other.colSpan > col &&
-                  other.row < row + rowSpan && other.row + other.rowSpan > row;
-                if (overlaps) {
-                  const newRow = row + rowSpan;
-                  if (newRow + other.rowSpan <= activeDeck.gridRows) {
-                    updateItem(other.id, { row: newRow });
-                  } else {
-                    const newCol = col + colSpan;
-                    if (newCol + other.colSpan <= activeDeck.gridColumns) {
-                      updateItem(other.id, { col: newCol });
+            onPushItems={(draggedId, dropCol, dropRow, dropColSpan, dropRowSpan) => {
+              if (!activePage || !activeDeck) return;
+              const cols = activeDeck.gridColumns;
+              const rows = activeDeck.gridRows;
+
+              // Build a list of items to process (excluding the dragged one)
+              type Pos = { id: string; col: number; row: number; colSpan: number; rowSpan: number };
+              const positions: Pos[] = activePage.items
+                .filter(i => i.id !== draggedId)
+                .map(i => ({ id: i.id, col: i.col, row: i.row, colSpan: i.colSpan, rowSpan: i.rowSpan }));
+
+              const overlaps = (a: Pos, b: Pos) =>
+                a.col < b.col + b.colSpan && a.col + a.colSpan > b.col &&
+                a.row < b.row + b.rowSpan && a.row + a.rowSpan > b.row;
+
+              const isOccupied = (pos: Pos, exclude: string) => {
+                const dragged = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan };
+                if (overlaps(pos, dragged)) return true;
+                return positions.some(p => p.id !== exclude && overlaps(pos, p));
+              };
+
+              const fitsInGrid = (p: Pos) =>
+                p.col >= 0 && p.row >= 0 && p.col + p.colSpan <= cols && p.row + p.rowSpan <= rows;
+
+              const dropArea: Pos = { id: draggedId, col: dropCol, row: dropRow, colSpan: dropColSpan, rowSpan: dropRowSpan };
+
+              // Find all overlapping items and try to resolve
+              for (const item of positions) {
+                if (!overlaps(item, dropArea)) continue;
+
+                // 1. Try pushing right
+                const rightPos = { ...item, col: dropCol + dropColSpan };
+                if (fitsInGrid(rightPos) && !isOccupied(rightPos, item.id)) {
+                  updateItem(item.id, { col: rightPos.col, row: rightPos.row });
+                  item.col = rightPos.col;
+                  continue;
+                }
+
+                // 2. Try pushing left
+                const leftPos = { ...item, col: dropCol - item.colSpan };
+                if (fitsInGrid(leftPos) && !isOccupied(leftPos, item.id)) {
+                  updateItem(item.id, { col: leftPos.col, row: leftPos.row });
+                  item.col = leftPos.col;
+                  continue;
+                }
+
+                // 3. Try pushing down
+                const downPos = { ...item, row: dropRow + dropRowSpan };
+                if (fitsInGrid(downPos) && !isOccupied(downPos, item.id)) {
+                  updateItem(item.id, { col: downPos.col, row: downPos.row });
+                  item.row = downPos.row;
+                  continue;
+                }
+
+                // 4. Find any free spot (scan right-to-left, top-to-bottom)
+                let placed = false;
+                for (let r = 0; r <= rows - item.rowSpan && !placed; r++) {
+                  for (let c = 0; c <= cols - item.colSpan && !placed; c++) {
+                    const candidate = { ...item, col: c, row: r };
+                    if (!isOccupied(candidate, item.id)) {
+                      updateItem(item.id, { col: c, row: r });
+                      item.col = c;
+                      item.row = r;
+                      placed = true;
                     }
                   }
                 }
