@@ -112,30 +112,48 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
 
   if (item.type === "button") {
     const config = item.config as ButtonConfig;
-    const isToggleOn = config.mode === "toggle" && toggled;
+    const isToggle = config.mode === "toggle";
+    const isToggleOn = isToggle && toggled;
+    const isToggleOff = isToggle && !toggled;
     return (
       <motion.div
         whileTap={editMode ? undefined : { scale: 0.95 }}
         onClick={handleButtonClick}
         onMouseDown={editMode ? onDragStart : undefined}
-        className="h-full rounded-xl flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden relative"
+        className="h-full rounded-xl flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden relative p-3"
         style={{
-          background: colors.bg,
-          border: `1px solid ${colors.border}`,
-          boxShadow: isToggleOn ? `0 0 12px ${colors.border}` : undefined,
+          background: isToggleOff ? "rgba(255,255,255,0.02)" : colors.bg,
+          border: `1px solid ${isToggleOff ? "rgba(255,255,255,0.06)" : colors.border}`,
+          boxShadow: isToggleOn ? `0 0 16px ${colors.border}` : undefined,
+          opacity: isToggleOff ? 0.5 : 1,
+          transition: "all 0.15s ease",
         }}
       >
         {editMode && (
           <div className="absolute top-0 left-0 right-0 h-4 bg-white/5 cursor-move" />
         )}
-        <div className="text-sm font-semibold" style={{ color: colors.text }}>{item.name}</div>
-        <div className="text-[9px] text-gray-500 mt-1 truncate max-w-full px-2">{item.oscAddress}</div>
-        {config.mode === "toggle" && (
+        <div
+          className="font-semibold text-center leading-tight"
+          style={{
+            color: isToggleOff ? "#4b5563" : colors.text,
+            fontSize: "clamp(12px, 2.5vw, 18px)",
+          }}
+        >
+          {item.name}
+        </div>
+        <div
+          className="mt-1 truncate max-w-full px-1 text-center"
+          style={{ fontSize: "clamp(8px, 1.5vw, 11px)", color: isToggleOff ? "#374151" : "#6b7280" }}
+        >
+          {item.oscAddress}
+        </div>
+        {isToggle && (
           <div
-            className="text-[8px] mt-1 px-1.5 py-0.5 rounded"
+            className="mt-1.5 px-2 py-0.5 rounded font-semibold"
             style={{
-              color: isToggleOn ? colors.fill : "#6b7280",
-              background: isToggleOn ? `${colors.fill}20` : "transparent",
+              fontSize: "clamp(9px, 1.5vw, 12px)",
+              color: isToggleOn ? colors.fill : "#4b5563",
+              background: isToggleOn ? `${colors.fill}20` : "rgba(255,255,255,0.03)",
             }}
           >
             {isToggleOn ? "ON" : "OFF"}

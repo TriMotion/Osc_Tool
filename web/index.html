@@ -91,13 +91,16 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       width: 100%; height: 100%; border-radius: 10px; cursor: pointer;
       background: var(--item-bg); border: 1px solid var(--item-border);
-      transition: transform 0.08s, box-shadow 0.08s; padding: 6px;
+      transition: transform 0.08s, box-shadow 0.15s, opacity 0.15s, background 0.15s; padding: 10px;
     }
     .deck-btn:active { transform: scale(0.95); }
-    .deck-btn.on { box-shadow: 0 0 12px var(--item-border); }
-    .deck-btn .name { font-size: 13px; font-weight: 600; color: var(--item-text); text-align: center; word-break: break-word; }
-    .deck-btn .addr { font-size: 8px; color: var(--text-muted); margin-top: 3px; }
-    .deck-btn .badge { font-size: 8px; margin-top: 2px; padding: 1px 5px; border-radius: 3px; }
+    .deck-btn.on { box-shadow: 0 0 16px var(--item-border); }
+    .deck-btn.off { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.06); opacity: 0.5; }
+    .deck-btn.off .name { color: #4b5563; }
+    .deck-btn.off .addr { color: #374151; }
+    .deck-btn .name { font-size: clamp(13px, 2.5vw, 18px); font-weight: 600; color: var(--item-text); text-align: center; word-break: break-word; line-height: 1.2; }
+    .deck-btn .addr { font-size: clamp(8px, 1.5vw, 11px); color: var(--text-muted); margin-top: 4px; }
+    .deck-btn .badge { font-size: clamp(9px, 1.5vw, 12px); font-weight: 600; margin-top: 4px; padding: 2px 8px; border-radius: 4px; }
 
     .deck-slider {
       display: flex; flex-direction: column; align-items: center; padding: 8px 6px; gap: 4px;
@@ -305,7 +308,7 @@
     function renderButton(el,item,deck,page) {
       const cfg=item.config, isToggle=cfg.mode==="toggle", val=itemValues[item.id], on=!!(val&&val.toggled);
       const btn = document.createElement("div");
-      btn.className = "deck-btn" + (on?" on":"");
+      btn.className = "deck-btn" + (on?" on":"") + (isToggle&&!on?" off":"");
       btn.innerHTML = `<div class="name">${esc(item.name)}</div><div class="addr">${esc(item.oscAddress)}</div>${isToggle?`<div class="badge" style="color:var(--item-fill);background:${on?"rgba(255,255,255,0.08)":"transparent"}">${on?"ON":"OFF"}</div>`:""}`;
       if (isToggle) {
         btn.addEventListener("pointerdown", e => { e.preventDefault(); const cur=itemValues[item.id]; const s=!(cur&&cur.toggled); itemValues[item.id]={toggled:s}; ws.send(JSON.stringify({type:"deck-toggle",deckId:deck.id,pageId:page.id,itemId:item.id,state:s})); renderGrid(); });
