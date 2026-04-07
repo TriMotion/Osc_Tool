@@ -26,6 +26,25 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   });
   ipcMain.handle("endpoints:remove", (_e, id: string) => endpointsStore.remove(id));
 
+  // --- System ---
+  ipcMain.handle("system:get-local-ip", () => {
+    const { networkInterfaces } = require("os");
+    const nets = networkInterfaces();
+    const preferred = ["en0", "en1", "eth0", "Wi-Fi", "Ethernet"];
+    for (const ifName of preferred) {
+      const addrs = nets[ifName];
+      if (!addrs) continue;
+      const ipv4 = addrs.find((n: any) => n.family === "IPv4" && !n.internal);
+      if (ipv4) return ipv4.address;
+    }
+    for (const name of Object.keys(nets)) {
+      if (/^(utun|tun|lo)/.test(name)) continue;
+      const ipv4 = nets[name]?.find((n: any) => n.family === "IPv4" && !n.internal);
+      if (ipv4) return ipv4.address;
+    }
+    return "unknown";
+  });
+
   // --- Deck ---
   ipcMain.handle("deck:get-all", () => deckStore.getDecks());
   ipcMain.handle("deck:get", (_e, id: string) => deckStore.getDeck(id));

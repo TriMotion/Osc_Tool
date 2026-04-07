@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageLog } from "@/components/message-log";
 import { EndpointPicker } from "@/components/endpoint-picker";
@@ -14,9 +14,17 @@ export default function ListenerPage() {
   const [bindAddress, setBindAddress] = useState("0.0.0.0");
   const [activePorts, setActivePorts] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [localIp, setLocalIp] = useState<string>("");
   const { start, stop, getActive } = useListenerControl();
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
+
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (api) {
+      api.invoke("system:get-local-ip").then((ip: string) => setLocalIp(ip));
+    }
+  }, []);
 
   useOscListener(
     useCallback((msgs: OscMessage[]) => {
@@ -48,7 +56,14 @@ export default function ListenerPage() {
   return (
     <div className="flex flex-col h-full gap-4">
       <div>
-        <h2 className="text-xl font-semibold mb-4">Listener</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-xl font-semibold">Listener</h2>
+          {localIp && (
+            <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+              This machine: {localIp}
+            </span>
+          )}
+        </div>
         <div className="flex items-end gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Bind Address</label>
