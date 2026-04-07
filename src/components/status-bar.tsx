@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useOscThroughput, useWebServer } from "@/hooks/use-osc";
 
 export function StatusBar() {
+  const [localIp, setLocalIp] = useState("");
   const throughput = useOscThroughput();
+
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (api) {
+      api.invoke("system:get-local-ip").then((ip: string) => setLocalIp(ip));
+    }
+  }, []);
   const { running, url, start, stop } = useWebServer();
   const [webPort, setWebPort] = useState("4000");
   const [copied, setCopied] = useState(false);
@@ -34,6 +42,9 @@ export function StatusBar() {
         />
         <span>{throughput} msg/s</span>
       </div>
+      {localIp && (
+        <span className="text-gray-600">{localIp}</span>
+      )}
 
       <div className="ml-auto flex items-center gap-2">
         {!running && (
