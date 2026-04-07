@@ -1,5 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import path from "path";
+import express from "express";
+import http from "http";
 import { registerIpcHandlers } from "./ipc-handlers";
 import { setupAutoUpdater } from "./auto-updater";
 
@@ -24,6 +26,23 @@ app.on("second-instance", () => {
     win.focus();
   }
 });
+
+let rendererPort = 0;
+
+function startRendererServer(): Promise<number> {
+  return new Promise((resolve) => {
+    const rendererApp = express();
+    rendererApp.use(express.static(path.join(__dirname, "../out")));
+    rendererApp.use((_req, res) => {
+      res.sendFile(path.join(__dirname, "../out/index.html"));
+    });
+    const server = http.createServer(rendererApp);
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      resolve(typeof addr === "object" && addr ? addr.port : 0);
+    });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -50,11 +69,16 @@ function createWindow() {
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:3000");
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../out/index.html"));
+    mainWindow.loadURL(`http://localhost:${rendererPort}`);
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  if (process.env.NODE_ENV !== "development") {
+    rendererPort = await startRendererServer();
+  }
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

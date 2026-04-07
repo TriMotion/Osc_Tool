@@ -10,6 +10,8 @@ files:
   - web/**/*
   - package.json
   - "!node_modules"
+asarUnpack:
+  - out/_next/**/*
 mac:
   target:
     - target: dmg
