@@ -42,13 +42,15 @@ function createWindow() {
 
   if (!cleanup) {
     cleanup = registerIpcHandlers(getMainWindow);
+    if (process.env.NODE_ENV !== "development") {
+      setupAutoUpdater(getMainWindow);
+    }
   }
 
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:3000");
   } else {
     mainWindow.loadFile(path.join(__dirname, "../out/index.html"));
-    setupAutoUpdater(mainWindow);
   }
 }
 

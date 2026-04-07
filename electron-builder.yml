@@ -5,24 +5,11 @@ directories:
   output: dist
 files:
   - out/**/*
-  - electron/**/*.js
+  - electron/main.js
+  - electron/preload.js
   - web/**/*
-  - "!electron/**/*.ts"
-  - "!node_modules/.cache"
-  - "!node_modules/@next/**"
-  - "!node_modules/@img/**"
-  - "!node_modules/sharp/**"
-  - "!node_modules/next/**"
-  - "!node_modules/react/**"
-  - "!node_modules/react-dom/**"
-  - "!node_modules/@tailwindcss/**"
-  - "!node_modules/tailwindcss/**"
-  - "!node_modules/postcss/**"
-  - "!node_modules/autoprefixer/**"
-  - "!node_modules/framer-motion/**"
-  - "!node_modules/typescript/**"
-  - "!node_modules/esbuild/**"
-  - "!node_modules/@esbuild/**"
+  - package.json
+  - "!node_modules"
 mac:
   target:
     - target: dmg
