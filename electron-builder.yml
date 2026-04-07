@@ -28,6 +28,5 @@ nsis:
   allowToChangeInstallationDirectory: true
 publish:
   provider: github
-  owner: trimotion
+  owner: TriMotion
   repo: Osc_Tool
-  private: true
