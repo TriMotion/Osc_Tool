@@ -8,6 +8,8 @@ files:
   - electron/**/*.js
   - "!electron/**/*.ts"
   - "!node_modules/.cache"
+  - "!node_modules/@img/**"
+  - "!node_modules/sharp/**"
 mac:
   target:
     - target: dmg
