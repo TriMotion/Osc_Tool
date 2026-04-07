@@ -41,8 +41,23 @@ export function setupAutoUpdater(getWindow: () => BrowserWindow | null) {
       });
   });
 
+  autoUpdater.on("download-progress", (progress) => {
+    const win = getWindow();
+    if (win) {
+      win.setProgressBar(progress.percent / 100);
+    }
+  });
+
   autoUpdater.on("error", (err) => {
-    console.error("Auto-updater error:", err.message);
+    const win = getWindow();
+    if (win) {
+      dialog.showMessageBox(win, {
+        type: "error",
+        title: "Update Error",
+        message: `Update failed: ${err.message}`,
+      });
+      win.setProgressBar(-1);
+    }
   });
 
   setTimeout(() => {
