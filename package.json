@@ -1,14 +1,19 @@
 {
   "name": "osc_tool",
   "version": "1.0.0",
-  "description": "",
+  "description": "OSC test tool for Unreal Engine and Resolume Arena",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trimotion/Osc_Tool.git"
+  },
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts --outdir=electron --platform=node --format=cjs --packages=external",
+    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts electron/auto-updater.ts --outdir=electron --platform=node --format=cjs --packages=external",
     "electron:dev": "pnpm electron:compile && concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
-    "electron:build": "pnpm electron:compile && pnpm build && electron-builder",
+    "electron:build": "pnpm electron:compile && pnpm build && electron-builder --publish never",
+    "electron:release": "pnpm electron:compile && pnpm build && electron-builder --publish always",
     "start": "next start"
   },
   "keywords": [],
@@ -24,7 +29,7 @@
     ]
   },
   "dependencies": {
-    "electron": "^41.1.1",
+    "electron-updater": "^6.8.3",
     "express": "^5.2.1",
     "framer-motion": "^12.38.0",
     "next": "^16.2.2",
@@ -42,6 +47,7 @@
     "@types/ws": "^8.18.1",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
+    "electron": "^41.1.1",
     "electron-builder": "^26.8.1",
     "esbuild": "^0.28.0",
     "postcss": "^8.5.8",

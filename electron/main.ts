@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import path from "path";
 import { registerIpcHandlers } from "./ipc-handlers";
+import { setupAutoUpdater } from "./auto-updater";
 
 const gotLock = app.requestSingleInstanceLock();
 
@@ -39,6 +40,7 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:3000");
   } else {
     mainWindow.loadFile(path.join(__dirname, "../out/index.html"));
+    setupAutoUpdater(mainWindow);
   }
 }
 

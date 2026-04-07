@@ -6,11 +6,24 @@ directories:
 files:
   - out/**/*
   - electron/**/*.js
+  - "!electron/**/*.ts"
+  - "!node_modules/.cache"
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch:
+        - universal
   category: public.app-category.utilities
 win:
-  target: nsis
+  target:
+    - target: nsis
+      arch:
+        - x64
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+publish:
+  provider: github
+  owner: trimotion
+  repo: Osc_Tool
+  private: true
