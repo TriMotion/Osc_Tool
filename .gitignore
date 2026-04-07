@@ -4,3 +4,5 @@ dist/
 .next/
 *.js.map
 electron/*.js
+.superpowers/
+docs/superpowers/
