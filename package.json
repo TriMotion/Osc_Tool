@@ -1,6 +1,6 @@
 {
   "name": "osc_tool",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "OSC test tool for Unreal Engine and Resolume Arena",
   "repository": {
     "type": "git",
