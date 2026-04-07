@@ -12,10 +12,16 @@ if (!gotLock) {
 let mainWindow: BrowserWindow | null = null;
 let cleanup: (() => void) | null = null;
 
+function getMainWindow(): BrowserWindow | null {
+  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
+  return null;
+}
+
 app.on("second-instance", () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+  const win = getMainWindow();
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
   }
 });
 
@@ -34,7 +40,9 @@ function createWindow() {
     },
   });
 
-  cleanup = registerIpcHandlers(mainWindow);
+  if (!cleanup) {
+    cleanup = registerIpcHandlers(getMainWindow);
+  }
 
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:3000");
@@ -47,8 +55,8 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
-  cleanup?.();
   if (process.platform !== "darwin") {
+    cleanup?.();
     app.quit();
   }
 });

@@ -6,7 +6,7 @@ import { EndpointsStore } from "./endpoints-store";
 import { DeckStore } from "./deck-store";
 import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
 
-export function registerIpcHandlers(mainWindow: BrowserWindow) {
+export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const oscManager = new OscManager();
   const diagnostics = new DiagnosticsRunner();
   const endpointsStore = new EndpointsStore();
@@ -50,7 +50,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   function broadcastValue(itemId: string, value: unknown) {
     itemValues.set(itemId, value);
     const payload = { type: "deck-value", itemId, value };
-    mainWindow.webContents.send("deck:value", payload);
+    getMainWindow()?.webContents.send("deck:value", payload);
     webServer.broadcastMessage(payload);
   }
 
@@ -117,7 +117,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   let messageBatch: unknown[] = [];
   const flushMessages = () => {
     if (messageBatch.length > 0) {
-      mainWindow.webContents.send("osc:messages", messageBatch);
+      getMainWindow()?.webContents.send("osc:messages", messageBatch);
       messageBatch = [];
     }
   };
@@ -128,15 +128,15 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   oscManager.on("throughput", (count) => {
-    mainWindow.webContents.send("osc:throughput", count);
+    getMainWindow()?.webContents.send("osc:throughput", count);
   });
 
   oscManager.on("error", (err) => {
-    mainWindow.webContents.send("osc:error", err);
+    getMainWindow()?.webContents.send("osc:error", err);
   });
 
   diagnostics.on("progress", (progress) => {
-    mainWindow.webContents.send("diag:progress", progress);
+    getMainWindow()?.webContents.send("diag:progress", progress);
   });
 
   // Cleanup
