@@ -6,10 +6,23 @@ directories:
 files:
   - out/**/*
   - electron/**/*.js
+  - web/**/*
   - "!electron/**/*.ts"
   - "!node_modules/.cache"
+  - "!node_modules/@next/**"
   - "!node_modules/@img/**"
   - "!node_modules/sharp/**"
+  - "!node_modules/next/**"
+  - "!node_modules/react/**"
+  - "!node_modules/react-dom/**"
+  - "!node_modules/@tailwindcss/**"
+  - "!node_modules/tailwindcss/**"
+  - "!node_modules/postcss/**"
+  - "!node_modules/autoprefixer/**"
+  - "!node_modules/framer-motion/**"
+  - "!node_modules/typescript/**"
+  - "!node_modules/esbuild/**"
+  - "!node_modules/@esbuild/**"
 mac:
   target:
     - target: dmg
