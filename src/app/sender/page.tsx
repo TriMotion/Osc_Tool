@@ -20,10 +20,15 @@ interface FileEntry {
 
 function parseOscLine(line: string): FileEntry | null {
   const trimmed = line.trim();
-  if (!trimmed || !trimmed.startsWith("/")) return null;
-  const parts = trimmed.split(/\s+/);
-  const address = parts[0];
-  const args: OscArg[] = parts.slice(1).map((v) => {
+  if (!trimmed) return null;
+  // Find first OSC address in the line (starts with /)
+  const match = trimmed.match(/(\/\S+)/);
+  if (!match) return null;
+  const address = match[1];
+  // Get everything after the address as potential arguments
+  const afterAddress = trimmed.slice(trimmed.indexOf(address) + address.length).trim();
+  const parts = afterAddress ? afterAddress.split(/\s+/) : [];
+  const args: OscArg[] = parts.map((v) => {
     const num = Number(v);
     if (!isNaN(num)) {
       return Number.isInteger(num)
