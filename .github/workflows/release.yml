@@ -33,7 +33,7 @@ jobs:
 
       - run: pnpm install
 
-      - run: pnpm electron:compile
+      - run: pnpm electron:compile:prod
 
       - run: pnpm build
 
