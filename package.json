@@ -1,7 +1,7 @@
 {
-  "name": "osc_tool",
+  "name": "oscilot",
   "version": "1.0.7",
-  "description": "OSC test tool for Unreal Engine and Resolume Arena",
+  "description": "Signal testing and control for OSC and beyond",
   "repository": {
     "type": "git",
     "url": "https://github.com/trimotion/Osc_Tool.git"
@@ -23,6 +23,7 @@
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@julusian/midi",
       "electron",
       "electron-winstaller",
       "esbuild",
@@ -30,6 +31,7 @@
     ]
   },
   "dependencies": {
+    "@julusian/midi": "^3.6.1",
     "electron-updater": "^6.8.3",
     "express": "^5.2.1",
     "framer-motion": "^12.38.0",
@@ -40,6 +42,7 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.2",

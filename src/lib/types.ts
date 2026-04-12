@@ -104,3 +104,27 @@ export interface XYPadConfig {
   yMin: number;
   yMax: number;
 }
+
+// --- MIDI types ---
+
+export interface MidiEvent {
+  midi: {
+    type: "noteon" | "noteoff" | "cc" | "pitch" | "aftertouch" | "program";
+    channel: number;     // 1–16
+    data1: number;       // note number, CC number, or program number
+    data2: number;       // velocity, value, or pressure (0 for 2-byte messages)
+    timestamp: number;   // Date.now()
+    deviceName: string;
+  };
+  osc: OscMessage;       // the converted OSC output
+}
+
+export interface MidiMappingRule {
+  id: string;
+  type: "noteon" | "noteoff" | "cc" | "pitch" | "aftertouch" | "program";
+  channel?: number;            // 1–16; undefined = any
+  data1?: number;              // note or CC number; undefined = any
+  address: string;             // OSC address override, e.g. "/fader/master"
+  argType: "f" | "i";         // float or int output
+  scale?: [number, number];    // output range; default [0, 1]
+}
