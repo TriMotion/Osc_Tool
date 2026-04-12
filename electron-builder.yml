@@ -1,5 +1,5 @@
-appId: com.osctool.app
-productName: OSC Tool
+appId: com.oscilot.app
+productName: Oscilot
 directories:
   buildResources: build
   output: dist
@@ -12,6 +12,7 @@ files:
   - "!node_modules"
 asarUnpack:
   - out/_next/**/*
+  - "**/node_modules/@julusian/midi/build/Release/*.node"
 mac:
   target:
     - target: dmg
