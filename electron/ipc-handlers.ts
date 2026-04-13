@@ -4,7 +4,9 @@ import { DiagnosticsRunner } from "./diagnostics";
 import { WebServer } from "./web-server";
 import { EndpointsStore } from "./endpoints-store";
 import { DeckStore } from "./deck-store";
-import { ListenerConfig, SenderConfig, OscArg } from "../src/lib/types";
+import { MidiManager } from "./midi-manager";
+import { MidiStore } from "./midi-store";
+import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule } from "../src/lib/types";
 
 export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const oscManager = new OscManager();
@@ -12,6 +14,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const endpointsStore = new EndpointsStore();
   const deckStore = new DeckStore();
   const webServer = new WebServer(oscManager, deckStore);
+  const midiStore = new MidiStore();
+  const midiManager = new MidiManager(oscManager);
 
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
@@ -132,6 +136,43 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     return { running: webServer.isRunning() };
   });
 
+  // --- MIDI ---
+  ipcMain.handle("midi:get-devices", () => midiManager.getDevices());
+
+  ipcMain.handle("midi:get-status", () => midiManager.isRunning());
+
+  ipcMain.handle("midi:start", () => {
+    const { deviceFilters, mappingRules, target } = midiStore.getState();
+    midiManager.start(deviceFilters, mappingRules, target);
+    return { ok: true };
+  });
+
+  ipcMain.handle("midi:stop", () => {
+    midiManager.stop();
+    return { ok: true };
+  });
+
+  ipcMain.handle("midi:get-mapping-rules", () => midiStore.getState().mappingRules);
+
+  ipcMain.handle("midi:set-mapping-rules", (_e, rules: MidiMappingRule[]) => {
+    midiStore.setState({ mappingRules: rules });
+    return { ok: true };
+  });
+
+  ipcMain.handle("midi:get-device-filters", () => midiStore.getState().deviceFilters);
+
+  ipcMain.handle("midi:set-device-filters", (_e, filters: string[]) => {
+    midiStore.setState({ deviceFilters: filters });
+    return { ok: true };
+  });
+
+  ipcMain.handle("midi:get-target", () => midiStore.getState().target);
+
+  ipcMain.handle("midi:set-target", (_e, target: { host: string; port: number }) => {
+    midiStore.setState({ target });
+    return { ok: true };
+  });
+
   // --- Forward OSC messages to renderer (batched) ---
   let messageBatch: unknown[] = [];
   const flushMessages = () => {
@@ -150,6 +191,20 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     getMainWindow()?.webContents.send("osc:throughput", count);
   });
 
+  // --- Forward MIDI events to renderer (batched) ---
+  let midiBatch: unknown[] = [];
+  const flushMidiEvents = () => {
+    if (midiBatch.length > 0) {
+      getMainWindow()?.webContents.send("midi:events", midiBatch);
+      midiBatch = [];
+    }
+  };
+  const midiBatchInterval = setInterval(flushMidiEvents, 50);
+
+  midiManager.on("event", (evt) => {
+    midiBatch.push(evt);
+  });
+
   oscManager.on("error", (err) => {
     getMainWindow()?.webContents.send("osc:error", err);
   });
@@ -161,7 +216,9 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   // Cleanup
   return () => {
     clearInterval(batchInterval);
+    clearInterval(midiBatchInterval);
     oscManager.stopAll();
+    midiManager.stop();
     webServer.stop();
   };
 }

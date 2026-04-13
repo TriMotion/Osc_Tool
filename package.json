@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts electron/auto-updater.ts --outdir=electron --platform=node --format=cjs --packages=external",
+    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts electron/auto-updater.ts electron/midi-manager.ts electron/midi-store.ts --outdir=electron --platform=node --format=cjs --packages=external",
     "electron:compile:prod": "esbuild electron/main.ts electron/preload.ts --bundle --outdir=electron --platform=node --format=cjs --external:electron",
     "electron:dev": "pnpm electron:compile && concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
     "electron:build": "pnpm electron:compile:prod && pnpm build && electron-builder --publish never",
