@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMidiControl, useMidiConfig, useMidiEvents } from "@/hooks/use-midi";
 import { useEndpoints } from "@/hooks/use-osc";
@@ -36,15 +36,19 @@ export default function MidiPage() {
     argType: "f",
   });
 
+  const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
 
   // Sync host/port inputs when target loads from store
   const targetSynced = useRef(false);
-  if (!targetSynced.current && (target.host !== "127.0.0.1" || target.port !== 8000)) {
-    setHostInput(target.host);
-    setPortInput(String(target.port));
-    targetSynced.current = true;
-  }
+  useEffect(() => {
+    if (targetSynced.current) return;
+    if (target.host !== "127.0.0.1" || target.port !== 8000) {
+      setHostInput(target.host);
+      setPortInput(String(target.port));
+      targetSynced.current = true;
+    }
+  }, [target.host, target.port]);
 
   useMidiEvents(
     useCallback((incoming: MidiEvent[]) => {
@@ -289,10 +293,10 @@ export default function MidiPage() {
           <label className="text-xs text-gray-500">Message Log</label>
           <div className="flex gap-2">
             <button
-              onClick={() => { pausedRef.current = !pausedRef.current; }}
+              onClick={() => { pausedRef.current = !pausedRef.current; setPaused(pausedRef.current); }}
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
-              {pausedRef.current ? "Resume" : "Pause"}
+              {paused ? "Resume" : "Pause"}
             </button>
             <button
               onClick={() => setEvents([])}
@@ -319,7 +323,7 @@ export default function MidiPage() {
             ) : (
               [...events].reverse().map((evt, i) => (
                 <div
-                  key={i}
+                  key={`${evt.midi.timestamp}-${evt.midi.deviceName}-${i}`}
                   className="grid grid-cols-2 border-b border-white/5 last:border-0 px-3 py-1 hover:bg-white/5 transition-colors"
                 >
                   <span className="text-xs font-mono text-green-400 truncate pr-2">
