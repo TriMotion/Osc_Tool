@@ -3,16 +3,6 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import type { OscMessage, ListenerConfig, SenderConfig, OscArg, DiagnosticsResult, SavedEndpoint } from "@/lib/types";
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      send: (channel: string, ...args: unknown[]) => void;
-      invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
-      on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
-    };
-  }
-}
-
 function getAPI() {
   return typeof window !== "undefined" ? window.electronAPI : undefined;
 }

@@ -39,16 +39,24 @@ export function useMidiControl() {
   const start = useCallback(async () => {
     const api = getAPI();
     if (!api) return;
-    await api.invoke("midi:start");
-    setRunning(true);
-  }, []);
+    try {
+      await api.invoke("midi:start");
+      setRunning(true);
+    } catch {
+      await checkStatus();
+    }
+  }, [checkStatus]);
 
   const stop = useCallback(async () => {
     const api = getAPI();
     if (!api) return;
-    await api.invoke("midi:stop");
-    setRunning(false);
-  }, []);
+    try {
+      await api.invoke("midi:stop");
+      setRunning(false);
+    } catch {
+      await checkStatus();
+    }
+  }, [checkStatus]);
 
   useEffect(() => {
     checkStatus();
