@@ -8,6 +8,7 @@ const navItems = [
   { href: "/listener", label: "Listener", icon: "📡" },
   { href: "/sender", label: "Sender", icon: "📤" },
   { href: "/deck", label: "Deck", icon: "🎛" },
+  { href: "/midi", label: "MIDI", icon: "🎹" },
   { href: "/diagnostics", label: "Diagnostics", icon: "🔬" },
 ];
 
@@ -18,7 +19,7 @@ export function Sidebar() {
     <nav className="w-56 bg-surface-light border-r border-white/5 flex flex-col pt-3 pb-6 px-3 gap-1">
       <div className="h-8 mb-2" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
       <h1 className="text-accent font-bold text-lg px-3 mb-4 tracking-tight">
-        OSC Tool
+        Oscilot
       </h1>
       {navItems.map((item) => {
         const isActive = pathname === item.href;
