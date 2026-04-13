@@ -18,6 +18,7 @@ export class MidiManager extends EventEmitter {
     for (let i = 0; i < count; i++) {
       names.push(temp.getPortName(i));
     }
+    temp.closePort();
     return names;
   }
 
@@ -30,9 +31,14 @@ export class MidiManager extends EventEmitter {
 
     const temp = new Input();
     const count = temp.getPortCount();
-
+    const portNames: string[] = [];
     for (let i = 0; i < count; i++) {
-      const name = temp.getPortName(i);
+      portNames.push(temp.getPortName(i));
+    }
+    temp.closePort();
+
+    for (let i = 0; i < portNames.length; i++) {
+      const name = portNames[i];
       if (deviceFilters.includes(name)) continue;
 
       try {
@@ -44,8 +50,8 @@ export class MidiManager extends EventEmitter {
           if (event) this.emit("event", event);
         });
         this.inputs.push({ input, name });
-      } catch {
-        // Skip unavailable ports
+      } catch (err) {
+        this.emit("error", `Failed to open MIDI port "${name}": ${err}`);
       }
     }
 
@@ -93,7 +99,7 @@ export class MidiManager extends EventEmitter {
     if (rule) {
       let rawNormalized: number;
       if (midiType === "pitch") {
-        rawNormalized = ((data2 << 7) | data1) / 16383;
+        rawNormalized = (((data2 << 7) | data1) - 8192) / 8192;
       } else if (statusType === 0xD0) {
         rawNormalized = data1 / 127; // channel aftertouch: pressure in data1
       } else {
@@ -109,16 +115,17 @@ export class MidiManager extends EventEmitter {
       [address, arg] = this.autoMap(midiType, statusType, channel, data1, data2);
     }
 
+    const now = Date.now();
     const osc: OscMessage = {
       address,
       args: [arg],
-      timestamp: Date.now(),
+      timestamp: now,
     };
 
     this.oscManager.sendMessage(target, address, [arg]).catch(() => {});
 
     return {
-      midi: { type: midiType, channel, data1, data2, timestamp: Date.now(), deviceName },
+      midi: { type: midiType, channel, data1, data2, timestamp: now, deviceName },
       osc,
     };
   }
