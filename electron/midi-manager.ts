@@ -18,7 +18,6 @@ export class MidiManager extends EventEmitter {
     for (let i = 0; i < count; i++) {
       names.push(temp.getPortName(i));
     }
-    temp.closePort();
     return names;
   }
 
@@ -122,7 +121,9 @@ export class MidiManager extends EventEmitter {
       timestamp: now,
     };
 
-    this.oscManager.sendMessage(target, address, [arg]).catch(() => {});
+    this.oscManager.sendMessage(target, address, [arg]).catch((err) => {
+      this.emit("error", `OSC send failed: ${err}`);
+    });
 
     return {
       midi: { type: midiType, channel, data1, data2, timestamp: now, deviceName },

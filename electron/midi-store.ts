@@ -44,7 +44,11 @@ export class MidiStore {
   }
 
   setState(updates: Partial<MidiState>): void {
-    this.state = { ...this.state, ...updates };
+    this.state = {
+      ...this.state,
+      ...updates,
+      target: { ...this.state.target, ...(updates.target ?? {}) },
+    };
     this.save();
   }
 }

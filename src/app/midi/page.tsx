@@ -16,7 +16,7 @@ function formatMidi(evt: MidiEvent["midi"]): string {
     case "noteoff": return `NoteOff ch${evt.channel} #${evt.data1} vel=${evt.data2}`;
     case "cc":      return `CC      ch${evt.channel} #${evt.data1} → ${evt.data2}`;
     case "pitch":   return `Pitch   ch${evt.channel} → ${((evt.data2 << 7) | evt.data1)}`;
-    case "aftertouch": return `AT    ch${evt.channel} #${evt.data1} p=${evt.data2}`;
+    case "aftertouch": return `AT    ch${evt.channel} ${evt.data1} ${evt.data2}`;
     case "program": return `Prog    ch${evt.channel} → ${evt.data1}`;
   }
 }
@@ -38,16 +38,15 @@ export default function MidiPage() {
 
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
+  const [selectedEndpointId, setSelectedEndpointId] = useState("");
 
-  // Sync host/port inputs when target loads from store
+  // Sync host/port inputs once after async store load
   const targetSynced = useRef(false);
   useEffect(() => {
     if (targetSynced.current) return;
-    if (target.host !== "127.0.0.1" || target.port !== 8000) {
-      setHostInput(target.host);
-      setPortInput(String(target.port));
-      targetSynced.current = true;
-    }
+    targetSynced.current = true;
+    setHostInput(target.host);
+    setPortInput(String(target.port));
   }, [target.host, target.port]);
 
   useMidiEvents(
@@ -175,11 +174,11 @@ export default function MidiPage() {
           />
           {endpoints.length > 0 && (
             <select
+              value={selectedEndpointId}
               onChange={(e) => {
                 const ep = endpoints.find((ep) => ep.id === e.target.value);
-                if (ep) selectEndpoint(ep.host, ep.port);
+                if (ep) { selectEndpoint(ep.host, ep.port); setSelectedEndpointId(""); }
               }}
-              defaultValue=""
               className="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-400 focus:outline-none focus:border-accent/50"
             >
               <option value="" disabled>Saved endpoints…</option>
