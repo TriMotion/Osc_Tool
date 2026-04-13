@@ -205,6 +205,10 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     midiBatch.push(evt);
   });
 
+  midiManager.on("error", (err) => {
+    getMainWindow()?.webContents.send("midi:error", err);
+  });
+
   oscManager.on("error", (err) => {
     getMainWindow()?.webContents.send("osc:error", err);
   });
