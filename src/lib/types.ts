@@ -188,6 +188,10 @@ export function laneKeyString(k: LaneKey): string {
     case "pitch":      return `${k.device}|pitch|${k.channel}`;
     case "aftertouch": return `${k.device}|at|${k.channel}|${k.note ?? "ch"}`;
     case "program":    return `${k.device}|prog|${k.channel}`;
+    default: {
+      const _exhaustive: never = k;
+      throw new Error(`Unknown LaneKey kind: ${String(_exhaustive)}`);
+    }
   }
 }
 
