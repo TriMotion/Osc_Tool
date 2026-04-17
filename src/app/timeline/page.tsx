@@ -377,6 +377,7 @@ export default function TimelinePage() {
           onAudioOffsetDelta={handleOffsetDragDelta}
           analyses={analysis.analyses}
           redundantPairs={analysis.pairs}
+          moments={analysis.moments}
           analysisReady={analysis.ready}
           analysisError={analysis.error}
           badges={existingBadges}

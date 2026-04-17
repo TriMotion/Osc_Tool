@@ -155,6 +155,7 @@ export interface Recording {
   mappingRulesSnapshot: MidiMappingRule[]; // rules active at stop time
   audio?: AudioRef;
   badges?: LaneBadge[];
+  moments?: Moment[];           // user-created; auto-detected moments are not persisted
 }
 
 // Pairing of note-on with its matching note-off.
@@ -235,4 +236,15 @@ export interface RedundancyPair {
   laneKeyB: string;
   similarity: number;                  // 0..1
   kind: "onset" | "value";
+}
+
+/** A point or range of interest in the timeline. */
+export interface Moment {
+  id: string;
+  tMs: number;                  // anchor time
+  durationMs?: number;          // if set, this is a range (t..t+duration)
+  kind: "drop" | "build" | "peak" | "silence" | "start" | "end" | "user";
+  label: string;                // display text
+  color?: string;               // user-chosen color for "user" kind; auto ones use kind-based color
+  score?: number;               // 0..1 "interestingness" for auto kinds
 }

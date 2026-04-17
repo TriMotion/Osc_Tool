@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, NoteSpan, RecordedEvent, Recording, RedundancyPair } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteSpan, RecordedEvent, Recording, RedundancyPair } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { TimeRuler } from "./time-ruler";
 import { AudioLane } from "./audio-lane";
 import { DeviceSection } from "./device-section";
 import { HoverCard } from "./hover-card";
 import { TriggersSidebar } from "./triggers-sidebar";
+import { MomentMarkers } from "./moment-markers";
 
 const LEFT_GUTTER = 140;
 const MIN_LANE_HEIGHT = 16;
@@ -58,6 +59,7 @@ interface TimelineCanvasProps {
   onAudioOffsetDelta?: (deltaPx: number, modifier: "none" | "shift" | "alt") => void;
   analyses: LaneAnalysis[] | null;
   redundantPairs: RedundancyPair[] | null;
+  moments: Moment[] | null;
   analysisReady: boolean;
   analysisError: string | null;
   badges: LaneBadge[];
@@ -72,7 +74,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   const {
     recording, events, bufferVersion, isRecording, laneMap, noteSpans, mappingRules,
     playheadMsRef, onSeek, audioPeaks, audioLabel, onAudioOffsetDelta,
-    analyses, redundantPairs, analysisReady, analysisError, badges,
+    analyses, redundantPairs, moments, analysisReady, analysisError, badges,
     triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onTagCurrentLane,
   } = props;
 
@@ -256,6 +258,23 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         onSeek={(ms) => { tailFollowRef.current = false; onSeek(ms); }}
       />
 
+      {moments && moments.length > 0 && (
+        <MomentMarkers
+          moments={moments}
+          viewStartMs={view.startMs}
+          viewEndMs={view.endMs}
+          leftGutterPx={LEFT_GUTTER}
+          onSelect={(m) => {
+            tailFollowRef.current = false;
+            onSeek(m.tMs);
+            // Zoom to show the moment with context: center on it and set span to ~10s if currently wider
+            const currentSpan = view.endMs - view.startMs;
+            const targetSpan = Math.min(currentSpan, Math.max(8000, (m.durationMs ?? 0) * 2));
+            dispatch({ type: "set", startMs: m.tMs - targetSpan / 2, endMs: m.tMs + targetSpan / 2 });
+          }}
+        />
+      )}
+
       <AudioLane
         peaks={audioPeaks}
         heightPx={getLaneHeight(AUDIO_LANE_KEY, 38)}
@@ -323,12 +342,20 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         <TriggersSidebar
           analyses={analyses}
           pairs={redundantPairs}
+          moments={moments}
           ready={analysisReady}
           error={analysisError}
           userBadges={badges}
           laneLabelFor={laneLabelFor}
           onSelectLane={(k) => { flashLane(k); scrollLaneIntoView(k); }}
           onSelectPair={(a, b) => { flashLane(a); flashLane(b); scrollLaneIntoView(a); }}
+          onSelectMoment={(m) => {
+            tailFollowRef.current = false;
+            onSeek(m.tMs);
+            const currentSpan = view.endMs - view.startMs;
+            const targetSpan = Math.min(currentSpan, Math.max(8000, (m.durationMs ?? 0) * 2));
+            dispatch({ type: "set", startMs: m.tMs - targetSpan / 2, endMs: m.tMs + targetSpan / 2 });
+          }}
           onTagCurrentLane={onTagCurrentLane}
         />
       )}

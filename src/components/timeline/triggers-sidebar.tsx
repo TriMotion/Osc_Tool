@@ -1,27 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { LaneAnalysis, LaneBadge, RedundancyPair } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, Moment, RedundancyPair } from "@/lib/types";
+import { momentColor } from "@/lib/moment-detection";
 
 interface TriggersSidebarProps {
   analyses: LaneAnalysis[] | null;
   pairs: RedundancyPair[] | null;
+  moments: Moment[] | null;
   ready: boolean;
   error: string | null;
   userBadges: LaneBadge[];
   laneLabelFor: (laneKey: string) => string;
   onSelectLane: (laneKey: string) => void;
   onSelectPair: (a: string, b: string) => void;
+  onSelectMoment: (m: Moment) => void;
   onTagCurrentLane: () => void;
 }
 
-type SectionKey = "rhythm" | "melody" | "dynamic" | "redundant" | "tagged";
+type SectionKey = "moments" | "rhythm" | "melody" | "dynamic" | "redundant" | "tagged";
 
 export function TriggersSidebar(props: TriggersSidebarProps) {
-  const { analyses, pairs, ready, error, userBadges, laneLabelFor, onSelectLane, onSelectPair, onTagCurrentLane } = props;
+  const { analyses, pairs, moments, ready, error, userBadges, laneLabelFor, onSelectLane, onSelectPair, onSelectMoment, onTagCurrentLane } = props;
 
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
-    rhythm: true, melody: true, dynamic: true, redundant: true, tagged: true,
+    moments: true, rhythm: true, melody: false, dynamic: false, redundant: false, tagged: true,
   });
 
   const rhythmic = useMemo(() => {
@@ -77,6 +80,23 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
 
       {ready && !error && analyses && analyses.length > 0 && (
         <>
+          <Section label="Moments" isOpen={open.moments} onToggle={() => toggle("moments")}>
+            {!moments || moments.length === 0 ? <Empty label="No moments detected" /> : moments.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => onSelectMoment(m)}
+                className="w-full flex items-center gap-2 px-3 py-1 text-left hover:bg-white/5"
+              >
+                <span
+                  className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{ background: m.color ?? momentColor(m.kind) }}
+                />
+                <span className="text-[10px] font-mono text-gray-500 shrink-0 w-10">{fmtMs(m.tMs)}</span>
+                <span className="text-[10px] text-gray-300 truncate">{m.label}</span>
+              </button>
+            ))}
+          </Section>
+
           <Section label="Most rhythmic" isOpen={open.rhythm} onToggle={() => toggle("rhythm")}>
             {rhythmic.length === 0 ? <Empty label="No rhythmic lanes" /> : rhythmic.map((a) => (
               <Row key={a.laneKey} onClick={() => onSelectLane(a.laneKey)} label={laneLabelFor(a.laneKey)} prefix={`♻ ${a.rhythmScore.toFixed(2)}`} />
@@ -157,4 +177,9 @@ function Row({ onClick, label, prefix, indent }: { onClick: () => void; label: s
 
 function Empty({ label }: { label: string }) {
   return <div className="px-3 py-1 text-[10px] text-gray-600 italic">{label}</div>;
+}
+
+function fmtMs(ms: number): string {
+  const t = Math.floor(ms / 1000);
+  return `${Math.floor(t / 60).toString().padStart(2, "0")}:${(t % 60).toString().padStart(2, "0")}`;
 }

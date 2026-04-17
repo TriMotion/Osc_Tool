@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { LaneAnalysis, LaneMap, NoteSpan, Recording, RedundancyPair } from "@/lib/types";
+import type { LaneAnalysis, LaneMap, Moment, NoteSpan, Recording, RedundancyPair } from "@/lib/types";
 import { analyzeRecording } from "@/lib/trigger-analysis";
+import { detectMoments } from "@/lib/moment-detection";
 
 interface Result {
   analyses: LaneAnalysis[] | null;
   pairs: RedundancyPair[] | null;
+  moments: Moment[] | null;
   ready: boolean;
   error: string | null;
 }
@@ -23,12 +25,12 @@ interface Args {
  * Yields via requestIdleCallback so the main thread stays responsive on long takes.
  */
 export function useTriggerAnalysis({ recording, bufferVersion, laneMap, noteSpans }: Args): Result {
-  const [result, setResult] = useState<Result>({ analyses: null, pairs: null, ready: false, error: null });
+  const [result, setResult] = useState<Result>({ analyses: null, pairs: null, moments: null, ready: false, error: null });
   const cancelRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 
   useEffect(() => {
     if (!recording || recording.events.length === 0) {
-      setResult({ analyses: [], pairs: [], ready: true, error: null });
+      setResult({ analyses: [], pairs: [], moments: [], ready: true, error: null });
       return;
     }
 
@@ -42,10 +44,12 @@ export function useTriggerAnalysis({ recording, bufferVersion, laneMap, noteSpan
         if (token.cancelled) return;
         const { analyses, pairs } = analyzeRecording(recording, laneMap, noteSpans);
         if (token.cancelled) return;
-        setResult({ analyses, pairs, ready: true, error: null });
+        const moments = detectMoments(recording, noteSpans);
+        if (token.cancelled) return;
+        setResult({ analyses, pairs, moments, ready: true, error: null });
       } catch (err) {
         if (token.cancelled) return;
-        setResult({ analyses: null, pairs: null, ready: true, error: (err as Error).message });
+        setResult({ analyses: null, pairs: null, moments: null, ready: true, error: (err as Error).message });
       }
     };
     run();

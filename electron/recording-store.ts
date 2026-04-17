@@ -372,5 +372,16 @@ function validateRecording(v: unknown): Recording {
       }
     }
   }
+  if ((r as { moments?: unknown }).moments !== undefined) {
+    const mm = (r as { moments?: unknown[] }).moments;
+    if (!Array.isArray(mm)) throw new Error("Recording.moments must be an array");
+    for (let i = 0; i < mm.length; i++) {
+      const m = mm[i] as Partial<{ id: string; tMs: number; kind: string; label: string }>;
+      if (typeof m.id !== "string") throw new Error(`Recording.moments[${i}].id must be a string`);
+      if (typeof m.tMs !== "number") throw new Error(`Recording.moments[${i}].tMs must be a number`);
+      if (typeof m.kind !== "string") throw new Error(`Recording.moments[${i}].kind must be a string`);
+      if (typeof m.label !== "string") throw new Error(`Recording.moments[${i}].label must be a string`);
+    }
+  }
   return r as Recording;
 }
