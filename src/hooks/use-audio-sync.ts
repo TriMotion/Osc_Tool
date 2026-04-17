@@ -127,36 +127,42 @@ export function useAudioSync({ durationMs, onPlayheadChange }: UseAudioSyncArgs)
       // Playback: blob URL
       const blob = new Blob([bytes], { type: mimeType });
       const src = URL.createObjectURL(blob);
+      let committed = false;
 
       // Peaks: decode via Web Audio and mix to mono.
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
-      const decoded = await ctx.decodeAudioData(bytes.slice(0));
-      const channels = decoded.numberOfChannels;
-      const len = decoded.length;
-      const mono = new Float32Array(len);
-      for (let ch = 0; ch < channels; ch++) {
-        const data = decoded.getChannelData(ch);
-        for (let i = 0; i < len; i++) mono[i] += data[i];
-      }
-      if (channels > 1) {
-        for (let i = 0; i < len; i++) mono[i] /= channels;
-      }
-      const audioDurationMs = (len / decoded.sampleRate) * 1000;
-      try { await ctx.close(); } catch { /* noop */ }
+      try {
+        const decoded = await ctx.decodeAudioData(bytes.slice(0));
+        const channels = decoded.numberOfChannels;
+        const len = decoded.length;
+        const mono = new Float32Array(len);
+        for (let ch = 0; ch < channels; ch++) {
+          const data = decoded.getChannelData(ch);
+          for (let i = 0; i < len; i++) mono[i] += data[i];
+        }
+        if (channels > 1) {
+          for (let i = 0; i < len; i++) mono[i] /= channels;
+        }
+        const audioDurationMs = (len / decoded.sampleRate) * 1000;
 
-      setAudio((prev) => {
-        if (prev.src) URL.revokeObjectURL(prev.src);
-        return {
-          filePath,
-          src,
-          durationMs: audioDurationMs,
-          peaksByWidth: new Map(),
-          peakSamples: mono,
-          offsetMs: initialOffsetMs,
-          mimeType,
-        };
-      });
+        setAudio((prev) => {
+          if (prev.src) URL.revokeObjectURL(prev.src);
+          return {
+            filePath,
+            src,
+            durationMs: audioDurationMs,
+            peaksByWidth: new Map(),
+            peakSamples: mono,
+            offsetMs: initialOffsetMs,
+            mimeType,
+          };
+        });
+        committed = true;
+      } finally {
+        if (!committed) URL.revokeObjectURL(src);
+        try { await ctx.close(); } catch { /* noop */ }
+      }
     },
     []
   );

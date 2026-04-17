@@ -68,9 +68,10 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     payload: null, x: 0, y: 0,
   });
 
+  const latestTRel = events.length > 0 ? events[events.length - 1].tRel : 0;
   const duration = Math.max(
     1000,
-    recording?.durationMs ?? (isRecording ? Math.max(...events.map((e) => e.tRel), 1000) + 500 : 1000)
+    recording?.durationMs ?? (isRecording ? latestTRel + 500 : 1000)
   );
 
   const [view, dispatch] = useReducer(viewReducer, { startMs: 0, endMs: duration });

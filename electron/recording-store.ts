@@ -57,16 +57,19 @@ export class RecordingStore {
 
   private writeStreamed(filePath: string, rec: Recording & { version: 1 }): void {
     // Stream the events array to avoid building a massive JSON string in memory.
+    // Serialize everything except events, then append events manually as the last field.
     const fd = fs.openSync(filePath, "w");
     try {
-      const head = JSON.stringify({ ...rec, events: [] }, null, 2);
-      // Replace the trailing `  "events": []` with an opening `  "events": [\n`.
-      const idx = head.lastIndexOf('"events": []');
-      if (idx < 0) throw new Error("Stream serializer: events placeholder not found");
-      fs.writeSync(fd, head.slice(0, idx) + '"events": [\n');
-      for (let i = 0; i < rec.events.length; i++) {
-        const sep = i === rec.events.length - 1 ? "\n" : ",\n";
-        fs.writeSync(fd, "    " + JSON.stringify(rec.events[i]) + sep);
+      const { events, ...rest } = rec;
+      const restJson = JSON.stringify(rest, null, 2);
+      // restJson ends with "\n}". Strip the closing "\n}" so we can append more fields.
+      const base = restJson.endsWith("\n}")
+        ? restJson.slice(0, -2)
+        : restJson.slice(0, restJson.lastIndexOf("}"));
+      fs.writeSync(fd, base + ',\n  "events": [\n');
+      for (let i = 0; i < events.length; i++) {
+        const sep = i === events.length - 1 ? "\n" : ",\n";
+        fs.writeSync(fd, "    " + JSON.stringify(events[i]) + sep);
       }
       fs.writeSync(fd, "  ]\n}\n");
     } finally {

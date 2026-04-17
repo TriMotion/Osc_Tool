@@ -115,6 +115,10 @@ export default function TimelinePage() {
   }, [io, recorder]);
 
   const handleLoad = useCallback(async () => {
+    if (recorder.state === "recording") {
+      alert("Stop the current recording before loading another file.");
+      return;
+    }
     const applyLoad = async () => {
       const res = await io.load();
       if (!res) return;

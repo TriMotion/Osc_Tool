@@ -177,11 +177,19 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
 
   // --- Recording / Timeline ---
   ipcMain.handle("recording:save", async (_e, rec: Recording, suggestedPath?: string) => {
-    return recordingStore.saveDialog(getMainWindow(), rec, suggestedPath);
+    try {
+      return await recordingStore.saveDialog(getMainWindow(), rec, suggestedPath);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   });
 
   ipcMain.handle("recording:save-as", async (_e, rec: Recording) => {
-    return recordingStore.saveDialog(getMainWindow(), rec);
+    try {
+      return await recordingStore.saveDialog(getMainWindow(), rec);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   });
 
   ipcMain.handle("recording:load", async () => {
