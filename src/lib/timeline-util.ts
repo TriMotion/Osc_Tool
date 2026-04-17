@@ -143,6 +143,8 @@ export function buildLaneMap(
       case "aftertouch":
         // MidiManager.parseMessage sets data2 === 0 for channel aftertouch
         // (data1 carries the pressure). Poly aftertouch has data1=note, data2=pressure.
+        // Edge case: poly AT at pressure=0 is misclassified as channel AT here.
+        // Documented v1 limitation — see design spec.
         if (m.data2 === 0) {
           push({ kind: "aftertouch", device, channel: m.channel }, i);
         } else {
@@ -162,6 +164,12 @@ export function buildLaneMap(
  * Normalize a MIDI event's value. For most types, 0..127 → 0..1.
  * For pitch, (data1+data2) 14-bit signed → -1..+1.
  * For channel aftertouch (data2 === 0), data1 is the pressure.
+ *
+ * Known limitation: poly aftertouch where pressure is exactly 0 is
+ * indistinguishable from channel aftertouch at this level (both have
+ * data2 === 0 as emitted by MidiManager.parseMessage). Such events are
+ * treated as channel aftertouch. This is a v1 simplification documented
+ * in the design spec.
  */
 export function eventValue(e: RecordedEvent): number {
   const m = e.midi;
@@ -232,7 +240,7 @@ export function computeAudioPeaks(
 
   for (let col = 0; col < pixelCount; col++) {
     const start = Math.floor(col * samplesPerPx);
-    const end = Math.min(samples.length, Math.floor((col + 1) * samplesPerPx));
+    const end = Math.min(samples.length, Math.ceil((col + 1) * samplesPerPx));
     let mn = Infinity;
     let mx = -Infinity;
     for (let i = start; i < end; i++) {
@@ -248,6 +256,7 @@ export function computeAudioPeaks(
 
 /** Format a millisecond offset as "mm:ss.mmm". Negative values prefixed with "-". */
 export function formatTime(ms: number): string {
+  if (!isFinite(ms)) return "--:--.---";
   const sign = ms < 0 ? "-" : "";
   const abs = Math.abs(ms);
   const totalSec = Math.floor(abs / 1000);
