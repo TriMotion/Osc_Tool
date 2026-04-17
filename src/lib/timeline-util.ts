@@ -132,7 +132,7 @@ export function buildLaneMap(
     switch (m.type) {
       case "noteon":
       case "noteoff":
-        push({ kind: "notes", device }, i);
+        push({ kind: "notes", device, channel: m.channel }, i);
         break;
       case "cc":
         push({ kind: "cc", device, channel: m.channel, cc: m.data1 }, i);

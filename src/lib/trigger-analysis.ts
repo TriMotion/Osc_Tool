@@ -29,6 +29,16 @@ export function analyzeRecording(
 
   for (const entry of laneMap.values()) {
     analyses.push(analyzeLane(entry.key, entry.eventIndices, rec.events, noteSpans, durationMs));
+
+    // For each notes lane, emit virtual per-pitch sub-lanes so each drum pad /
+    // specific note gets its own rhythm + dynamic score.
+    if (entry.key.kind === "notes") {
+      const parent = entry.key;
+      const channelSpans = noteSpans.filter(
+        (s) => s.device === parent.device && s.channel === parent.channel
+      );
+      analyses.push(...analyzeNoteSubunits(parent, channelSpans, durationMs));
+    }
   }
 
   const pairs = durationMs >= 1000
@@ -36,6 +46,58 @@ export function analyzeRecording(
     : [];
 
   return { analyses, pairs };
+}
+
+/** One LaneAnalysis per unique pitch within a notes lane. */
+function analyzeNoteSubunits(
+  parent: LaneKey & { kind: "notes" },
+  spans: NoteSpan[],
+  durationMs: number
+): LaneAnalysis[] {
+  const byPitch = new Map<number, NoteSpan[]>();
+  for (const s of spans) {
+    const list = byPitch.get(s.pitch) ?? [];
+    list.push(s);
+    byPitch.set(s.pitch, list);
+  }
+
+  const durationSec = durationMs / 1000;
+  const out: LaneAnalysis[] = [];
+
+  for (const [pitch, pitchSpans] of byPitch) {
+    const eventCount = pitchSpans.length;
+    if (eventCount < 3) continue; // skip one-offs; they clutter the sidebar
+    const eventsPerSec = eventCount / durationSec;
+
+    const onsets = pitchSpans.map((s) => s.tStart).sort((a, b) => a - b);
+    const iois = computeIOIs(onsets);
+    const ioiHistogram = bucketIOIs(iois);
+    const rhythmScore = onsets.length < 4 ? 0 : rhythmScoreFromHistogram(ioiHistogram);
+
+    const velocities = pitchSpans.map((s) => s.velocity / 127);
+    const { stdDev, min, max } = stats(velocities);
+    const dynamicScore = Math.max(0, Math.min(1, stdDev / 0.25));
+
+    const key: LaneKey = {
+      kind: "noteOnPitch",
+      device: parent.device,
+      channel: parent.channel,
+      pitch,
+    };
+
+    out.push({
+      laneKey: laneKeyString(key),
+      eventCount,
+      eventsPerSec,
+      rhythmScore,
+      dynamicScore,
+      valueRange: [min, max],
+      ioiHistogram,
+      isDead: eventCount < 3 || eventsPerSec < 0.05,
+    });
+  }
+
+  return out;
 }
 
 function analyzeLane(

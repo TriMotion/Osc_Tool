@@ -169,8 +169,14 @@ export interface NoteSpan {
 }
 
 // Identifies a single timeline lane within a device section.
+// "notes" lanes are split per channel so kicks on ch1 and snares on ch2 render separately.
+// "noteOnPitch" is a virtual analysis-only sub-lane: one per (device, channel, pitch).
+// It never appears in the LaneMap; it's synthesized by the trigger analyzer so each
+// drum pad can be ranked individually. Clicking one in the sidebar scrolls to the
+// parent notes lane.
 export type LaneKey =
-  | { kind: "notes"; device: string }
+  | { kind: "notes"; device: string; channel: number }
+  | { kind: "noteOnPitch"; device: string; channel: number; pitch: number }
   | { kind: "cc"; device: string; channel: number; cc: number }
   | { kind: "pitch"; device: string; channel: number }
   | { kind: "aftertouch"; device: string; channel: number; note?: number } // note set for poly
@@ -184,16 +190,25 @@ export type LaneMap = Map<string, { key: LaneKey; eventIndices: number[] }>;
 // Stable string key for LaneMap.
 export function laneKeyString(k: LaneKey): string {
   switch (k.kind) {
-    case "notes":      return `${k.device}|notes`;
-    case "cc":         return `${k.device}|cc|${k.channel}|${k.cc}`;
-    case "pitch":      return `${k.device}|pitch|${k.channel}`;
-    case "aftertouch": return `${k.device}|at|${k.channel}|${k.note ?? "ch"}`;
-    case "program":    return `${k.device}|prog|${k.channel}`;
+    case "notes":        return `${k.device}|notes|${k.channel}`;
+    case "noteOnPitch":  return `${k.device}|noteOnPitch|${k.channel}|${k.pitch}`;
+    case "cc":           return `${k.device}|cc|${k.channel}|${k.cc}`;
+    case "pitch":        return `${k.device}|pitch|${k.channel}`;
+    case "aftertouch":   return `${k.device}|at|${k.channel}|${k.note ?? "ch"}`;
+    case "program":      return `${k.device}|prog|${k.channel}`;
     default: {
       const _exhaustive: never = k;
       throw new Error(`Unknown LaneKey kind: ${String(_exhaustive)}`);
     }
   }
+}
+
+/** Returns the parent notes lane key for a noteOnPitch sub-lane, else returns the input. */
+export function parentLaneKey(k: LaneKey): string {
+  if (k.kind === "noteOnPitch") {
+    return laneKeyString({ kind: "notes", device: k.device, channel: k.channel });
+  }
+  return laneKeyString(k);
 }
 
 export interface RecentRecordingEntry {

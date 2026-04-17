@@ -74,14 +74,15 @@ export function DeviceSection(props: DeviceSectionProps) {
 
   const laneEntries = useMemo(() => {
     const list = Array.from(laneMap.values()).filter((entry) => keyDevice(entry.key) === device);
-    // Order: notes first, then CCs sorted by channel then cc#, pitch, aftertouch, program.
+    // Order: notes (by channel) first, then CCs sorted by channel then cc#, pitch, aftertouch, program.
     const rank = (k: LaneKey): number => {
       switch (k.kind) {
-        case "notes":      return 0;
-        case "cc":         return 1_000 + k.channel * 1000 + k.cc;
-        case "pitch":      return 100_000 + k.channel;
-        case "aftertouch": return 200_000 + k.channel * 1000 + (k.note ?? 0);
-        case "program":    return 300_000 + k.channel;
+        case "notes":        return k.channel;
+        case "noteOnPitch":  return 500 + k.channel * 128 + k.pitch; // analysis-only; not in laneMap
+        case "cc":           return 1_000 + k.channel * 1000 + k.cc;
+        case "pitch":        return 100_000 + k.channel;
+        case "aftertouch":   return 200_000 + k.channel * 1000 + (k.note ?? 0);
+        case "program":      return 300_000 + k.channel;
       }
     };
     return list.sort((a, b) => rank(a.key) - rank(b.key));
@@ -119,11 +120,14 @@ export function DeviceSection(props: DeviceSectionProps) {
             const osc = oscLabelFor(entry.key, mappingRules);
             const keyStr = laneKeyString(entry.key);
             switch (entry.key.kind) {
-              case "notes":
+              case "notes": {
+                const notesChannel = entry.key.channel;
+                const channelSpans = deviceNoteSpans.filter((s) => s.channel === notesChannel);
                 return (
-                  <div data-lane-key={keyStr} key="notes">
+                  <div data-lane-key={keyStr} key={keyStr}>
                     <NotesLane
-                      spans={deviceNoteSpans}
+                      channelLabel={`Notes · ch${notesChannel}`}
+                      spans={channelSpans}
                       viewStartMs={viewStartMs}
                       viewEndMs={viewEndMs}
                       heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
@@ -139,6 +143,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                     />
                   </div>
                 );
+              }
+              case "noteOnPitch":
+                return null; // analysis-only; never rendered from laneMap
               case "cc":
                 return (
                   <div data-lane-key={keyStr} key={`cc|${entry.key.channel}|${entry.key.cc}`}>

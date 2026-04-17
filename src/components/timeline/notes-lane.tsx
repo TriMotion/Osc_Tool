@@ -8,6 +8,7 @@ import { PitchSparkline } from "./pitch-sparkline";
 
 interface NotesLaneProps {
   laneKey: string;
+  channelLabel?: string;       // e.g. "Notes · ch1"
   spans: NoteSpan[];
   viewStartMs: number;
   viewEndMs: number;
@@ -24,7 +25,7 @@ interface NotesLaneProps {
 
 export function NotesLane(props: NotesLaneProps) {
   const {
-    laneKey, spans, viewStartMs, viewEndMs, heightPx, leftGutterPx,
+    laneKey, channelLabel, spans, viewStartMs, viewEndMs, heightPx, leftGutterPx,
     onHover, onResize, analysis, userBadges, onRequestAddBadge, onEditBadge, isFlashing,
   } = props;
 
@@ -56,7 +57,7 @@ export function NotesLane(props: NotesLaneProps) {
         style={{ width: leftGutterPx }}
       >
         <div className="flex items-center gap-2">
-          <span>Notes</span>
+          <span className="truncate">{channelLabel ?? "Notes"}</span>
           {analysis?.pitchContour && analysis.pitchRange && (
             <PitchSparkline contour={analysis.pitchContour} pitchRange={analysis.pitchRange} width={60} height={12} />
           )}
