@@ -1,0 +1,79 @@
+"use client";
+
+import { useMemo } from "react";
+import type { NoteSpan } from "@/lib/types";
+
+interface NotesLaneProps {
+  spans: NoteSpan[];
+  viewStartMs: number;
+  viewEndMs: number;
+  heightPx: number;
+  leftGutterPx: number;
+  onHover?: (span: NoteSpan | null, clientX: number, clientY: number) => void;
+}
+
+/**
+ * Piano-roll mini. Notes are positioned by pitch (y) and time (x).
+ * Pitch range is auto-fit to the recording's active pitches (for compactness),
+ * computed on the full span set.
+ */
+export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterPx, onHover }: NotesLaneProps) {
+  const { minPitch, maxPitch } = useMemo(() => {
+    if (spans.length === 0) return { minPitch: 36, maxPitch: 84 };
+    let mn = Infinity, mx = -Infinity;
+    for (const s of spans) {
+      if (s.pitch < mn) mn = s.pitch;
+      if (s.pitch > mx) mx = s.pitch;
+    }
+    if (mn === mx) { mn = Math.max(0, mn - 6); mx = Math.min(127, mx + 6); }
+    return { minPitch: mn, maxPitch: mx };
+  }, [spans]);
+
+  const visibleSpans = useMemo(() => {
+    // A span is visible if it overlaps [viewStart, viewEnd).
+    return spans.filter((s) => s.tEnd >= viewStartMs && s.tStart < viewEndMs);
+  }, [spans, viewStartMs, viewEndMs]);
+
+  const viewSpan = viewEndMs - viewStartMs;
+  const pitchSpan = Math.max(1, maxPitch - minPitch);
+
+  return (
+    <div
+      className="relative border-t border-white/5"
+      style={{ height: heightPx }}
+    >
+      <div
+        className="absolute left-0 top-0 h-full text-[10px] text-gray-500 px-3 flex items-center border-r border-white/5 z-[2] bg-black/0"
+        style={{ width: leftGutterPx }}
+      >
+        Notes
+      </div>
+      <div className="absolute top-0 bottom-0" style={{ left: leftGutterPx, right: 0 }}>
+        {visibleSpans.map((s, i) => {
+          const xStartPct = ((Math.max(s.tStart, viewStartMs) - viewStartMs) / viewSpan) * 100;
+          const xEndPct = ((Math.min(s.tEnd, viewEndMs) - viewStartMs) / viewSpan) * 100;
+          const widthPct = Math.max(0.15, xEndPct - xStartPct);
+          const yPct = (1 - (s.pitch - minPitch) / pitchSpan) * 100;
+          const alpha = 0.45 + (s.velocity / 127) * 0.5;
+          return (
+            <div
+              key={`${s.device}|${s.channel}|${s.pitch}|${s.tStart}|${i}`}
+              onMouseEnter={(e) => onHover?.(s, e.clientX, e.clientY)}
+              onMouseLeave={() => onHover?.(null, 0, 0)}
+              onMouseMove={(e) => onHover?.(s, e.clientX, e.clientY)}
+              style={{
+                position: "absolute",
+                left: `${xStartPct}%`,
+                width: `${widthPct}%`,
+                top: `calc(${yPct}% - 2px)`,
+                height: 3,
+                background: `rgba(142,203,255,${alpha})`,
+                borderRadius: 1,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
