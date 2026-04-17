@@ -132,34 +132,18 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   const scrollLaneIntoView = useCallback((laneKey: string) => {
     const wrap = wrapRef.current;
     if (!wrap) return;
-    const tryScroll = (k: string) => {
-      const el = wrap.querySelector(`[data-lane-key="${CSS.escape(k)}"]`);
-      if (el instanceof HTMLElement) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        return true;
-      }
-      return false;
-    };
-    if (tryScroll(laneKey)) return;
-    // noteOnPitch keys (device|noteOnPitch|ch|pitch) have no DOM row; fall back to the parent notes lane.
-    const parts = laneKey.split("|");
-    if (parts.length === 4 && parts[1] === "noteOnPitch") {
-      tryScroll(`${parts[0]}|notes|${parts[2]}`);
+    const target = wrap.querySelector(`[data-lane-key="${CSS.escape(laneKey)}"]`);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, []);
 
   const laneLabelFor = useCallback((laneKey: string): string => {
-    // Handle synthesized noteOnPitch keys first (they aren't in laneMap).
-    const parts = laneKey.split("|");
-    if (parts.length === 4 && parts[1] === "noteOnPitch") {
-      return `${parts[0]} · ch${parts[2]} note ${parts[3]}`;
-    }
     for (const entry of laneMap.values()) {
       if (laneKeyString(entry.key) !== laneKey) continue;
       const k = entry.key;
       switch (k.kind) {
-        case "notes":       return `${k.device} · Notes ch${k.channel}`;
-        case "noteOnPitch": return `${k.device} · ch${k.channel} note ${k.pitch}`;
+        case "notes":       return `${k.device} · Notes`;
         case "cc":          return `${k.device} · CC ${k.cc} ch${k.channel}`;
         case "pitch":       return `${k.device} · Pitch ch${k.channel}`;
         case "aftertouch":  return `${k.device} · AT ch${k.channel}${k.note !== undefined ? ` #${k.note}` : ""}`;
