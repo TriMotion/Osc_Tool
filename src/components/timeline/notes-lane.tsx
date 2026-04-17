@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import type { NoteSpan } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, NoteSpan } from "@/lib/types";
 import { ResizeHandle } from "./resize-handle";
+import { LaneBadges } from "./lane-badges";
+import { PitchSparkline } from "./pitch-sparkline";
 
 interface NotesLaneProps {
+  laneKey: string;
   spans: NoteSpan[];
   viewStartMs: number;
   viewEndMs: number;
@@ -12,14 +15,19 @@ interface NotesLaneProps {
   leftGutterPx: number;
   onHover?: (span: NoteSpan | null, clientX: number, clientY: number) => void;
   onResize?: (newHeight: number) => void;
+  analysis?: LaneAnalysis;
+  userBadges?: LaneBadge[];
+  onRequestAddBadge?: (laneKey: string) => void;
+  onEditBadge?: (badge: LaneBadge) => void;
+  isFlashing?: boolean;
 }
 
-/**
- * Piano-roll mini. Notes are positioned by pitch (y) and time (x).
- * Pitch range is auto-fit to the recording's active pitches (for compactness),
- * computed on the full span set.
- */
-export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterPx, onHover, onResize }: NotesLaneProps) {
+export function NotesLane(props: NotesLaneProps) {
+  const {
+    laneKey, spans, viewStartMs, viewEndMs, heightPx, leftGutterPx,
+    onHover, onResize, analysis, userBadges, onRequestAddBadge, onEditBadge, isFlashing,
+  } = props;
+
   const { minPitch, maxPitch } = useMemo(() => {
     if (spans.length === 0) return { minPitch: 36, maxPitch: 84 };
     let mn = Infinity, mx = -Infinity;
@@ -32,7 +40,6 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
   }, [spans]);
 
   const visibleSpans = useMemo(() => {
-    // A span is visible if it overlaps [viewStart, viewEnd).
     return spans.filter((s) => s.tEnd >= viewStartMs && s.tStart < viewEndMs);
   }, [spans, viewStartMs, viewEndMs]);
 
@@ -41,14 +48,25 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
 
   return (
     <div
-      className="relative border-t border-white/5"
+      className={`relative border-t border-white/5 ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
       style={{ height: heightPx }}
     >
       <div
-        className="absolute left-0 top-0 h-full text-[10px] text-gray-500 px-3 flex items-center border-r border-white/5 z-[2] bg-black/0"
+        className="absolute left-0 top-0 h-full text-[10px] text-gray-500 px-3 flex flex-col justify-center gap-0.5 border-r border-white/5 z-[2] bg-black/0 overflow-hidden"
         style={{ width: leftGutterPx }}
       >
-        Notes
+        <div className="flex items-center gap-2">
+          <span>Notes</span>
+          {analysis?.pitchContour && analysis.pitchRange && (
+            <PitchSparkline contour={analysis.pitchContour} pitchRange={analysis.pitchRange} width={60} height={12} />
+          )}
+        </div>
+        <LaneBadges
+          analysis={analysis}
+          userBadges={userBadges}
+          onAddClick={() => onRequestAddBadge?.(laneKey)}
+          onBadgeClick={(b) => onEditBadge?.(b)}
+        />
       </div>
       <div className="absolute top-0 bottom-0" style={{ left: leftGutterPx, right: 0 }}>
         {visibleSpans.map((s, i) => {
@@ -80,13 +98,12 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
   );
 }
 
-// Discrete velocity bands — distinct saturated colors so tiny note bars are readable.
-// 0-20 ghost, 21-50 soft, 51-80 medium, 81-110 loud, 111-127 max.
+// Discrete velocity bands — distinct saturated colors.
 function velocityColor(velocity: number): string {
   const v = Math.max(0, Math.min(127, velocity));
-  if (v <= 20)  return "rgba(74, 123, 255, 0.75)";  // deep blue
-  if (v <= 50)  return "rgba(0, 212, 255, 0.80)";   // cyan
-  if (v <= 80)  return "rgba(125, 216, 125, 0.85)"; // green
-  if (v <= 110) return "rgba(255, 184, 77, 0.90)";  // orange
-  return "rgba(255, 74, 74, 0.95)";                 // red
+  if (v <= 20)  return "rgba(74, 123, 255, 0.75)";
+  if (v <= 50)  return "rgba(0, 212, 255, 0.80)";
+  if (v <= 80)  return "rgba(125, 216, 125, 0.85)";
+  if (v <= 110) return "rgba(255, 184, 77, 0.90)";
+  return "rgba(255, 74, 74, 0.95)";
 }

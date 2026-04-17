@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { RecordedEvent } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, RecordedEvent } from "@/lib/types";
 import { bucketContinuous, eventValue } from "@/lib/timeline-util";
 import { ResizeHandle } from "./resize-handle";
+import { LaneBadges } from "./lane-badges";
 
 interface ContinuousLaneProps {
   label: string;              // e.g. "CC 7 · ch1"
@@ -21,6 +22,12 @@ interface ContinuousLaneProps {
   bufferVersion?: number;     // triggers redraw during recording
   onHover?: (evt: RecordedEvent | null, clientX: number, clientY: number) => void;
   onResize?: (newHeight: number) => void;
+  laneKey: string;
+  analysis?: LaneAnalysis;
+  userBadges?: LaneBadge[];
+  onRequestAddBadge?: (laneKey: string) => void;
+  onEditBadge?: (badge: LaneBadge) => void;
+  isFlashing?: boolean;
 }
 
 export function ContinuousLane({
@@ -38,6 +45,12 @@ export function ContinuousLane({
   bufferVersion,
   onHover,
   onResize,
+  laneKey,
+  analysis,
+  userBadges,
+  onRequestAddBadge,
+  onEditBadge,
+  isFlashing,
 }: ContinuousLaneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -136,7 +149,7 @@ export function ContinuousLane({
   return (
     <div
       ref={wrapRef}
-      className="relative border-t border-white/5 flex"
+      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
       style={{ height: heightPx }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -147,6 +160,12 @@ export function ContinuousLane({
       >
         <span className="truncate">{label}</span>
         {sublabel && <span className="text-gray-700 text-[9px] truncate">{sublabel}</span>}
+        <LaneBadges
+          analysis={analysis}
+          userBadges={userBadges}
+          onAddClick={() => onRequestAddBadge?.(laneKey)}
+          onBadgeClick={(b) => onEditBadge?.(b)}
+        />
       </div>
       <div className="flex-1 relative">
         <canvas ref={canvasRef} className="w-full h-full block" />

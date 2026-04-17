@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { RecordedEvent } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, RecordedEvent } from "@/lib/types";
 import { ResizeHandle } from "./resize-handle";
+import { LaneBadges } from "./lane-badges";
 
 interface ProgramLaneProps {
   label: string;
@@ -15,25 +16,25 @@ interface ProgramLaneProps {
   leftGutterPx: number;
   onHover?: (evt: RecordedEvent | null, clientX: number, clientY: number) => void;
   onResize?: (newHeight: number) => void;
+  laneKey: string;
+  analysis?: LaneAnalysis;
+  userBadges?: LaneBadge[];
+  onRequestAddBadge?: (laneKey: string) => void;
+  onEditBadge?: (badge: LaneBadge) => void;
+  isFlashing?: boolean;
 }
 
-export function ProgramLane({
-  label,
-  sublabel,
-  events,
-  eventIndices,
-  viewStartMs,
-  viewEndMs,
-  heightPx,
-  leftGutterPx,
-  onHover,
-  onResize,
-}: ProgramLaneProps) {
-  // Slice eventIndices to those in viewport using binary search on the underlying events.
+export function ProgramLane(props: ProgramLaneProps) {
+  const {
+    label, sublabel, events, eventIndices,
+    viewStartMs, viewEndMs, heightPx, leftGutterPx,
+    onHover, onResize, laneKey, analysis, userBadges,
+    onRequestAddBadge, onEditBadge, isFlashing,
+  } = props;
+
   const visible = useMemo(() => {
     if (eventIndices.length === 0) return [];
-    const subset = eventIndices; // already sorted by tRel via buffer order
-    // binary-search inside subset by mapped tRel
+    const subset = eventIndices;
     let lo = 0, hi = subset.length;
     while (lo < hi) {
       const mid = (lo + hi) >>> 1;
@@ -53,13 +54,22 @@ export function ProgramLane({
   const viewSpan = Math.max(1, viewEndMs - viewStartMs);
 
   return (
-    <div className="relative border-t border-white/5 flex" style={{ height: heightPx }}>
+    <div
+      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
+      style={{ height: heightPx }}
+    >
       <div
         className="text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         <span className="truncate">{label}</span>
         {sublabel && <span className="text-gray-700 text-[9px] truncate">{sublabel}</span>}
+        <LaneBadges
+          analysis={analysis}
+          userBadges={userBadges}
+          onAddClick={() => onRequestAddBadge?.(laneKey)}
+          onBadgeClick={(b) => onEditBadge?.(b)}
+        />
       </div>
       <div className="flex-1 relative">
         {visible.map((idx) => {
