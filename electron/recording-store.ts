@@ -1,7 +1,9 @@
 import { app, dialog, BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
-import { Recording, RecentRecordingEntry } from "../src/lib/types";
+import crypto from "crypto";
+import { parseMidi } from "midi-file";
+import { Recording, RecentRecordingEntry, RecordedEvent, MidiEvent, OscArg, OscMessage } from "../src/lib/types";
 
 const RECENT_LIMIT = 10;
 const STREAM_SERIALIZE_THRESHOLD = 50 * 1024 * 1024; // 50 MB
@@ -10,6 +12,9 @@ const AUDIO_FILTERS = [
 ];
 const OSCREC_FILTERS = [
   { name: "Oscilot Recording", extensions: ["oscrec"] },
+];
+const MIDI_FILTERS = [
+  { name: "Standard MIDI File", extensions: ["mid", "midi"] },
 ];
 
 export class RecordingStore {
@@ -146,6 +151,79 @@ export class RecordingStore {
     const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
     return { bytes: ab, mimeType: mimeFor(filePath) };
   }
+
+  async importMidiDialog(win: BrowserWindow | null): Promise<
+    { recording: Recording; path: string } | { cancelled: true }
+  > {
+    const options = {
+      title: "Import MIDI File",
+      filters: MIDI_FILTERS,
+      properties: ["openFile"],
+    };
+    const result = await (win
+      ? dialog.showOpenDialog(win, options)
+      : dialog.showOpenDialog(options));
+    if (result.canceled || result.filePaths.length === 0) return { cancelled: true };
+    const filePath = result.filePaths[0];
+    const recording = this.importSmf(filePath);
+    return { recording, path: filePath };
+  }
+
+  importSmf(filePath: string): Recording {
+    const bytes = fs.readFileSync(filePath);
+    const parsed = parseMidi(bytes);
+    const division = (parsed.header as { ticksPerBeat?: number }).ticksPerBeat ?? 480;
+
+    // First pass: build a global tempo map keyed by absolute tick.
+    type TempoPoint = { tick: number; microsPerQuarter: number };
+    const tempoMap: TempoPoint[] = [{ tick: 0, microsPerQuarter: 500_000 }]; // 120 BPM default
+    for (const track of parsed.tracks) {
+      let tick = 0;
+      for (const e of track) {
+        tick += e.deltaTime;
+        if (e.type === "setTempo" && typeof (e as { microsecondsPerBeat?: number }).microsecondsPerBeat === "number") {
+          tempoMap.push({ tick, microsPerQuarter: (e as { microsecondsPerBeat: number }).microsecondsPerBeat });
+        }
+      }
+    }
+    tempoMap.sort((a, b) => a.tick - b.tick);
+    // Collapse duplicates (keep latest at each tick).
+    for (let i = tempoMap.length - 2; i >= 0; i--) {
+      if (tempoMap[i].tick === tempoMap[i + 1].tick) tempoMap.splice(i, 1);
+    }
+
+    const tickToMs = buildTickToMs(tempoMap, division);
+
+    const deviceName = path.basename(filePath);
+    const recordedEvents: RecordedEvent[] = [];
+
+    for (const track of parsed.tracks) {
+      let tick = 0;
+      for (const e of track) {
+        tick += e.deltaTime;
+        const converted = convertSmfEvent(e, tick, tickToMs, deviceName);
+        if (converted) recordedEvents.push(converted);
+      }
+    }
+
+    recordedEvents.sort((a, b) => a.tRel - b.tRel);
+    const durationMs = recordedEvents.length > 0
+      ? recordedEvents[recordedEvents.length - 1].tRel
+      : 0;
+
+    const rec: Recording = {
+      version: 1,
+      id: crypto.randomUUID(),
+      name: path.basename(filePath, path.extname(filePath)),
+      startedAt: Date.now(),
+      durationMs,
+      events: recordedEvents,
+      devices: recordedEvents.length > 0 ? [deviceName] : [],
+      mappingRulesSnapshot: [],
+      audio: undefined,
+    };
+    return rec;
+  }
 }
 
 function sanitizeFilename(name: string): string {
@@ -162,6 +240,106 @@ function mimeFor(filePath: string): string {
     case ".m4a":
     case ".aac":  return "audio/aac";
     default:      return "application/octet-stream";
+  }
+}
+
+/**
+ * Build a tick→ms converter from an ordered tempo map.
+ * Each tempo segment contributes (ticks × microsPerQuarter / division) microseconds.
+ */
+function buildTickToMs(
+  tempoMap: Array<{ tick: number; microsPerQuarter: number }>,
+  division: number
+): (tick: number) => number {
+  return (absTick: number): number => {
+    let ms = 0;
+    for (let i = 0; i < tempoMap.length; i++) {
+      const seg = tempoMap[i];
+      const next = tempoMap[i + 1];
+      const segStart = seg.tick;
+      const segEnd = next ? next.tick : Infinity;
+      if (absTick <= segStart) break;
+      const ticksInSeg = Math.min(absTick, segEnd) - segStart;
+      ms += (ticksInSeg * seg.microsPerQuarter) / division / 1000;
+      if (absTick <= segEnd) break;
+    }
+    return ms;
+  };
+}
+
+/**
+ * Convert a single parsed SMF event into a RecordedEvent, synthesizing the OSC
+ * output via the same auto-map scheme used by MidiManager (so imported takes
+ * render in the same lanes as recorded ones).
+ * Returns null for events we don't surface on the timeline (meta, sysex, tempo, etc.).
+ */
+function convertSmfEvent(
+  e: { type: string; deltaTime: number; [k: string]: unknown },
+  absTick: number,
+  tickToMs: (t: number) => number,
+  deviceName: string
+): RecordedEvent | null {
+  const tRel = tickToMs(absTick);
+  const ts = Date.now(); // informational only — relative timing is what matters
+  const channel1 = typeof e.channel === "number" ? (e.channel + 1) : 1;
+
+  const make = (
+    midiType: MidiEvent["midi"]["type"],
+    data1: number,
+    data2: number,
+    oscAddress: string,
+    oscArg: OscArg
+  ): RecordedEvent => {
+    const osc: OscMessage = { address: oscAddress, args: [oscArg], timestamp: ts };
+    return {
+      tRel,
+      midi: { type: midiType, channel: channel1, data1, data2, timestamp: ts, deviceName },
+      osc,
+    };
+  };
+
+  switch (e.type) {
+    case "noteOn": {
+      const note = e.noteNumber as number;
+      const vel = e.velocity as number;
+      if (vel === 0) {
+        return make("noteoff", note, 0, `/midi/ch${channel1}/note/${note}/off`, { type: "f", value: 0 });
+      }
+      return make("noteon", note, vel, `/midi/ch${channel1}/note/${note}/on`, { type: "f", value: vel / 127 });
+    }
+    case "noteOff": {
+      const note = e.noteNumber as number;
+      const vel = (e.velocity as number) ?? 0;
+      return make("noteoff", note, vel, `/midi/ch${channel1}/note/${note}/off`, { type: "f", value: vel / 127 });
+    }
+    case "controller": {
+      const num = e.controllerType as number;
+      const val = e.value as number;
+      return make("cc", num, val, `/midi/ch${channel1}/cc/${num}`, { type: "f", value: val / 127 });
+    }
+    case "pitchBend": {
+      // midi-file gives `value` in range [-8192, 8191].
+      const raw = (e.value as number) ?? 0;
+      const unsigned = raw + 8192; // 0..16383
+      const lsb = unsigned & 0x7f;
+      const msb = (unsigned >> 7) & 0x7f;
+      return make("pitch", lsb, msb, `/midi/ch${channel1}/pitch`, { type: "f", value: raw / 8192 });
+    }
+    case "programChange": {
+      const prog = e.programNumber as number;
+      return make("program", prog, 0, `/midi/ch${channel1}/program`, { type: "i", value: prog });
+    }
+    case "channelAftertouch": {
+      const pressure = e.amount as number;
+      return make("aftertouch", pressure, 0, `/midi/ch${channel1}/aftertouch`, { type: "f", value: pressure / 127 });
+    }
+    case "noteAftertouch": {
+      const note = e.noteNumber as number;
+      const pressure = e.amount as number;
+      return make("aftertouch", note, pressure, `/midi/ch${channel1}/aftertouch/${note}`, { type: "f", value: pressure / 127 });
+    }
+    default:
+      return null;
   }
 }
 

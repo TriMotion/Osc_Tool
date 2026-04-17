@@ -106,6 +106,19 @@ export function useRecordingIO() {
     return res;
   }, []);
 
+  const importMidi = useCallback(async () => {
+    setLastError(null);
+    const api = getAPI();
+    if (!api) return null;
+    const res = (await api.invoke("recording:import-midi")) as
+      | { recording: Recording; path: string }
+      | { cancelled: true }
+      | { error: string };
+    if ("error" in res) { setLastError(res.error); return null; }
+    if ("cancelled" in res) return null;
+    return res;
+  }, []);
+
   return {
     recent,
     lastError,
@@ -117,6 +130,7 @@ export function useRecordingIO() {
     loadPath,
     pickAudio,
     readAudioBytes,
+    importMidi,
     clearError: () => setLastError(null),
   };
 }

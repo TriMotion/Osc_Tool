@@ -22,6 +22,7 @@ interface TimelineToolbarProps {
   onLoadAudio: () => void;
   onUnloadAudio: () => void;
   onOffsetChange: (ms: number) => void;
+  onImportMidi: () => void;
 }
 
 export function TimelineToolbar(props: TimelineToolbarProps) {
@@ -30,6 +31,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
     audioOffsetMs, audioLoaded,
     onRecord, onStop, onPlay, onPause,
     onSave, onSaveAs, onLoad, onLoadAudio, onUnloadAudio, onOffsetChange,
+    onImportMidi,
   } = props;
 
   const canPlay = hasRecording || audioLoaded;
@@ -82,6 +84,12 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
       >
         Load…
+      </button>
+      <button
+        onClick={onImportMidi}
+        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
+      >
+        Import .mid…
       </button>
 
       <div className="w-px h-5 bg-white/10 mx-1" />

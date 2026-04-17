@@ -225,6 +225,14 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     }
   });
 
+  ipcMain.handle("recording:import-midi", async () => {
+    try {
+      return await recordingStore.importMidiDialog(getMainWindow());
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
   // --- Forward OSC messages to renderer (batched) ---
   let messageBatch: unknown[] = [];
   const flushMessages = () => {

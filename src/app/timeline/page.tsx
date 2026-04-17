@@ -160,6 +160,28 @@ export default function TimelinePage() {
     applyLoad();
   }, [io, recorder, audio]);
 
+  const handleImportMidi = useCallback(async () => {
+    const applyImport = async () => {
+      const res = await io.importMidi();
+      if (!res) return;
+      recorder.setLoaded(res.recording);
+      setSaveSuggestedPath(null); // force Save As on first save (no existing .oscrec path)
+      audio.unloadAudio();
+    };
+    if (recorder.state === "recording") {
+      alert("Stop the current recording before importing a MIDI file.");
+      return;
+    }
+    if (recorder.hasUnsaved && recorder.recording) {
+      setConfirmDiscard(() => () => {
+        applyImport();
+        setConfirmDiscard(null);
+      });
+      return;
+    }
+    applyImport();
+  }, [io, recorder, audio]);
+
   const handleLoadAudio = useCallback(async () => {
     const path = await io.pickAudio();
     if (!path) return;
@@ -268,6 +290,7 @@ export default function TimelinePage() {
         onLoadAudio={handleLoadAudio}
         onUnloadAudio={handleUnloadAudio}
         onOffsetChange={handleOffsetChange}
+        onImportMidi={handleImportMidi}
       />
 
       {io.lastError && (
