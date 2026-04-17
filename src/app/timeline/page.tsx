@@ -5,11 +5,13 @@ import { useRecorder } from "@/hooks/use-recorder";
 import { useRecordingIO } from "@/hooks/use-recording-io";
 import { useAudioSync } from "@/hooks/use-audio-sync";
 import { useMidiConfig, useMidiControl } from "@/hooks/use-midi";
+import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
 import { RecordingInfoPanel } from "@/components/timeline/recording-info";
+import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
-import type { LaneMap, MidiMappingRule, NoteSpan } from "@/lib/types";
+import type { LaneBadge, LaneMap, MidiMappingRule, NoteSpan } from "@/lib/types";
 
 const LEFT_GUTTER = 140;
 
@@ -59,6 +61,9 @@ export default function TimelinePage() {
   const [saveSuggestedPath, setSaveSuggestedPath] = useState<string | null>(null);
   const [canvasWidthPx, setCanvasWidthPx] = useState(800);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
+  const [triggersSidebarOpen, setTriggersSidebarOpen] = useState(false);
+  const [badgeEditor, setBadgeEditor] = useState<{ laneKey: string; badge: LaneBadge | null } | null>(null);
+  const lastHoveredLaneRef = useRef<string | null>(null);
 
   useEffect(() => {
     const wrap = canvasWrapRef.current;
@@ -69,6 +74,17 @@ export default function TimelinePage() {
     });
     ro.observe(wrap);
     return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const wrap = canvasWrapRef.current;
+    if (!wrap) return;
+    const onMove = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-lane-key]");
+      if (target) lastHoveredLaneRef.current = target.dataset.laneKey ?? null;
+    };
+    wrap.addEventListener("mousemove", onMove);
+    return () => wrap.removeEventListener("mousemove", onMove);
   }, []);
 
   const laneMap: LaneMap = useMemo(
@@ -89,6 +105,13 @@ export default function TimelinePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [recorder.bufferVersion, recorder.recording?.id]
   );
+
+  const analysis = useTriggerAnalysis({
+    recording: recorder.recording,
+    bufferVersion: recorder.bufferVersion,
+    laneMap,
+    noteSpans,
+  });
 
   const audioPeaks = audio.getPeaks(canvasWidthPx);
 
@@ -234,6 +257,42 @@ export default function TimelinePage() {
     [recorder]
   );
 
+  const existingBadges = recorder.recording?.badges ?? [];
+
+  const saveBadge = useCallback((next: LaneBadge) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    const filtered = (rec.badges ?? []).filter((b) => b.id !== next.id);
+    const deduped = filtered.filter((b) => !(b.laneKey === next.laneKey && b.label === next.label));
+    recorder.patchRecording({ badges: [...deduped, next] });
+    setBadgeEditor(null);
+  }, [recorder]);
+
+  const deleteBadge = useCallback((id: string) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    recorder.patchRecording({ badges: (rec.badges ?? []).filter((b) => b.id !== id) });
+    setBadgeEditor(null);
+  }, [recorder]);
+
+  const handleRequestAddBadge = useCallback((laneKey: string) => {
+    lastHoveredLaneRef.current = laneKey;
+    setBadgeEditor({ laneKey, badge: null });
+  }, []);
+
+  const handleEditBadge = useCallback((badge: LaneBadge) => {
+    setBadgeEditor({ laneKey: badge.laneKey, badge });
+  }, []);
+
+  const handleTagCurrentLane = useCallback(() => {
+    const key = lastHoveredLaneRef.current;
+    if (!key) {
+      alert("Hover a lane first to choose which one to tag.");
+      return;
+    }
+    setBadgeEditor({ laneKey: key, badge: null });
+  }, []);
+
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -291,6 +350,8 @@ export default function TimelinePage() {
         onUnloadAudio={handleUnloadAudio}
         onOffsetChange={handleOffsetChange}
         onImportMidi={handleImportMidi}
+        triggersSidebarOpen={triggersSidebarOpen}
+        onToggleTriggersSidebar={() => setTriggersSidebarOpen((v) => !v)}
       />
 
       {io.lastError && (
@@ -314,8 +375,29 @@ export default function TimelinePage() {
           audioPeaks={audioPeaks}
           audioLabel={audio.audio.filePath?.split("/").pop()}
           onAudioOffsetDelta={handleOffsetDragDelta}
+          analyses={analysis.analyses}
+          redundantPairs={analysis.pairs}
+          analysisReady={analysis.ready}
+          analysisError={analysis.error}
+          badges={existingBadges}
+          triggersSidebarOpen={triggersSidebarOpen}
+          onToggleTriggersSidebar={() => setTriggersSidebarOpen((v) => !v)}
+          onRequestAddBadge={handleRequestAddBadge}
+          onEditBadge={handleEditBadge}
+          onTagCurrentLane={handleTagCurrentLane}
         />
       </div>
+
+      {badgeEditor && (
+        <BadgeEditorModal
+          badge={badgeEditor.badge}
+          laneKey={badgeEditor.laneKey}
+          existingLabels={Array.from(new Set((recorder.recording?.badges ?? []).map((b) => b.label)))}
+          onSave={saveBadge}
+          onDelete={badgeEditor.badge ? () => deleteBadge(badgeEditor.badge!.id) : undefined}
+          onClose={() => setBadgeEditor(null)}
+        />
+      )}
 
       {confirmDiscard && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
