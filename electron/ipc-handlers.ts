@@ -6,7 +6,8 @@ import { EndpointsStore } from "./endpoints-store";
 import { DeckStore } from "./deck-store";
 import { MidiManager } from "./midi-manager";
 import { MidiStore } from "./midi-store";
-import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule } from "../src/lib/types";
+import { RecordingStore } from "./recording-store";
+import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule, Recording } from "../src/lib/types";
 
 export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const oscManager = new OscManager();
@@ -16,6 +17,7 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const webServer = new WebServer(oscManager, deckStore);
   const midiStore = new MidiStore();
   const midiManager = new MidiManager(oscManager);
+  const recordingStore = new RecordingStore();
 
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
@@ -171,6 +173,48 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle("midi:set-target", (_e, target: { host: string; port: number }) => {
     midiStore.setState({ target });
     return { ok: true };
+  });
+
+  // --- Recording / Timeline ---
+  ipcMain.handle("recording:save", async (_e, rec: Recording, suggestedPath?: string) => {
+    return recordingStore.saveDialog(getMainWindow(), rec, suggestedPath);
+  });
+
+  ipcMain.handle("recording:save-as", async (_e, rec: Recording) => {
+    return recordingStore.saveDialog(getMainWindow(), rec);
+  });
+
+  ipcMain.handle("recording:load", async () => {
+    try {
+      return await recordingStore.loadDialog(getMainWindow());
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle("recording:load-path", async (_e, filePath: string) => {
+    try {
+      const recording = recordingStore.readFile(filePath);
+      return { recording, path: filePath };
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle("recording:list-recent", () => {
+    return { entries: recordingStore.listRecent() };
+  });
+
+  ipcMain.handle("recording:pick-audio", async () => {
+    return recordingStore.pickAudio(getMainWindow());
+  });
+
+  ipcMain.handle("recording:read-audio-bytes", (_e, filePath: string) => {
+    try {
+      return recordingStore.readAudioBytes(filePath);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   });
 
   // --- Forward OSC messages to renderer (batched) ---
