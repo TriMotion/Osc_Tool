@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { LaneKey, LaneMap, NoteSpan, RecordedEvent, MidiMappingRule } from "@/lib/types";
+import { laneKeyString } from "@/lib/types";
 import { NotesLane } from "./notes-lane";
 import { ContinuousLane } from "./continuous-lane";
 import { ProgramLane } from "./program-lane";
@@ -20,6 +21,8 @@ interface DeviceSectionProps {
   bufferVersion?: number;
   onHoverEvent?: (evt: RecordedEvent | null, clientX: number, clientY: number) => void;
   onHoverSpan?: (span: NoteSpan | null, clientX: number, clientY: number) => void;
+  getLaneHeight: (key: string, defaultPx: number) => number;
+  onLaneResize: (key: string, newHeight: number) => void;
 }
 
 const NOTES_HEIGHT = 48;
@@ -60,6 +63,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     device, laneMap, events, noteSpans, mappingRules,
     viewStartMs, viewEndMs, leftGutterPx, collapsed, onToggleCollapsed,
     bufferVersion, onHoverEvent, onHoverSpan,
+    getLaneHeight, onLaneResize,
   } = props;
 
   const laneEntries = useMemo(() => {
@@ -107,6 +111,7 @@ export function DeviceSection(props: DeviceSectionProps) {
         <>
           {laneEntries.map((entry) => {
             const osc = oscLabelFor(entry.key, mappingRules);
+            const keyStr = laneKeyString(entry.key);
             switch (entry.key.kind) {
               case "notes":
                 return (
@@ -115,9 +120,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                     spans={deviceNoteSpans}
                     viewStartMs={viewStartMs}
                     viewEndMs={viewEndMs}
-                    heightPx={NOTES_HEIGHT}
+                    heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
                     leftGutterPx={leftGutterPx}
                     onHover={onHoverSpan}
+                    onResize={(h) => onLaneResize(keyStr, h)}
                   />
                 );
               case "cc":
@@ -130,12 +136,13 @@ export function DeviceSection(props: DeviceSectionProps) {
                     eventIndices={entry.eventIndices}
                     viewStartMs={viewStartMs}
                     viewEndMs={viewEndMs}
-                    heightPx={CONT_HEIGHT}
+                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
                     leftGutterPx={leftGutterPx}
                     color="#c7f168"
                     fill="rgba(199,241,104,0.10)"
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
+                    onResize={(h) => onLaneResize(keyStr, h)}
                   />
                 );
               case "pitch":
@@ -148,13 +155,14 @@ export function DeviceSection(props: DeviceSectionProps) {
                     eventIndices={entry.eventIndices}
                     viewStartMs={viewStartMs}
                     viewEndMs={viewEndMs}
-                    heightPx={CONT_HEIGHT}
+                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
                     leftGutterPx={leftGutterPx}
                     color="#ffaed7"
                     fill="rgba(255,174,215,0.10)"
                     valueMapper={(v) => (v + 1) / 2}
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
+                    onResize={(h) => onLaneResize(keyStr, h)}
                   />
                 );
               case "aftertouch": {
@@ -168,12 +176,13 @@ export function DeviceSection(props: DeviceSectionProps) {
                     eventIndices={entry.eventIndices}
                     viewStartMs={viewStartMs}
                     viewEndMs={viewEndMs}
-                    heightPx={CONT_HEIGHT}
+                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
                     leftGutterPx={leftGutterPx}
                     color="#ffaed7"
                     fill="rgba(255,174,215,0.08)"
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
+                    onResize={(h) => onLaneResize(keyStr, h)}
                   />
                 );
               }
@@ -187,9 +196,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                     eventIndices={entry.eventIndices}
                     viewStartMs={viewStartMs}
                     viewEndMs={viewEndMs}
-                    heightPx={MARKER_HEIGHT}
+                    heightPx={getLaneHeight(keyStr, MARKER_HEIGHT)}
                     leftGutterPx={leftGutterPx}
                     onHover={onHoverEvent}
+                    onResize={(h) => onLaneResize(keyStr, h)}
                   />
                 );
             }

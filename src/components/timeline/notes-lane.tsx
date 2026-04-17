@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { NoteSpan } from "@/lib/types";
+import { ResizeHandle } from "./resize-handle";
 
 interface NotesLaneProps {
   spans: NoteSpan[];
@@ -10,6 +11,7 @@ interface NotesLaneProps {
   heightPx: number;
   leftGutterPx: number;
   onHover?: (span: NoteSpan | null, clientX: number, clientY: number) => void;
+  onResize?: (newHeight: number) => void;
 }
 
 /**
@@ -17,7 +19,7 @@ interface NotesLaneProps {
  * Pitch range is auto-fit to the recording's active pitches (for compactness),
  * computed on the full span set.
  */
-export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterPx, onHover }: NotesLaneProps) {
+export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterPx, onHover, onResize }: NotesLaneProps) {
   const { minPitch, maxPitch } = useMemo(() => {
     if (spans.length === 0) return { minPitch: 36, maxPitch: 84 };
     let mn = Infinity, mx = -Infinity;
@@ -74,6 +76,7 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
           );
         })}
       </div>
+      {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
   );
 }

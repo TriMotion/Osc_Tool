@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { RecordedEvent } from "@/lib/types";
+import { ResizeHandle } from "./resize-handle";
 
 interface ProgramLaneProps {
   label: string;
@@ -13,6 +14,7 @@ interface ProgramLaneProps {
   heightPx: number;
   leftGutterPx: number;
   onHover?: (evt: RecordedEvent | null, clientX: number, clientY: number) => void;
+  onResize?: (newHeight: number) => void;
 }
 
 export function ProgramLane({
@@ -25,6 +27,7 @@ export function ProgramLane({
   heightPx,
   leftGutterPx,
   onHover,
+  onResize,
 }: ProgramLaneProps) {
   // Slice eventIndices to those in viewport using binary search on the underlying events.
   const visible = useMemo(() => {
@@ -81,6 +84,7 @@ export function ProgramLane({
           );
         })}
       </div>
+      {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
   );
 }

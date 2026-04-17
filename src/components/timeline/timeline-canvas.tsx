@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { LaneMap, MidiMappingRule, NoteSpan, RecordedEvent, Recording } from "@/lib/types";
 import { TimeRuler } from "./time-ruler";
 import { AudioLane } from "./audio-lane";
@@ -8,6 +8,8 @@ import { DeviceSection } from "./device-section";
 import { HoverCard } from "./hover-card";
 
 const LEFT_GUTTER = 140;
+const MIN_LANE_HEIGHT = 16;
+const AUDIO_LANE_KEY = "audio";
 
 interface Viewport { startMs: number; endMs: number; }
 type ViewAction =
@@ -63,6 +65,20 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const playheadElRef = useRef<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [laneHeights, setLaneHeights] = useState<Map<string, number>>(new Map());
+
+  const getLaneHeight = useCallback(
+    (key: string, defaultPx: number) => laneHeights.get(key) ?? defaultPx,
+    [laneHeights]
+  );
+
+  const setLaneHeight = useCallback((key: string, newHeight: number) => {
+    setLaneHeights((prev) => {
+      const next = new Map(prev);
+      next.set(key, Math.max(MIN_LANE_HEIGHT, newHeight));
+      return next;
+    });
+  }, []);
 
   const [hover, setHover] = useState<{ payload: Parameters<typeof HoverCard>[0]["payload"]; x: number; y: number }>({
     payload: null, x: 0, y: 0,
@@ -168,10 +184,11 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
 
       <AudioLane
         peaks={audioPeaks}
-        heightPx={38}
+        heightPx={getLaneHeight(AUDIO_LANE_KEY, 38)}
         label={audioLabel}
         leftGutterPx={LEFT_GUTTER}
         onOffsetDragDelta={onAudioOffsetDelta}
+        onResize={(h) => setLaneHeight(AUDIO_LANE_KEY, h)}
       />
 
       {devices.length === 0 && !isRecording && (
@@ -196,6 +213,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           bufferVersion={bufferVersion}
           onHoverEvent={(evt, x, y) => setHover({ payload: evt ? { kind: "event", event: evt } : null, x, y })}
           onHoverSpan={(span, x, y) => setHover({ payload: span ? { kind: "span", span } : null, x, y })}
+          getLaneHeight={getLaneHeight}
+          onLaneResize={setLaneHeight}
         />
       ))}
 

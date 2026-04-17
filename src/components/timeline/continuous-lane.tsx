@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RecordedEvent } from "@/lib/types";
 import { bucketContinuous, eventValue } from "@/lib/timeline-util";
+import { ResizeHandle } from "./resize-handle";
 
 interface ContinuousLaneProps {
   label: string;              // e.g. "CC 7 · ch1"
@@ -19,6 +20,7 @@ interface ContinuousLaneProps {
   fill?: string;              // fill under curve
   bufferVersion?: number;     // triggers redraw during recording
   onHover?: (evt: RecordedEvent | null, clientX: number, clientY: number) => void;
+  onResize?: (newHeight: number) => void;
 }
 
 export function ContinuousLane({
@@ -35,6 +37,7 @@ export function ContinuousLane({
   fill = "rgba(199,241,104,0.10)",
   bufferVersion,
   onHover,
+  onResize,
 }: ContinuousLaneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -148,6 +151,7 @@ export function ContinuousLane({
       <div className="flex-1 relative">
         <canvas ref={canvasRef} className="w-full h-full block" />
       </div>
+      {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
   );
 }

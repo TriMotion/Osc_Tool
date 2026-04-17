@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { ResizeHandle } from "./resize-handle";
 
 interface AudioLaneProps {
   /** Peaks normalized to [-1, 1]; null = no audio loaded. */
@@ -11,9 +12,10 @@ interface AudioLaneProps {
   /** Drag callback: receives pixel delta (positive = audio shifted right). */
   onOffsetDragDelta?: (deltaPx: number, modifier: "none" | "shift" | "alt") => void;
   leftGutterPx: number;
+  onResize?: (newHeight: number) => void;
 }
 
-export function AudioLane({ peaks, heightPx, label, onOffsetDragDelta, leftGutterPx }: AudioLaneProps) {
+export function AudioLane({ peaks, heightPx, label, onOffsetDragDelta, leftGutterPx, onResize }: AudioLaneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const dragStartXRef = useRef<number | null>(null);
@@ -84,6 +86,7 @@ export function AudioLane({ peaks, heightPx, label, onOffsetDragDelta, leftGutte
       >
         <canvas ref={canvasRef} className="w-full h-full block" />
       </div>
+      {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
   );
 }
