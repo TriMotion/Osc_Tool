@@ -154,6 +154,7 @@ export interface Recording {
   devices: string[];
   mappingRulesSnapshot: MidiMappingRule[]; // rules active at stop time
   audio?: AudioRef;
+  badges?: LaneBadge[];
 }
 
 // Pairing of note-on with its matching note-off.
@@ -199,4 +200,39 @@ export interface RecentRecordingEntry {
   path: string;
   name: string;
   savedAt: number;
+}
+
+// --- Trigger Analyzer types ---
+
+/** A user-applied tag on a single lane within a recording. */
+export interface LaneBadge {
+  id: string;        // uuid
+  laneKey: string;   // matches laneKeyString output
+  label: string;     // free text, ≤24 chars (clamped on save)
+  color?: string;    // optional CSS color; hash-based fallback at render time
+}
+
+/** Computed analysis output for one lane. */
+export interface LaneAnalysis {
+  laneKey: string;
+  eventCount: number;
+  eventsPerSec: number;
+  rhythmScore: number;                 // 0..1
+  dynamicScore: number;                // 0..1
+  valueRange: [number, number] | null;
+  ioiHistogram: number[];              // 20 log-spaced buckets (20ms..10s)
+  isDead: boolean;
+
+  // Notes-lane only (undefined for CC/pitch/AT/program)
+  melodyScore?: number;                // 0..1
+  pitchRange?: [number, number];
+  pitchContour?: number[];             // 32-bucket mean pitch per chunk
+}
+
+/** A pair of lanes flagged as redundant. */
+export interface RedundancyPair {
+  laneKeyA: string;
+  laneKeyB: string;
+  similarity: number;                  // 0..1
+  kind: "onset" | "value";
 }
