@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { LaneKey, LaneMap, NoteSpan, RecordedEvent, MidiMappingRule } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteSpan, RecordedEvent, MidiMappingRule } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { NotesLane } from "./notes-lane";
 import { ContinuousLane } from "./continuous-lane";
@@ -23,6 +23,11 @@ interface DeviceSectionProps {
   onHoverSpan?: (span: NoteSpan | null, clientX: number, clientY: number) => void;
   getLaneHeight: (key: string, defaultPx: number) => number;
   onLaneResize: (key: string, newHeight: number) => void;
+  getAnalysisFor?: (key: string) => LaneAnalysis | undefined;
+  getBadgesFor?: (key: string) => LaneBadge[] | undefined;
+  onRequestAddBadge?: (laneKey: string) => void;
+  onEditBadge?: (badge: LaneBadge) => void;
+  flashLaneKey?: string | null;
 }
 
 const NOTES_HEIGHT = 48;
@@ -64,6 +69,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     viewStartMs, viewEndMs, leftGutterPx, collapsed, onToggleCollapsed,
     bufferVersion, onHoverEvent, onHoverSpan,
     getLaneHeight, onLaneResize,
+    getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, flashLaneKey,
   } = props;
 
   const laneEntries = useMemo(() => {
@@ -124,6 +130,12 @@ export function DeviceSection(props: DeviceSectionProps) {
                     leftGutterPx={leftGutterPx}
                     onHover={onHoverSpan}
                     onResize={(h) => onLaneResize(keyStr, h)}
+                    laneKey={keyStr}
+                    analysis={getAnalysisFor?.(keyStr)}
+                    userBadges={getBadgesFor?.(keyStr)}
+                    onRequestAddBadge={onRequestAddBadge}
+                    onEditBadge={onEditBadge}
+                    isFlashing={flashLaneKey === keyStr}
                   />
                 );
               case "cc":
@@ -143,6 +155,12 @@ export function DeviceSection(props: DeviceSectionProps) {
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
                     onResize={(h) => onLaneResize(keyStr, h)}
+                    laneKey={keyStr}
+                    analysis={getAnalysisFor?.(keyStr)}
+                    userBadges={getBadgesFor?.(keyStr)}
+                    onRequestAddBadge={onRequestAddBadge}
+                    onEditBadge={onEditBadge}
+                    isFlashing={flashLaneKey === keyStr}
                   />
                 );
               case "pitch":
@@ -163,6 +181,12 @@ export function DeviceSection(props: DeviceSectionProps) {
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
                     onResize={(h) => onLaneResize(keyStr, h)}
+                    laneKey={keyStr}
+                    analysis={getAnalysisFor?.(keyStr)}
+                    userBadges={getBadgesFor?.(keyStr)}
+                    onRequestAddBadge={onRequestAddBadge}
+                    onEditBadge={onEditBadge}
+                    isFlashing={flashLaneKey === keyStr}
                   />
                 );
               case "aftertouch": {
@@ -183,6 +207,12 @@ export function DeviceSection(props: DeviceSectionProps) {
                     bufferVersion={bufferVersion}
                     onHover={onHoverEvent}
                     onResize={(h) => onLaneResize(keyStr, h)}
+                    laneKey={keyStr}
+                    analysis={getAnalysisFor?.(keyStr)}
+                    userBadges={getBadgesFor?.(keyStr)}
+                    onRequestAddBadge={onRequestAddBadge}
+                    onEditBadge={onEditBadge}
+                    isFlashing={flashLaneKey === keyStr}
                   />
                 );
               }
@@ -200,6 +230,12 @@ export function DeviceSection(props: DeviceSectionProps) {
                     leftGutterPx={leftGutterPx}
                     onHover={onHoverEvent}
                     onResize={(h) => onLaneResize(keyStr, h)}
+                    laneKey={keyStr}
+                    analysis={getAnalysisFor?.(keyStr)}
+                    userBadges={getBadgesFor?.(keyStr)}
+                    onRequestAddBadge={onRequestAddBadge}
+                    onEditBadge={onEditBadge}
+                    isFlashing={flashLaneKey === keyStr}
                   />
                 );
             }
