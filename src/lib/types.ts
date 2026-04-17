@@ -128,3 +128,71 @@ export interface MidiMappingRule {
   argType: "f" | "i";         // float or int output
   scale?: [number, number];    // output range; default [0, 1]
 }
+
+// --- Recording / Timeline types ---
+
+export type RecorderState = "idle" | "recording" | "stopped";
+
+export interface AudioRef {
+  filePath: string;        // absolute path, resolved on load
+  offsetMs: number;        // audio.t = recording.t + offsetMs (positive = audio starts AFTER MIDI t=0)
+}
+
+export interface RecordedEvent {
+  tRel: number;            // ms since Recording.startedAt (not wall-clock)
+  midi: MidiEvent["midi"]; // reuses MIDI shape
+  osc: OscMessage;         // reuses OSC shape
+}
+
+export interface Recording {
+  version: 1;
+  id: string;
+  name: string;
+  startedAt: number;       // epoch ms at take start
+  durationMs: number;      // Date.now() at stop - startedAt
+  events: RecordedEvent[]; // sorted by tRel ascending
+  devices: string[];
+  mappingRulesSnapshot: MidiMappingRule[]; // rules active at stop time
+  audio?: AudioRef;
+}
+
+// Pairing of note-on with its matching note-off.
+// tEnd === durationMs if the take stopped before note-off arrived.
+export interface NoteSpan {
+  device: string;
+  channel: number;
+  pitch: number;           // 0-127
+  velocity: number;        // 0-127 (from the note-on)
+  tStart: number;
+  tEnd: number;
+}
+
+// Identifies a single timeline lane within a device section.
+export type LaneKey =
+  | { kind: "notes"; device: string }
+  | { kind: "cc"; device: string; channel: number; cc: number }
+  | { kind: "pitch"; device: string; channel: number }
+  | { kind: "aftertouch"; device: string; channel: number; note?: number } // note set for poly
+  | { kind: "program"; device: string; channel: number };
+
+// For non-notes lanes: indices into Recording.events that belong to this lane,
+// sorted by tRel (inherited from Recording.events ordering).
+// For notes: indices of note-on events; paired note-offs are computed separately.
+export type LaneMap = Map<string, { key: LaneKey; eventIndices: number[] }>;
+
+// Stable string key for LaneMap.
+export function laneKeyString(k: LaneKey): string {
+  switch (k.kind) {
+    case "notes":      return `${k.device}|notes`;
+    case "cc":         return `${k.device}|cc|${k.channel}|${k.cc}`;
+    case "pitch":      return `${k.device}|pitch|${k.channel}`;
+    case "aftertouch": return `${k.device}|at|${k.channel}|${k.note ?? "ch"}`;
+    case "program":    return `${k.device}|prog|${k.channel}`;
+  }
+}
+
+export interface RecentRecordingEntry {
+  path: string;
+  name: string;
+  savedAt: number;
+}
