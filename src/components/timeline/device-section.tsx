@@ -121,122 +121,127 @@ export function DeviceSection(props: DeviceSectionProps) {
             switch (entry.key.kind) {
               case "notes":
                 return (
-                  <NotesLane
-                    key="notes"
-                    spans={deviceNoteSpans}
-                    viewStartMs={viewStartMs}
-                    viewEndMs={viewEndMs}
-                    heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
-                    leftGutterPx={leftGutterPx}
-                    onHover={onHoverSpan}
-                    onResize={(h) => onLaneResize(keyStr, h)}
-                    laneKey={keyStr}
-                    analysis={getAnalysisFor?.(keyStr)}
-                    userBadges={getBadgesFor?.(keyStr)}
-                    onRequestAddBadge={onRequestAddBadge}
-                    onEditBadge={onEditBadge}
-                    isFlashing={flashLaneKey === keyStr}
-                  />
+                  <div data-lane-key={keyStr} key="notes">
+                    <NotesLane
+                      spans={deviceNoteSpans}
+                      viewStartMs={viewStartMs}
+                      viewEndMs={viewEndMs}
+                      heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
+                      leftGutterPx={leftGutterPx}
+                      onHover={onHoverSpan}
+                      onResize={(h) => onLaneResize(keyStr, h)}
+                      laneKey={keyStr}
+                      analysis={getAnalysisFor?.(keyStr)}
+                      userBadges={getBadgesFor?.(keyStr)}
+                      onRequestAddBadge={onRequestAddBadge}
+                      onEditBadge={onEditBadge}
+                      isFlashing={flashLaneKey === keyStr}
+                    />
+                  </div>
                 );
               case "cc":
                 return (
-                  <ContinuousLane
-                    key={`cc|${entry.key.channel}|${entry.key.cc}`}
-                    label={`CC ${entry.key.cc} · ch${entry.key.channel}`}
-                    sublabel={osc}
-                    events={events}
-                    eventIndices={entry.eventIndices}
-                    viewStartMs={viewStartMs}
-                    viewEndMs={viewEndMs}
-                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
-                    leftGutterPx={leftGutterPx}
-                    color="#c7f168"
-                    fill="rgba(199,241,104,0.10)"
-                    bufferVersion={bufferVersion}
-                    onHover={onHoverEvent}
-                    onResize={(h) => onLaneResize(keyStr, h)}
-                    laneKey={keyStr}
-                    analysis={getAnalysisFor?.(keyStr)}
-                    userBadges={getBadgesFor?.(keyStr)}
-                    onRequestAddBadge={onRequestAddBadge}
-                    onEditBadge={onEditBadge}
-                    isFlashing={flashLaneKey === keyStr}
-                  />
+                  <div data-lane-key={keyStr} key={`cc|${entry.key.channel}|${entry.key.cc}`}>
+                    <ContinuousLane
+                      label={`CC ${entry.key.cc} · ch${entry.key.channel}`}
+                      sublabel={osc}
+                      events={events}
+                      eventIndices={entry.eventIndices}
+                      viewStartMs={viewStartMs}
+                      viewEndMs={viewEndMs}
+                      heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
+                      leftGutterPx={leftGutterPx}
+                      color="#c7f168"
+                      fill="rgba(199,241,104,0.10)"
+                      bufferVersion={bufferVersion}
+                      onHover={onHoverEvent}
+                      onResize={(h) => onLaneResize(keyStr, h)}
+                      laneKey={keyStr}
+                      analysis={getAnalysisFor?.(keyStr)}
+                      userBadges={getBadgesFor?.(keyStr)}
+                      onRequestAddBadge={onRequestAddBadge}
+                      onEditBadge={onEditBadge}
+                      isFlashing={flashLaneKey === keyStr}
+                    />
+                  </div>
                 );
               case "pitch":
                 return (
-                  <ContinuousLane
-                    key={`pitch|${entry.key.channel}`}
-                    label={`Pitch · ch${entry.key.channel}`}
-                    sublabel={osc}
-                    events={events}
-                    eventIndices={entry.eventIndices}
-                    viewStartMs={viewStartMs}
-                    viewEndMs={viewEndMs}
-                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
-                    leftGutterPx={leftGutterPx}
-                    color="#ffaed7"
-                    fill="rgba(255,174,215,0.10)"
-                    valueMapper={(v) => (v + 1) / 2}
-                    bufferVersion={bufferVersion}
-                    onHover={onHoverEvent}
-                    onResize={(h) => onLaneResize(keyStr, h)}
-                    laneKey={keyStr}
-                    analysis={getAnalysisFor?.(keyStr)}
-                    userBadges={getBadgesFor?.(keyStr)}
-                    onRequestAddBadge={onRequestAddBadge}
-                    onEditBadge={onEditBadge}
-                    isFlashing={flashLaneKey === keyStr}
-                  />
+                  <div data-lane-key={keyStr} key={`pitch|${entry.key.channel}`}>
+                    <ContinuousLane
+                      label={`Pitch · ch${entry.key.channel}`}
+                      sublabel={osc}
+                      events={events}
+                      eventIndices={entry.eventIndices}
+                      viewStartMs={viewStartMs}
+                      viewEndMs={viewEndMs}
+                      heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
+                      leftGutterPx={leftGutterPx}
+                      color="#ffaed7"
+                      fill="rgba(255,174,215,0.10)"
+                      valueMapper={(v) => (v + 1) / 2}
+                      bufferVersion={bufferVersion}
+                      onHover={onHoverEvent}
+                      onResize={(h) => onLaneResize(keyStr, h)}
+                      laneKey={keyStr}
+                      analysis={getAnalysisFor?.(keyStr)}
+                      userBadges={getBadgesFor?.(keyStr)}
+                      onRequestAddBadge={onRequestAddBadge}
+                      onEditBadge={onEditBadge}
+                      isFlashing={flashLaneKey === keyStr}
+                    />
+                  </div>
                 );
               case "aftertouch": {
                 const labelSuffix = entry.key.note !== undefined ? ` #${entry.key.note}` : "";
                 return (
-                  <ContinuousLane
-                    key={`at|${entry.key.channel}|${entry.key.note ?? "ch"}`}
-                    label={`AT · ch${entry.key.channel}${labelSuffix}`}
-                    sublabel={osc}
-                    events={events}
-                    eventIndices={entry.eventIndices}
-                    viewStartMs={viewStartMs}
-                    viewEndMs={viewEndMs}
-                    heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
-                    leftGutterPx={leftGutterPx}
-                    color="#ffaed7"
-                    fill="rgba(255,174,215,0.08)"
-                    bufferVersion={bufferVersion}
-                    onHover={onHoverEvent}
-                    onResize={(h) => onLaneResize(keyStr, h)}
-                    laneKey={keyStr}
-                    analysis={getAnalysisFor?.(keyStr)}
-                    userBadges={getBadgesFor?.(keyStr)}
-                    onRequestAddBadge={onRequestAddBadge}
-                    onEditBadge={onEditBadge}
-                    isFlashing={flashLaneKey === keyStr}
-                  />
+                  <div data-lane-key={keyStr} key={`at|${entry.key.channel}|${entry.key.note ?? "ch"}`}>
+                    <ContinuousLane
+                      label={`AT · ch${entry.key.channel}${labelSuffix}`}
+                      sublabel={osc}
+                      events={events}
+                      eventIndices={entry.eventIndices}
+                      viewStartMs={viewStartMs}
+                      viewEndMs={viewEndMs}
+                      heightPx={getLaneHeight(keyStr, CONT_HEIGHT)}
+                      leftGutterPx={leftGutterPx}
+                      color="#ffaed7"
+                      fill="rgba(255,174,215,0.08)"
+                      bufferVersion={bufferVersion}
+                      onHover={onHoverEvent}
+                      onResize={(h) => onLaneResize(keyStr, h)}
+                      laneKey={keyStr}
+                      analysis={getAnalysisFor?.(keyStr)}
+                      userBadges={getBadgesFor?.(keyStr)}
+                      onRequestAddBadge={onRequestAddBadge}
+                      onEditBadge={onEditBadge}
+                      isFlashing={flashLaneKey === keyStr}
+                    />
+                  </div>
                 );
               }
               case "program":
                 return (
-                  <ProgramLane
-                    key={`prog|${entry.key.channel}`}
-                    label={`Program · ch${entry.key.channel}`}
-                    sublabel={osc}
-                    events={events}
-                    eventIndices={entry.eventIndices}
-                    viewStartMs={viewStartMs}
-                    viewEndMs={viewEndMs}
-                    heightPx={getLaneHeight(keyStr, MARKER_HEIGHT)}
-                    leftGutterPx={leftGutterPx}
-                    onHover={onHoverEvent}
-                    onResize={(h) => onLaneResize(keyStr, h)}
-                    laneKey={keyStr}
-                    analysis={getAnalysisFor?.(keyStr)}
-                    userBadges={getBadgesFor?.(keyStr)}
-                    onRequestAddBadge={onRequestAddBadge}
-                    onEditBadge={onEditBadge}
-                    isFlashing={flashLaneKey === keyStr}
-                  />
+                  <div data-lane-key={keyStr} key={`prog|${entry.key.channel}`}>
+                    <ProgramLane
+                      label={`Program · ch${entry.key.channel}`}
+                      sublabel={osc}
+                      events={events}
+                      eventIndices={entry.eventIndices}
+                      viewStartMs={viewStartMs}
+                      viewEndMs={viewEndMs}
+                      heightPx={getLaneHeight(keyStr, MARKER_HEIGHT)}
+                      leftGutterPx={leftGutterPx}
+                      onHover={onHoverEvent}
+                      onResize={(h) => onLaneResize(keyStr, h)}
+                      laneKey={keyStr}
+                      analysis={getAnalysisFor?.(keyStr)}
+                      userBadges={getBadgesFor?.(keyStr)}
+                      onRequestAddBadge={onRequestAddBadge}
+                      onEditBadge={onEditBadge}
+                      isFlashing={flashLaneKey === keyStr}
+                    />
+                  </div>
                 );
             }
           })}

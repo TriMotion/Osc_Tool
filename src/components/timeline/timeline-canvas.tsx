@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import type { LaneMap, MidiMappingRule, NoteSpan, RecordedEvent, Recording } from "@/lib/types";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, NoteSpan, RecordedEvent, Recording, RedundancyPair } from "@/lib/types";
+import { laneKeyString } from "@/lib/types";
 import { TimeRuler } from "./time-ruler";
 import { AudioLane } from "./audio-lane";
 import { DeviceSection } from "./device-section";
 import { HoverCard } from "./hover-card";
+import { TriggersSidebar } from "./triggers-sidebar";
 
 const LEFT_GUTTER = 140;
 const MIN_LANE_HEIGHT = 16;
@@ -54,12 +56,24 @@ interface TimelineCanvasProps {
   audioPeaks: Array<{ min: number; max: number }> | null;
   audioLabel?: string;
   onAudioOffsetDelta?: (deltaPx: number, modifier: "none" | "shift" | "alt") => void;
+  analyses: LaneAnalysis[] | null;
+  redundantPairs: RedundancyPair[] | null;
+  analysisReady: boolean;
+  analysisError: string | null;
+  badges: LaneBadge[];
+  triggersSidebarOpen: boolean;
+  onToggleTriggersSidebar: () => void;
+  onRequestAddBadge: (laneKey: string) => void;
+  onEditBadge: (badge: LaneBadge) => void;
+  onTagCurrentLane: () => void;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
   const {
     recording, events, bufferVersion, isRecording, laneMap, noteSpans, mappingRules,
     playheadMsRef, onSeek, audioPeaks, audioLabel, onAudioOffsetDelta,
+    analyses, redundantPairs, analysisReady, analysisError, badges,
+    triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onTagCurrentLane,
   } = props;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -79,6 +93,55 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       return next;
     });
   }, []);
+
+  const [flashLaneKey, setFlashLaneKey] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  const analysisByKey = useMemo(() => {
+    const m = new Map<string, LaneAnalysis>();
+    for (const a of analyses ?? []) m.set(a.laneKey, a);
+    return m;
+  }, [analyses]);
+
+  const badgesByKey = useMemo(() => {
+    const m = new Map<string, LaneBadge[]>();
+    for (const b of badges ?? []) {
+      const list = m.get(b.laneKey) ?? [];
+      list.push(b);
+      m.set(b.laneKey, list);
+    }
+    return m;
+  }, [badges]);
+
+  const flashLane = useCallback((laneKey: string) => {
+    setFlashLaneKey(laneKey);
+    if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = window.setTimeout(() => setFlashLaneKey(null), 900);
+  }, []);
+
+  const scrollLaneIntoView = useCallback((laneKey: string) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const target = wrap.querySelector(`[data-lane-key="${CSS.escape(laneKey)}"]`);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
+  const laneLabelFor = useCallback((laneKey: string): string => {
+    for (const entry of laneMap.values()) {
+      if (laneKeyString(entry.key) !== laneKey) continue;
+      const k = entry.key;
+      switch (k.kind) {
+        case "notes":       return `${k.device} · Notes`;
+        case "cc":          return `${k.device} · CC ${k.cc} ch${k.channel}`;
+        case "pitch":       return `${k.device} · Pitch ch${k.channel}`;
+        case "aftertouch":  return `${k.device} · AT ch${k.channel}${k.note !== undefined ? ` #${k.note}` : ""}`;
+        case "program":     return `${k.device} · Program ch${k.channel}`;
+      }
+    }
+    return laneKey;
+  }, [laneMap]);
 
   const [hover, setHover] = useState<{ payload: Parameters<typeof HoverCard>[0]["payload"]; x: number; y: number }>({
     payload: null, x: 0, y: 0,
@@ -170,11 +233,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   };
 
   return (
-    <div
-      ref={wrapRef}
-      onWheel={handleWheel}
-      className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto"
-    >
+    <div className="flex-1 min-h-0 flex">
+      <div
+        ref={wrapRef}
+        onWheel={handleWheel}
+        className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto"
+      >
       <TimeRuler
         viewStartMs={view.startMs}
         viewEndMs={view.endMs}
@@ -215,6 +279,11 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onHoverSpan={(span, x, y) => setHover({ payload: span ? { kind: "span", span } : null, x, y })}
           getLaneHeight={getLaneHeight}
           onLaneResize={setLaneHeight}
+          getAnalysisFor={(k) => analysisByKey.get(k)}
+          getBadgesFor={(k) => badgesByKey.get(k)}
+          onRequestAddBadge={onRequestAddBadge}
+          onEditBadge={onEditBadge}
+          flashLaneKey={flashLaneKey}
         />
       ))}
 
@@ -239,6 +308,20 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       )}
 
       <HoverCard payload={hover.payload} clientX={hover.x} clientY={hover.y} />
+      </div>
+      {triggersSidebarOpen && (
+        <TriggersSidebar
+          analyses={analyses}
+          pairs={redundantPairs}
+          ready={analysisReady}
+          error={analysisError}
+          userBadges={badges}
+          laneLabelFor={laneLabelFor}
+          onSelectLane={(k) => { flashLane(k); scrollLaneIntoView(k); }}
+          onSelectPair={(a, b) => { flashLane(a); flashLane(b); scrollLaneIntoView(a); }}
+          onTagCurrentLane={onTagCurrentLane}
+        />
+      )}
     </div>
   );
 }
