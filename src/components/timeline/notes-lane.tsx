@@ -56,7 +56,6 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
           const xEndPct = ((Math.min(s.tEnd, viewEndMs) - viewStartMs) / viewSpan) * 100;
           const widthPct = Math.max(0.15, xEndPct - xStartPct);
           const yPct = (1 - (s.pitch - minPitch) / pitchSpan) * 100;
-          const alpha = 0.45 + (s.velocity / 127) * 0.5;
           return (
             <div
               key={`${s.device}|${s.channel}|${s.pitch}|${s.tStart}|${i}`}
@@ -69,7 +68,7 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
                 width: `${widthPct}%`,
                 top: `calc(${yPct}% - 2px)`,
                 height: 3,
-                background: `rgba(142,203,255,${alpha})`,
+                background: velocityColor(s.velocity),
                 borderRadius: 1,
               }}
             />
@@ -79,4 +78,14 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
       {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
   );
+}
+
+// Blue (soft) → cyan → green → yellow → red (hard). Hue sweep 210° → 0° over velocity 0..127.
+function velocityColor(velocity: number): string {
+  const v = Math.max(0, Math.min(127, velocity)) / 127;
+  const hue = 210 - v * 210;
+  const sat = 80;
+  const light = 55 + v * 10; // slightly brighter at higher velocity
+  const alpha = 0.55 + v * 0.4;
+  return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
 }
