@@ -67,7 +67,7 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
                 left: `${xStartPct}%`,
                 width: `${widthPct}%`,
                 top: `calc(${yPct}% - 2px)`,
-                height: 3,
+                height: 4,
                 background: velocityColor(s.velocity),
                 borderRadius: 1,
               }}
@@ -80,12 +80,13 @@ export function NotesLane({ spans, viewStartMs, viewEndMs, heightPx, leftGutterP
   );
 }
 
-// Blue (soft) → cyan → green → yellow → red (hard). Hue sweep 210° → 0° over velocity 0..127.
+// Discrete velocity bands — distinct saturated colors so tiny note bars are readable.
+// 0-20 ghost, 21-50 soft, 51-80 medium, 81-110 loud, 111-127 max.
 function velocityColor(velocity: number): string {
-  const v = Math.max(0, Math.min(127, velocity)) / 127;
-  const hue = 210 - v * 210;
-  const sat = 80;
-  const light = 55 + v * 10; // slightly brighter at higher velocity
-  const alpha = 0.55 + v * 0.4;
-  return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+  const v = Math.max(0, Math.min(127, velocity));
+  if (v <= 20)  return "rgba(74, 123, 255, 0.75)";  // deep blue
+  if (v <= 50)  return "rgba(0, 212, 255, 0.80)";   // cyan
+  if (v <= 80)  return "rgba(125, 216, 125, 0.85)"; // green
+  if (v <= 110) return "rgba(255, 184, 77, 0.90)";  // orange
+  return "rgba(255, 74, 74, 0.95)";                 // red
 }
