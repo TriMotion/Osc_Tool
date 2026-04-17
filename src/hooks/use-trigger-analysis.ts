@@ -51,7 +51,9 @@ export function useTriggerAnalysis({ recording, bufferVersion, laneMap, noteSpan
     run();
 
     return () => { token.cancelled = true; };
-  }, [recording, bufferVersion, laneMap, noteSpans]);
+    // Depend on identity-stable slices of recording so badge edits don't re-trigger analysis.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording?.id, recording?.events.length, recording?.durationMs, bufferVersion, laneMap, noteSpans]);
 
   return result;
 }

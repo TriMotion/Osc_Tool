@@ -94,7 +94,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     });
   }, []);
 
-  const [flashLaneKey, setFlashLaneKey] = useState<string | null>(null);
+  const [flashLaneKeys, setFlashLaneKeys] = useState<Set<string>>(new Set());
   const flashTimerRef = useRef<number | null>(null);
 
   const analysisByKey = useMemo(() => {
@@ -114,9 +114,19 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   }, [badges]);
 
   const flashLane = useCallback((laneKey: string) => {
-    setFlashLaneKey(laneKey);
+    setFlashLaneKeys((prev) => {
+      const next = new Set(prev);
+      next.add(laneKey);
+      return next;
+    });
     if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
-    flashTimerRef.current = window.setTimeout(() => setFlashLaneKey(null), 900);
+    flashTimerRef.current = window.setTimeout(() => setFlashLaneKeys(new Set()), 900);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    };
   }, []);
 
   const scrollLaneIntoView = useCallback((laneKey: string) => {
@@ -283,7 +293,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           getBadgesFor={(k) => badgesByKey.get(k)}
           onRequestAddBadge={onRequestAddBadge}
           onEditBadge={onEditBadge}
-          flashLaneKey={flashLaneKey}
+          flashLaneKeys={flashLaneKeys}
         />
       ))}
 

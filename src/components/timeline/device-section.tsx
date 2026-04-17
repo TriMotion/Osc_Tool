@@ -27,7 +27,7 @@ interface DeviceSectionProps {
   getBadgesFor?: (key: string) => LaneBadge[] | undefined;
   onRequestAddBadge?: (laneKey: string) => void;
   onEditBadge?: (badge: LaneBadge) => void;
-  flashLaneKey?: string | null;
+  flashLaneKeys?: Set<string>;
 }
 
 const NOTES_HEIGHT = 48;
@@ -69,7 +69,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     viewStartMs, viewEndMs, leftGutterPx, collapsed, onToggleCollapsed,
     bufferVersion, onHoverEvent, onHoverSpan,
     getLaneHeight, onLaneResize,
-    getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, flashLaneKey,
+    getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, flashLaneKeys,
   } = props;
 
   const laneEntries = useMemo(() => {
@@ -135,7 +135,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
-                      isFlashing={flashLaneKey === keyStr}
+                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                     />
                   </div>
                 );
@@ -161,7 +161,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
-                      isFlashing={flashLaneKey === keyStr}
+                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                     />
                   </div>
                 );
@@ -188,7 +188,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
-                      isFlashing={flashLaneKey === keyStr}
+                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                     />
                   </div>
                 );
@@ -215,7 +215,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
-                      isFlashing={flashLaneKey === keyStr}
+                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                     />
                   </div>
                 );
@@ -239,7 +239,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
-                      isFlashing={flashLaneKey === keyStr}
+                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                     />
                   </div>
                 );
