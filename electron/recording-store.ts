@@ -31,11 +31,14 @@ export class RecordingStore {
       this.recordingsDir,
       sanitizeFilename(rec.name || "Untitled") + ".oscrec"
     );
-    const result = await dialog.showSaveDialog(win ?? undefined!, {
+    const options = {
       title: "Save Recording",
       defaultPath: suggested,
       filters: OSCREC_FILTERS,
-    });
+    };
+    const result = await (win
+      ? dialog.showSaveDialog(win, options)
+      : dialog.showSaveDialog(options));
     if (result.canceled || !result.filePath) return { cancelled: true };
     this.writeFile(result.filePath, rec);
     this.pushRecent({ path: result.filePath, name: rec.name, savedAt: Date.now() });
@@ -74,11 +77,14 @@ export class RecordingStore {
   async loadDialog(win: BrowserWindow | null): Promise<
     { recording: Recording; path: string } | { cancelled: true }
   > {
-    const result = await dialog.showOpenDialog(win ?? undefined!, {
+    const options = {
       title: "Open Recording",
       filters: OSCREC_FILTERS,
       properties: ["openFile"],
-    });
+    };
+    const result = await (win
+      ? dialog.showOpenDialog(win, options)
+      : dialog.showOpenDialog(options));
     if (result.canceled || result.filePaths.length === 0) return { cancelled: true };
     const filePath = result.filePaths[0];
     const recording = this.readFile(filePath);
@@ -119,11 +125,14 @@ export class RecordingStore {
   }
 
   async pickAudio(win: BrowserWindow | null): Promise<{ path: string } | { cancelled: true }> {
-    const result = await dialog.showOpenDialog(win ?? undefined!, {
+    const options = {
       title: "Load Audio File",
       filters: AUDIO_FILTERS,
       properties: ["openFile"],
-    });
+    };
+    const result = await (win
+      ? dialog.showOpenDialog(win, options)
+      : dialog.showOpenDialog(options));
     if (result.canceled || result.filePaths.length === 0) return { cancelled: true };
     return { path: result.filePaths[0] };
   }
