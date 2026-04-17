@@ -360,5 +360,17 @@ function validateRecording(v: unknown): Recording {
       throw new Error(`Recording.events[${i}] is malformed`);
     }
   }
+  if (r.badges !== undefined) {
+    if (!Array.isArray(r.badges)) throw new Error("Recording.badges must be an array");
+    for (let i = 0; i < r.badges.length; i++) {
+      const b = r.badges[i] as Partial<{ id: string; laneKey: string; label: string; color: string }>;
+      if (typeof b.id !== "string") throw new Error(`Recording.badges[${i}].id must be a string`);
+      if (typeof b.laneKey !== "string") throw new Error(`Recording.badges[${i}].laneKey must be a string`);
+      if (typeof b.label !== "string") throw new Error(`Recording.badges[${i}].label must be a string`);
+      if (b.color !== undefined && typeof b.color !== "string") {
+        throw new Error(`Recording.badges[${i}].color must be a string when present`);
+      }
+    }
+  }
   return r as Recording;
 }
