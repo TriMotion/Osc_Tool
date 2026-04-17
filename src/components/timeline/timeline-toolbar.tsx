@@ -23,6 +23,8 @@ interface TimelineToolbarProps {
   onUnloadAudio: () => void;
   onOffsetChange: (ms: number) => void;
   onImportMidi: () => void;
+  triggersSidebarOpen: boolean;
+  onToggleTriggersSidebar: () => void;
 }
 
 export function TimelineToolbar(props: TimelineToolbarProps) {
@@ -32,6 +34,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
     onRecord, onStop, onPlay, onPause,
     onSave, onSaveAs, onLoad, onLoadAudio, onUnloadAudio, onOffsetChange,
     onImportMidi,
+    triggersSidebarOpen, onToggleTriggersSidebar,
   } = props;
 
   const canPlay = hasRecording || audioLoaded;
@@ -90,6 +93,16 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
       >
         Import .mid…
+      </button>
+      <button
+        onClick={onToggleTriggersSidebar}
+        className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+          triggersSidebarOpen
+            ? "bg-accent/20 text-accent border-accent/40"
+            : "border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
+        }`}
+      >
+        📊 Triggers
       </button>
 
       <div className="w-px h-5 bg-white/10 mx-1" />
