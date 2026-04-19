@@ -13,31 +13,33 @@ interface OscMappingEditorProps {
   defaultEndpointId: string | undefined;
   sections: TimelineSection[];
   deviceAliases?: Record<string, string>;
+  editingMapping?: OscMapping;
   anchorRect: DOMRect;
   onAdd: (mapping: OscMapping) => void;
+  onUpdate?: (mapping: OscMapping) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
 }
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  sections, deviceAliases, anchorRect, onAdd, onDelete, onClose,
+  sections, deviceAliases, editingMapping, anchorRect, onAdd, onUpdate, onDelete, onClose,
 }: OscMappingEditorProps) {
-  const [endpointId, setEndpointId] = useState(defaultEndpointId ?? endpoints[0]?.id ?? "");
-  const [preset, setPreset] = useState<OscPreset>("custom");
-  const [trigger, setTrigger] = useState<OscTrigger>("on");
-  const [argType, setArgType] = useState<"f" | "i">("f");
+  const [endpointId, setEndpointId] = useState(editingMapping?.endpointId ?? defaultEndpointId ?? endpoints[0]?.id ?? "");
+  const [preset, setPreset] = useState<OscPreset>(editingMapping?.preset ?? "custom");
+  const [trigger, setTrigger] = useState<OscTrigger>(editingMapping?.trigger ?? "on");
+  const [argType, setArgType] = useState<"f" | "i">(editingMapping?.argType ?? "f");
   // custom
-  const [address, setAddress] = useState("/");
+  const [address, setAddress] = useState(editingMapping?.address ?? "/");
   // unreal
-  const [sectionName, setSectionName] = useState(sections[0]?.name ?? "");
-  const [unrealType, setUnrealType] = useState<"parameter" | "trigger">("parameter");
-  const [unrealName, setUnrealName] = useState("");
+  const [sectionName, setSectionName] = useState(editingMapping?.sectionName ?? sections[0]?.name ?? "");
+  const [unrealType, setUnrealType] = useState<"parameter" | "trigger">(editingMapping?.unrealType ?? "parameter");
+  const [unrealName, setUnrealName] = useState(editingMapping?.unrealName ?? "");
   // resolume
-  const [resolumeMode, setResolumeMode] = useState<"column" | "clip">("column");
-  const [resolumeColumn, setResolumeColumn] = useState(1);
-  const [resolumeLayer, setResolumeLayer] = useState(1);
-  const [resolumeClip, setResolumeClip] = useState(1);
+  const [resolumeMode, setResolumeMode] = useState<"column" | "clip">(editingMapping?.resolumeMode ?? "column");
+  const [resolumeColumn, setResolumeColumn] = useState(editingMapping?.resolumeColumn ?? 1);
+  const [resolumeLayer, setResolumeLayer] = useState(editingMapping?.resolumeLayer ?? 1);
+  const [resolumeClip, setResolumeClip] = useState(editingMapping?.resolumeClip ?? 1);
 
   const previewMapping: OscMapping = {
     id: "preview",
@@ -61,6 +63,16 @@ export function OscMappingEditor({
     });
   };
 
+  const handleSave = () => {
+    if (!editingMapping || !endpointId) return;
+    onUpdate?.({
+      ...editingMapping,
+      endpointId, preset, trigger, argType, address,
+      sectionName, unrealType, unrealName: unrealName || "param",
+      resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+    });
+  };
+
   const top = Math.min(anchorRect.bottom + 4, window.innerHeight - 480);
   const left = Math.min(anchorRect.left, window.innerWidth - 300);
 
@@ -71,12 +83,12 @@ export function OscMappingEditor({
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold">OSC Mappings</h3>
+        <h3 className="text-sm font-semibold">{editingMapping ? "Edit Mapping" : "OSC Mappings"}</h3>
         <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-xs">✕</button>
       </div>
 
-      {/* Existing mappings */}
-      {mappings.length > 0 && (
+      {/* Existing mappings — hidden in edit mode */}
+      {!editingMapping && mappings.length > 0 && (
         <div className="mb-3 space-y-1">
           {mappings.map((m) => {
             const ep = endpoints.find((e) => e.id === m.endpointId);
@@ -248,13 +260,31 @@ export function OscMappingEditor({
           </div>
         </div>
 
-        <button
-          onClick={handleAdd}
-          disabled={!endpointId || endpoints.length === 0}
-          className="w-full py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          + Add Mapping
-        </button>
+        {editingMapping ? (
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={!endpointId}
+              className="flex-1 py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { onDelete(editingMapping.id); onClose(); }}
+              className="py-1.5 px-3 text-xs bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAdd}
+            disabled={!endpointId || endpoints.length === 0}
+            className="w-full py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            + Add Mapping
+          </button>
+        )}
       </div>
     </div>
   );

@@ -352,6 +352,12 @@ export default function TimelinePage() {
     recorder.patchRecording({ oscMappings: [...(rec.oscMappings ?? []), mapping] });
   }, [recorder]);
 
+  const updateOscMapping = useCallback((mapping: OscMapping) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    recorder.patchRecording({ oscMappings: (rec.oscMappings ?? []).map((m) => m.id === mapping.id ? mapping : m) });
+  }, [recorder]);
+
   const deleteOscMapping = useCallback((id: string) => {
     const rec = recorder.recording;
     if (!rec) return;
@@ -541,6 +547,7 @@ export default function TimelinePage() {
           oscMappings={recorder.recording?.oscMappings ?? []}
           endpoints={endpoints}
           onAddOscMapping={addOscMapping}
+          onUpdateOscMapping={updateOscMapping}
           onDeleteOscMapping={deleteOscMapping}
           onHiddenLanesChange={saveHiddenLanes}
           onHiddenNoteGroupsChange={saveHiddenNoteGroups}

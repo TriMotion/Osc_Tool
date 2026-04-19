@@ -112,6 +112,7 @@ interface TimelineCanvasProps {
   oscMappings: OscMapping[];
   endpoints: SavedEndpoint[];
   onAddOscMapping: (mapping: OscMapping) => void;
+  onUpdateOscMapping: (mapping: OscMapping) => void;
   onDeleteOscMapping: (id: string) => void;
   onHiddenLanesChange: (lanes: string[]) => void;
   onHiddenNoteGroupsChange: (groups: string[]) => void;
@@ -126,7 +127,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     suppressedAnalysis, onSuppressAnalysis, onTagCurrentLane,
     onDeleteDevice, deviceAliases, onRenameDevice, sections, onSectionsChange, userMarkers, onMarkersChange,
     noteTags, onSaveNoteTag, onDeleteNoteTag,
-    oscMappings, endpoints, onAddOscMapping, onDeleteOscMapping,
+    oscMappings, endpoints, onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
     onHiddenLanesChange, onHiddenNoteGroupsChange,
   } = props;
 
@@ -603,6 +604,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           oscMappings={oscMappings}
           endpoints={endpoints}
           onAddOscMapping={onAddOscMapping}
+          onUpdateOscMapping={onUpdateOscMapping}
           onDeleteOscMapping={onDeleteOscMapping}
           hiddenLanes={hiddenLanes}
           onHideLane={(key) => setHiddenLanes((prev) => new Set([...prev, key]))}

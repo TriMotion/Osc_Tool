@@ -53,6 +53,7 @@ interface DeviceSectionProps {
   endpoints?: SavedEndpoint[];
   sections?: TimelineSection[];
   onAddOscMapping?: (mapping: OscMapping) => void;
+  onUpdateOscMapping?: (mapping: OscMapping) => void;
   onDeleteOscMapping?: (id: string) => void;
   hiddenLanes: Set<string>;
   onHideLane: (key: string) => void;
@@ -103,7 +104,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     onDeleteDevice, displayName, onRenameDevice, deviceAliases, selectedVelocity, activeSectionRange, onNoteClick,
     allGroups = [], hiddenNoteKeys, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
-    oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onDeleteOscMapping,
+    oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
     hiddenLanes, onHideLane, onShowLane,
   } = props;
 
@@ -142,6 +143,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     targetType: "noteGroup" | "lane";
     targetId: string;
     anchorRect: DOMRect;
+    editingMapping?: OscMapping;
   } | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -464,7 +466,16 @@ export function DeviceSection(props: DeviceSectionProps) {
                       {rowMappings.map((m) => (
                         <div
                           key={m.id}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0"
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOscEditor({
+                              targetType: "noteGroup",
+                              targetId: `${pitch}|${tagVelocity}`,
+                              anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                              editingMapping: m,
+                            });
+                          }}
                         >
                           <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
                           <button
@@ -534,7 +545,9 @@ export function DeviceSection(props: DeviceSectionProps) {
           sections={sections}
           anchorRect={oscEditor.anchorRect}
           deviceAliases={deviceAliases}
+          editingMapping={oscEditor.editingMapping}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
+          onUpdate={(mapping) => { onUpdateOscMapping?.(mapping); setOscEditor(null); }}
           onDelete={(id) => { onDeleteOscMapping?.(id); }}
           onClose={() => setOscEditor(null)}
         />
