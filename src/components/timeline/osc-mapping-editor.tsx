@@ -136,29 +136,9 @@ export function OscMappingEditor({
         )}
 
         {preset === "unreal" && (
-          <>
-            <div>
-              <label className="block text-[10px] text-gray-500 mb-1">Type</label>
-              <div className="flex gap-3">
-                {(["parameter", "trigger"] as const).map((t) => (
-                  <label key={t} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                    <input type="radio" checked={unrealType === t} onChange={() => setUnrealType(t)} className="accent-accent" />
-                    {t}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] text-gray-500 mb-1">Name</label>
-              <input
-                type="text"
-                value={unrealName}
-                onChange={(e) => setUnrealName(e.target.value)}
-                placeholder="param_name"
-                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
-              />
-            </div>
-          </>
+          <div className="text-[10px] text-gray-500">
+            Address is derived from the note group automatically.
+          </div>
         )}
 
         {preset === "resolume" && (

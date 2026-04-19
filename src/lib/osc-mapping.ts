@@ -5,10 +5,10 @@ export function resolveOscAddress(mapping: OscMapping): string {
   switch (mapping.preset) {
     case "custom":
       return mapping.address ?? "/";
-    case "unreal":
-      return mapping.unrealType === "parameter"
-        ? `/unreal/parameter/${mapping.unrealName ?? "param"}`
-        : `/unreal/trigger/${mapping.unrealName ?? "trigger"}`;
+    case "unreal": {
+      const [pitch, velocity] = mapping.targetId.split("|");
+      return `/unreal/note${pitch}/velocity${velocity}`;
+    }
     case "resolume":
       return mapping.resolumeMode === "column"
         ? `/composition/columns/${mapping.resolumeColumn ?? 1}/connect`
