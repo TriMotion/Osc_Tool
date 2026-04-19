@@ -100,6 +100,8 @@ interface TimelineCanvasProps {
   onSuppressAnalysis: (laneKey: string, type: "rhythm" | "dynamic" | "melody") => void;
   onTagCurrentLane: () => void;
   onDeleteDevice: (deviceName: string) => void;
+  deviceAliases?: Record<string, string>;
+  onRenameDevice?: (originalName: string, newName: string) => void;
   sections: TimelineSection[];
   onSectionsChange: (sections: TimelineSection[]) => void;
   userMarkers: Moment[];
@@ -122,7 +124,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     analyses, redundantPairs, moments, analysisReady, analysisError, badges,
     triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onDeleteBadge,
     suppressedAnalysis, onSuppressAnalysis, onTagCurrentLane,
-    onDeleteDevice, sections, onSectionsChange, userMarkers, onMarkersChange,
+    onDeleteDevice, deviceAliases, onRenameDevice, sections, onSectionsChange, userMarkers, onMarkersChange,
     noteTags, onSaveNoteTag, onDeleteNoteTag,
     oscMappings, endpoints, onAddOscMapping, onDeleteOscMapping,
     onHiddenLanesChange, onHiddenNoteGroupsChange,
@@ -580,6 +582,9 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onSuppressAnalysis={onSuppressAnalysis}
           flashLaneKeys={flashLaneKeys}
           onDeleteDevice={onDeleteDevice}
+          displayName={deviceAliases?.[device]}
+          onRenameDevice={(newName) => onRenameDevice?.(device, newName)}
+          deviceAliases={deviceAliases}
           selectedVelocity={noteSelection?.device === device ? { pitch: noteSelection.pitch, velocity: noteSelection.velocity } : null}
           activeSectionRange={activeSection ? { startMs: activeSection.startMs, endMs: activeSection.endMs } : null}
           onNoteClick={(span) => handleNoteClick(device, span)}
@@ -666,7 +671,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         </div>
       )}
 
-      <HoverCard payload={hover.payload} clientX={hover.x} clientY={hover.y} />
+      <HoverCard payload={hover.payload} clientX={hover.x} clientY={hover.y} aliases={deviceAliases} />
       </div>
       {triggersSidebarOpen && (
         <TriggersSidebar
