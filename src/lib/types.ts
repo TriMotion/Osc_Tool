@@ -169,6 +169,29 @@ export interface NoteGroupTag {
   color?: string;            // CSS color; hash-based fallback at render time
 }
 
+export type OscPreset = "custom" | "unreal" | "resolume";
+export type OscTrigger = "on" | "off" | "both";
+
+export interface OscMapping {
+  id: string;
+  targetType: "noteGroup" | "lane";
+  /** Note groups: "${pitch}|${velocity}". Lanes: laneKeyString output. */
+  targetId: string;
+  deviceId: string;
+  endpointId: string;
+  preset: OscPreset;
+  /** For noteGroup: when to fire. Lanes always fire on every value change. */
+  trigger: OscTrigger;
+  argType: "f" | "i";
+  address?: string;
+  unrealType?: "parameter" | "trigger";
+  unrealName?: string;
+  resolumeMode?: "column" | "clip";
+  resolumeColumn?: number;
+  resolumeLayer?: number;
+  resolumeClip?: number;
+}
+
 export interface Recording {
   version: 1;
   id: string;
@@ -184,6 +207,10 @@ export interface Recording {
   moments?: Moment[];           // user-created; auto-detected moments are not persisted
   sections?: TimelineSection[];
   noteTags?: NoteGroupTag[];
+  hiddenLanes?: string[];
+  hiddenNoteGroups?: string[];
+  oscMappings?: OscMapping[];
+  suppressedAnalysis?: string[];  // "${laneKey}:rhythm" | "${laneKey}:dynamic" | "${laneKey}:melody"
 }
 
 // Pairing of note-on with its matching note-off.
