@@ -12,6 +12,7 @@ interface OscMappingEditorProps {
   endpoints: SavedEndpoint[];
   defaultEndpointId: string | undefined;
   sections: TimelineSection[];
+  deviceAliases?: Record<string, string>;
   anchorRect: DOMRect;
   onAdd: (mapping: OscMapping) => void;
   onDelete: (id: string) => void;
@@ -20,7 +21,7 @@ interface OscMappingEditorProps {
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  sections, anchorRect, onAdd, onDelete, onClose,
+  sections, deviceAliases, anchorRect, onAdd, onDelete, onClose,
 }: OscMappingEditorProps) {
   const [endpointId, setEndpointId] = useState(defaultEndpointId ?? endpoints[0]?.id ?? "");
   const [preset, setPreset] = useState<OscPreset>("custom");
@@ -46,7 +47,7 @@ export function OscMappingEditor({
     unrealType, unrealName,
     resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
   };
-  const preview = resolveOscAddress(previewMapping);
+  const preview = resolveOscAddress(previewMapping, deviceAliases);
 
   const handleAdd = () => {
     if (!endpointId) return;
@@ -81,7 +82,7 @@ export function OscMappingEditor({
             const ep = endpoints.find((e) => e.id === m.endpointId);
             return (
               <div key={m.id} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded text-[10px]">
-                <span className="font-mono text-accent flex-1 truncate">{resolveOscAddress(m)}</span>
+                <span className="font-mono text-accent flex-1 truncate">{resolveOscAddress(m, deviceAliases)}</span>
                 {targetType === "noteGroup" && (
                   <span className="text-gray-500">[{m.trigger}]</span>
                 )}
