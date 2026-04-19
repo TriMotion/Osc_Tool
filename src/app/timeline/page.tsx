@@ -1,17 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRecorder } from "@/hooks/use-recorder";
 import { useRecordingIO } from "@/hooks/use-recording-io";
 import { useAudioSync } from "@/hooks/use-audio-sync";
 import { useMidiConfig, useMidiControl } from "@/hooks/use-midi";
 import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
+import { useRecorderContext } from "@/contexts/recorder-context";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
 import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
-import type { LaneBadge, LaneMap, MidiMappingRule, NoteSpan } from "@/lib/types";
+import type { LaneBadge, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording } from "@/lib/types";
 
 const LEFT_GUTTER = 140;
 
@@ -33,13 +33,7 @@ export default function TimelinePage() {
     }
   }, [bridgeRunning, startBridge, stopBridge, refreshDevices]);
   const { rules } = useMidiConfig();
-  const rulesRef = useRef<MidiMappingRule[]>(rules);
-  rulesRef.current = rules;
-
-  const recorder = useRecorder({
-    getMappingRulesSnapshot: () => rulesRef.current,
-  });
-
+  const recorder = useRecorderContext();
   const io = useRecordingIO();
 
   const durationMs = recorder.recording?.durationMs ?? (recorder.state === "recording"
@@ -58,6 +52,7 @@ export default function TimelinePage() {
   });
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
+  const [pendingMidiMerge, setPendingMidiMerge] = useState<Recording | null>(null);
   const [saveSuggestedPath, setSaveSuggestedPath] = useState<string | null>(null);
   const [canvasWidthPx, setCanvasWidthPx] = useState(800);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
@@ -113,7 +108,19 @@ export default function TimelinePage() {
     noteSpans,
   });
 
-  const audioPeaks = audio.getPeaks(canvasWidthPx);
+  // Build render props for each audio track (peaks cached per track).
+  const audioTrackRenderProps = useMemo(
+    () =>
+      audio.tracks.map((t) => ({
+        id: t.id,
+        peaks: audio.getTrackPeaks(t.id, 8192),
+        offsetMs: t.offsetMs,
+        durationMs: t.durationMs,
+        label: t.filePath.split("/").pop() ?? "audio",
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [audio.tracks, audio.getTrackPeaks]
+  );
 
   const startRecording = useCallback(() => {
     if (!bridgeRunning) {
@@ -152,6 +159,17 @@ export default function TimelinePage() {
     }
   }, [io, recorder]);
 
+  /** Persist current audio.tracks to recording. */
+  const syncAudioTracksToRecording = useCallback(() => {
+    recorder.patchRecording({
+      audioTracks: audio.tracks.map((t) => ({
+        id: t.id,
+        filePath: t.filePath,
+        offsetMs: t.offsetMs,
+      })),
+    });
+  }, [audio.tracks, recorder]);
+
   const handleLoad = useCallback(async () => {
     if (recorder.state === "recording") {
       alert("Stop the current recording before loading another file.");
@@ -162,15 +180,27 @@ export default function TimelinePage() {
       if (!res) return;
       recorder.setLoaded(res.recording);
       setSaveSuggestedPath(res.path);
-      audio.unloadAudio();
+      audio.unloadAll();
 
-      if (res.recording.audio) {
-        const bytes = await io.readAudioBytes(res.recording.audio.filePath);
+      // Support both old single-audio and new multi-track recordings.
+      const tracksToLoad: Array<{ id: string; filePath: string; offsetMs: number }> = [];
+      if (res.recording.audioTracks?.length) {
+        tracksToLoad.push(...res.recording.audioTracks);
+      } else if (res.recording.audio) {
+        tracksToLoad.push({ id: crypto.randomUUID(), ...res.recording.audio });
+      }
+
+      const missing: string[] = [];
+      for (const t of tracksToLoad) {
+        const bytes = await io.readAudioBytes(t.filePath);
         if (bytes) {
-          await audio.loadBytes(res.recording.audio.filePath, bytes.bytes, bytes.mimeType, res.recording.audio.offsetMs);
+          await audio.loadTrack(t.id, t.filePath, bytes.bytes, bytes.mimeType, t.offsetMs);
         } else {
-          alert(`Audio file not found at:\n${res.recording.audio.filePath}\n\nYou can attach a new audio file after loading.`);
+          missing.push(t.filePath);
         }
+      }
+      if (missing.length) {
+        alert(`Audio file(s) not found:\n${missing.join("\n")}\n\nYou can attach them again after loading.`);
       }
     };
     if (recorder.hasUnsaved && recorder.recording) {
@@ -184,25 +214,20 @@ export default function TimelinePage() {
   }, [io, recorder, audio]);
 
   const handleImportMidi = useCallback(async () => {
-    const applyImport = async () => {
-      const res = await io.importMidi();
-      if (!res) return;
-      recorder.setLoaded(res.recording);
-      setSaveSuggestedPath(null); // force Save As on first save (no existing .oscrec path)
-      audio.unloadAudio();
-    };
     if (recorder.state === "recording") {
       alert("Stop the current recording before importing a MIDI file.");
       return;
     }
-    if (recorder.hasUnsaved && recorder.recording) {
-      setConfirmDiscard(() => () => {
-        applyImport();
-        setConfirmDiscard(null);
-      });
-      return;
+    const res = await io.importMidi();
+    if (!res) return;
+
+    if (recorder.recording) {
+      setPendingMidiMerge(res.recording);
+    } else {
+      recorder.setLoaded(res.recording);
+      setSaveSuggestedPath(null);
+      audio.unloadAll();
     }
-    applyImport();
   }, [io, recorder, audio]);
 
   const handleLoadAudio = useCallback(async () => {
@@ -210,45 +235,59 @@ export default function TimelinePage() {
     if (!path) return;
     const bytes = await io.readAudioBytes(path);
     if (!bytes) return;
-    await audio.loadBytes(path, bytes.bytes, bytes.mimeType, audio.audio.offsetMs);
-    if (recorder.recording) {
-      recorder.patchRecording({ audio: { filePath: path, offsetMs: audio.audio.offsetMs } });
-    }
+    const id = crypto.randomUUID();
+    await audio.loadTrack(id, path, bytes.bytes, bytes.mimeType, 0);
+    recorder.patchRecording({
+      audioTracks: [
+        ...(recorder.recording?.audioTracks ?? []),
+        { id, filePath: path, offsetMs: 0 },
+      ],
+    });
   }, [io, audio, recorder]);
 
-  const handleUnloadAudio = useCallback(() => {
-    audio.unloadAudio();
-    if (recorder.recording) recorder.patchRecording({ audio: undefined });
+  const handleUnloadAudio = useCallback((id: string) => {
+    audio.unloadTrack(id);
+    recorder.patchRecording({
+      audioTracks: (recorder.recording?.audioTracks ?? []).filter((t) => t.id !== id),
+    });
   }, [audio, recorder]);
 
-  const handleOffsetChange = useCallback(
-    (ms: number) => {
-      audio.setOffset(ms);
-      if (recorder.recording?.audio) {
-        recorder.patchRecording({
-          audio: { filePath: recorder.recording.audio.filePath, offsetMs: ms },
-        });
-      }
+  const handleAudioOffsetChange = useCallback(
+    (id: string, ms: number) => {
+      audio.setTrackOffset(id, ms);
+      recorder.patchRecording({
+        audioTracks: (recorder.recording?.audioTracks ?? []).map((t) =>
+          t.id !== id ? t : { ...t, offsetMs: ms }
+        ),
+      });
     },
     [audio, recorder]
   );
 
-  const handleOffsetDragDelta = useCallback(
-    (deltaPx: number, modifier: "none" | "shift" | "alt") => {
-      const canvas = canvasWidthPx;
+  const handleAudioOffsetDelta = useCallback(
+    (id: string, deltaPx: number, modifier: "none" | "shift" | "alt") => {
       const span = Math.max(1000, durationMs);
-      let msDelta = (deltaPx / canvas) * span;
+      let msDelta = (deltaPx / canvasWidthPx) * span;
       if (modifier === "shift") msDelta = Math.round(msDelta / 10) * 10;
       if (modifier === "alt") msDelta = Math.round(msDelta / 100) * 100;
-      handleOffsetChange(audio.audio.offsetMs + msDelta);
+      const track = audio.tracks.find((t) => t.id === id);
+      if (!track) return;
+      handleAudioOffsetChange(id, track.offsetMs + msDelta);
     },
-    [canvasWidthPx, durationMs, audio.audio.offsetMs, handleOffsetChange]
+    [canvasWidthPx, durationMs, audio.tracks, handleAudioOffsetChange]
   );
 
   const handleSeek = useCallback((ms: number) => {
     audio.seek(ms);
     setPlayheadDisplayMs(ms);
   }, [audio]);
+
+  // Keep recording.audioTracks in sync whenever track state changes.
+  useEffect(() => {
+    if (!recorder.recording || audio.tracks.length === 0) return;
+    syncAudioTracksToRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio.tracks]);
 
   const handleRename = useCallback(
     (name: string) => {
@@ -258,6 +297,8 @@ export default function TimelinePage() {
   );
 
   const existingBadges = recorder.recording?.badges ?? [];
+
+  const noteTags = recorder.recording?.noteTags ?? [];
 
   const saveBadge = useCallback((next: LaneBadge) => {
     const rec = recorder.recording;
@@ -275,6 +316,19 @@ export default function TimelinePage() {
     setBadgeEditor(null);
   }, [recorder]);
 
+  const saveNoteTag = useCallback((tag: NoteGroupTag) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    const filtered = (rec.noteTags ?? []).filter((t) => t.id !== tag.id);
+    recorder.patchRecording({ noteTags: [...filtered, tag] });
+  }, [recorder]);
+
+  const deleteNoteTag = useCallback((id: string) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    recorder.patchRecording({ noteTags: (rec.noteTags ?? []).filter((t) => t.id !== id) });
+  }, [recorder]);
+
   const handleRequestAddBadge = useCallback((laneKey: string) => {
     lastHoveredLaneRef.current = laneKey;
     setBadgeEditor({ laneKey, badge: null });
@@ -283,6 +337,35 @@ export default function TimelinePage() {
   const handleEditBadge = useCallback((badge: LaneBadge) => {
     setBadgeEditor({ laneKey: badge.laneKey, badge });
   }, []);
+
+  const handleDeleteDevice = useCallback((deviceName: string) => {
+    recorder.deleteDevice(deviceName);
+  }, [recorder]);
+
+  // Spacebar: play/pause when not recording and not focused on an input
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      e.preventDefault();
+      if (recorder.state === "recording") return;
+      if (!recorder.recording && audio.tracks.length === 0) return;
+      if (audio.isPlaying) audio.pause();
+      else audio.play();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [audio, recorder.state, recorder.recording]);
+
+  const handleSectionsChange = useCallback((sections: Recording["sections"]) => {
+    recorder.patchRecording({ sections });
+  }, [recorder]);
+
+  const handleMarkersChange = useCallback((moments: Moment[]) => {
+    recorder.patchRecording({ moments });
+  }, [recorder]);
+
 
   const handleTagCurrentLane = useCallback(() => {
     const key = lastHoveredLaneRef.current;
@@ -337,8 +420,6 @@ export default function TimelinePage() {
         isPlaying={audio.isPlaying}
         playheadMs={playheadDisplayMs}
         durationMs={durationMs}
-        audioOffsetMs={audio.audio.offsetMs}
-        audioLoaded={!!audio.audio.src}
         onRecord={startRecording}
         onStop={stopRecording}
         onPlay={audio.play}
@@ -346,9 +427,6 @@ export default function TimelinePage() {
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onLoad={handleLoad}
-        onLoadAudio={handleLoadAudio}
-        onUnloadAudio={handleUnloadAudio}
-        onOffsetChange={handleOffsetChange}
         onImportMidi={handleImportMidi}
         triggersSidebarOpen={triggersSidebarOpen}
         onToggleTriggersSidebar={() => setTriggersSidebarOpen((v) => !v)}
@@ -372,9 +450,11 @@ export default function TimelinePage() {
           mappingRules={rules}
           playheadMsRef={audio.playheadMsRef}
           onSeek={handleSeek}
-          audioPeaks={audioPeaks}
-          audioLabel={audio.audio.filePath?.split("/").pop()}
-          onAudioOffsetDelta={handleOffsetDragDelta}
+          audioTracks={audioTrackRenderProps}
+          onLoadAudio={handleLoadAudio}
+          onUnloadAudio={handleUnloadAudio}
+          onAudioOffsetChange={handleAudioOffsetChange}
+          onAudioOffsetDelta={handleAudioOffsetDelta}
           analyses={analysis.analyses}
           redundantPairs={analysis.pairs}
           moments={analysis.moments}
@@ -386,6 +466,14 @@ export default function TimelinePage() {
           onRequestAddBadge={handleRequestAddBadge}
           onEditBadge={handleEditBadge}
           onTagCurrentLane={handleTagCurrentLane}
+          onDeleteDevice={handleDeleteDevice}
+          sections={recorder.recording?.sections ?? []}
+          onSectionsChange={handleSectionsChange}
+          userMarkers={recorder.recording?.moments ?? []}
+          onMarkersChange={handleMarkersChange}
+          noteTags={noteTags}
+          onSaveNoteTag={saveNoteTag}
+          onDeleteNoteTag={deleteNoteTag}
         />
       </div>
 
@@ -398,6 +486,47 @@ export default function TimelinePage() {
           onDelete={badgeEditor.badge ? () => deleteBadge(badgeEditor.badge!.id) : undefined}
           onClose={() => setBadgeEditor(null)}
         />
+      )}
+
+      {pendingMidiMerge && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-surface-light border border-white/10 rounded-lg p-5 max-w-sm">
+            <h3 className="text-sm font-semibold mb-2">Add to timeline?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              A recording is already loaded. You can merge the new MIDI file into the current
+              timeline, or replace it entirely.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPendingMidiMerge(null)}
+                className="px-3 py-1.5 text-xs border border-white/10 text-gray-300 hover:text-white rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  recorder.setLoaded(pendingMidiMerge);
+                  setSaveSuggestedPath(null);
+                  audio.unloadAll();
+                  setPendingMidiMerge(null);
+                }}
+                className="px-3 py-1.5 text-xs bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 rounded"
+              >
+                Replace
+              </button>
+              <button
+                onClick={() => {
+                  recorder.mergeRecording(pendingMidiMerge);
+                  setSaveSuggestedPath(null);
+                  setPendingMidiMerge(null);
+                }}
+                className="px-3 py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded"
+              >
+                Merge into timeline
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmDiscard && (
