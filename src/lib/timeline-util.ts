@@ -1,4 +1,4 @@
-import type { LaneKey, LaneMap, NoteSpan, RecordedEvent } from "@/lib/types";
+import type { LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 
 /**
@@ -254,6 +254,12 @@ export function computeAudioPeaks(
   return out;
 }
 
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+/** Convert a MIDI pitch number to a human-readable note name, e.g. 60 → "C4". */
+export function midiNoteName(pitch: number): string {
+  return `${NOTE_NAMES[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
+}
+
 /** Format a millisecond offset as "mm:ss.mmm". Negative values prefixed with "-". */
 export function formatTime(ms: number): string {
   if (!isFinite(ms)) return "--:--.---";
@@ -264,4 +270,23 @@ export function formatTime(ms: number): string {
   const ss = (totalSec % 60).toString().padStart(2, "0");
   const mmm = Math.floor(abs % 1000).toString().padStart(3, "0");
   return `${sign}${mm}:${ss}.${mmm}`;
+}
+
+/**
+ * Resolve the NoteGroupTag for a given note group row.
+ * Exact pitch+velocity match takes priority; pitch-only (velocity === null) is the fallback.
+ */
+export function findNoteTag(
+  tags: NoteGroupTag[],
+  device: string,
+  pitch: number,
+  velocity: number
+): NoteGroupTag | undefined {
+  const exact = tags.find(
+    (t) => t.device === device && t.pitch === pitch && t.velocity === velocity
+  );
+  if (exact) return exact;
+  return tags.find(
+    (t) => t.device === device && t.pitch === pitch && t.velocity === null
+  );
 }
