@@ -26,7 +26,7 @@ export function OscMappingEditor({
   sections, deviceAliases, editingMapping, anchorRect, onAdd, onUpdate, onDelete, onClose,
 }: OscMappingEditorProps) {
   const [endpointId, setEndpointId] = useState(editingMapping?.endpointId ?? defaultEndpointId ?? endpoints[0]?.id ?? "");
-  const [preset, setPreset] = useState<OscPreset>(editingMapping?.preset ?? "custom");
+  const [preset, setPreset] = useState<OscPreset>(editingMapping?.preset ?? "resolume");
   const [trigger, setTrigger] = useState<OscTrigger>(editingMapping?.trigger ?? "on");
   const [argType, setArgType] = useState<"f" | "i">(editingMapping?.argType ?? "f");
   // custom

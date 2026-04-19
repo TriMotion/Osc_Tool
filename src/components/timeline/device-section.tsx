@@ -227,6 +227,38 @@ export function DeviceSection(props: DeviceSectionProps) {
 
   const hiddenCount = allGroups.filter((g) => effectiveHiddenKeys?.has(`${g.pitch}|${g.velocity}`)).length;
 
+  const handleAddAllUnrealMappings = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const endpointId = defaultEndpointId ?? endpoints[0]?.id;
+    if (!endpointId || allGroups.length === 0) return;
+    const sectionName = sections[0]?.name ?? "default";
+    for (const g of allGroups) {
+      const targetId = `${g.pitch}|${g.velocity}`;
+      const alreadyHasUnreal = oscMappings.some(
+        (m) => m.targetType === "noteGroup" && m.targetId === targetId && m.deviceId === device && m.preset === "unreal"
+      );
+      if (alreadyHasUnreal) continue;
+      onAddOscMapping?.({
+        id: crypto.randomUUID(),
+        targetType: "noteGroup",
+        targetId,
+        deviceId: device,
+        endpointId,
+        preset: "unreal",
+        trigger: "on",
+        argType: "f",
+        address: "/",
+        sectionName,
+        unrealType: "parameter",
+        unrealName: "param",
+        resolumeMode: "column",
+        resolumeColumn: 1,
+        resolumeLayer: 1,
+        resolumeClip: 1,
+      });
+    }
+  };
+
   useEffect(() => {
     if (!lanesOpen) return;
     const handler = (e: MouseEvent) => {
@@ -293,6 +325,16 @@ export function DeviceSection(props: DeviceSectionProps) {
             <span>Notes</span>
             {hiddenCount > 0 && <span className="text-gray-600">· ⊘{hiddenCount}</span>}
             <span>{panelOpen ? "▴" : "▾"}</span>
+          </button>
+        )}
+
+        {allGroups.length > 0 && endpoints.length > 0 && (
+          <button
+            onClick={handleAddAllUnrealMappings}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
+            title="Add Unreal Engine OSC mapping for all note groups"
+          >
+            + OSC
           </button>
         )}
 
