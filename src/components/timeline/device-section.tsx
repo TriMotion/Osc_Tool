@@ -348,6 +348,7 @@ export function DeviceSection(props: DeviceSectionProps) {
             title="Toggle lanes"
           >
             <span>Lanes</span>
+            {thisDeviceHiddenCount > 0 && <span className="text-gray-600">· ⊘{thisDeviceHiddenCount}</span>}
             <span>{lanesOpen ? "▴" : "▾"}</span>
           </button>
           {lanesOpen && (
@@ -654,7 +655,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                           anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                         });
                                       }}
-                                      className="absolute opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 top-1/2 -translate-y-1/2 bg-surface"
+                                      className="absolute text-[9px] text-gray-600 hover:text-gray-300 transition-colors px-1.5 py-px rounded border border-white/10 hover:border-white/25 top-1/2 -translate-y-1/2 bg-surface leading-none"
                                       style={{ left: 4 }}
                                     >
                                       + OSC
