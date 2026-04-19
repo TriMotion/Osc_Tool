@@ -1,14 +1,19 @@
 import type { LaneKey, OscMapping, RecordedEvent } from "./types";
 import { laneKeyString } from "./types";
 
-export function resolveOscAddress(mapping: OscMapping): string {
+export function resolveDeviceName(name: string, aliases?: Record<string, string>): string {
+  return aliases?.[name] ?? name;
+}
+
+export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>): string {
   switch (mapping.preset) {
     case "custom":
       return mapping.address ?? "/";
     case "unreal": {
       const [pitch, velocity] = mapping.targetId.split("|");
       const section = mapping.sectionName ?? "default";
-      return `/unreal/${section}/${mapping.deviceId}/${pitch}/${velocity}`;
+      const deviceName = resolveDeviceName(mapping.deviceId, aliases);
+      return `/unreal/${section}/${deviceName}/${pitch}/${velocity}`;
     }
     case "resolume":
       return mapping.resolumeMode === "column"
@@ -17,7 +22,6 @@ export function resolveOscAddress(mapping: OscMapping): string {
   }
 }
 
-/** Canonical note group targetId for an OscMapping. */
 export function noteGroupTargetId(pitch: number, velocity: number): string {
   return `${pitch}|${velocity}`;
 }
@@ -69,6 +73,5 @@ export function computeOscArgValue(evt: RecordedEvent, mapping: OscMapping): num
     const isOn = evt.midi.type === "noteon";
     return mapping.argType === "f" ? (isOn ? 1.0 : 0.0) : (isOn ? 1 : 0);
   }
-  // Lane: data2 is the raw value (0–127 for CC/AT/program, pitch varies)
   return mapping.argType === "f" ? evt.midi.data2 / 127 : evt.midi.data2;
 }
