@@ -4,6 +4,7 @@ import { useRef, useMemo, useState, useEffect } from "react";
 import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
+import { resolveOscAddress } from "@/lib/osc-mapping";
 import { NoteTagEditor } from "./note-tag-editor";
 import { OscMappingEditor } from "./osc-mapping-editor";
 import { NotesLane } from "./notes-lane";
@@ -401,29 +402,43 @@ export function DeviceSection(props: DeviceSectionProps) {
                       + tag
                     </button>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOscEditor({
-                        targetType: "noteGroup",
-                        targetId: `${pitch}|${tagVelocity}`,
-                        anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                      });
-                    }}
-                    className={`opacity-0 group-hover/row:opacity-100 text-[10px] transition-all px-1.5 py-0.5 rounded border ${
-                      oscMappings.some((m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device)
-                        ? "text-accent border-accent/30 opacity-100"
-                        : "text-gray-600 border-white/5 hover:text-gray-400 hover:border-white/15"
-                    }`}
-                    title="OSC mapping"
-                  >
-                    OSC
-                  </button>
                 </div>
-                {/* Track area */}
-                <div className="flex-1 flex items-center px-3">
-                  <span className="text-[10px] text-gray-700">{count}×</span>
-                </div>
+                {/* Track area — OSC mapping chips + add button */}
+                {(() => {
+                  const rowMappings = oscMappings.filter(
+                    (m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device
+                  );
+                  return (
+                    <div className="flex-1 flex items-center gap-1.5 px-3 overflow-hidden">
+                      {rowMappings.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0"
+                        >
+                          <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m)}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
+                            className="text-accent/40 hover:text-red-400 leading-none transition-colors"
+                          >×</button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOscEditor({
+                            targetType: "noteGroup",
+                            targetId: `${pitch}|${tagVelocity}`,
+                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                          });
+                        }}
+                        className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0"
+                      >
+                        + OSC
+                      </button>
+                      <span className="ml-auto text-[10px] text-gray-700 shrink-0">{count}×</span>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
