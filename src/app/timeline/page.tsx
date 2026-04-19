@@ -362,13 +362,16 @@ export default function TimelinePage() {
     const rec = recorder.recording;
     if (!rec) return;
     const trimmed = newName.trim();
-    const aliases = { ...(rec.deviceAliases ?? {}) };
+    const currentAlias = rec.deviceAliases?.[originalName];
     if (trimmed && trimmed !== originalName) {
-      aliases[originalName] = trimmed;
+      if (trimmed === currentAlias) return;
+      recorder.patchRecording({ deviceAliases: { ...(rec.deviceAliases ?? {}), [originalName]: trimmed } });
     } else {
+      if (currentAlias === undefined) return;
+      const aliases = { ...(rec.deviceAliases ?? {}) };
       delete aliases[originalName];
+      recorder.patchRecording({ deviceAliases: aliases });
     }
-    recorder.patchRecording({ deviceAliases: aliases });
   }, [recorder]);
 
   const saveHiddenLanes = useCallback((lanes: string[]) => {

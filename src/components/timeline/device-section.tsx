@@ -466,7 +466,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                           key={m.id}
                           className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0"
                         >
-                          <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m)}</span>
+                          <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
                             className="text-accent/40 hover:text-red-400 leading-none transition-colors"
