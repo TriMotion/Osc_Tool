@@ -472,6 +472,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                   <span className={`font-mono text-[10px] ${hidden ? "text-gray-600" : "text-gray-300"}`}>
                     {midiNoteName(pitch)}
                   </span>
+                  <span className={`font-mono text-[10px] ${hidden ? "text-gray-700" : "text-gray-600"}`}>
+                    {pitch}
+                  </span>
                   {velocity !== null && (
                     <span className="text-gray-600 text-[10px]">v{velocity}</span>
                   )}
