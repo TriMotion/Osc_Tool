@@ -508,7 +508,16 @@ export function DeviceSection(props: DeviceSectionProps) {
                             combine vel
                           </button>
                         </div>
-                        {displayGroups.map(({ key, pitch, velocity, velocities, count }) => {
+                        {(() => {
+                          const viewSpan = Math.max(1, viewEndMs - viewStartMs);
+                          const sectionLeftPct = (sName: string | undefined): string => {
+                            if (!sName) return "0%";
+                            const sec = sections.find((s) => s.name === sName);
+                            if (!sec) return "0%";
+                            const frac = Math.max(0, (sec.startMs - viewStartMs) / viewSpan);
+                            return `${frac * 100}%`;
+                          };
+                          return displayGroups.map(({ key, pitch, velocity, velocities, count }) => {
                           const hidden = velocities.every((v) => effectiveHiddenKeys?.has(`${pitch}|${v}`));
                           const tag = velocity !== null
                             ? findNoteTag(noteTags, device, pitch, velocity)
@@ -587,14 +596,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 const rowMappings = oscMappings.filter(
                                   (m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device
                                 );
-                                const viewSpan = Math.max(1, viewEndMs - viewStartMs);
-                                const sectionLeftPct = (sName: string | undefined): string => {
-                                  if (!sName) return "0%";
-                                  const sec = sections.find((s) => s.name === sName);
-                                  if (!sec) return "0%";
-                                  const frac = Math.max(0, (sec.startMs - viewStartMs) / viewSpan);
-                                  return `${frac * 100}%`;
-                                };
                                 const grouped = new Map<string, typeof rowMappings>();
                                 for (const m of rowMappings) {
                                   const key = m.sectionName ?? "__none__";
@@ -602,7 +603,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                   grouped.get(key)!.push(m);
                                 }
                                 return (
-                                  <div className="relative flex-1 h-full overflow-hidden">
+                                  <div className="relative flex-1 overflow-hidden">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -651,7 +652,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                               })()}
                             </div>
                           );
-                        })}
+                          });
+                        })()}
                       </div>
                     )}
                   </Fragment>
