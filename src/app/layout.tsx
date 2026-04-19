@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { StatusBar } from "@/components/status-bar";
+import { ClientLayout } from "@/components/client-layout";
 
 export const metadata: Metadata = {
-  title: "OSC Tool",
-  description: "OSC Test & Debug Tool",
+  title: "Oscilot",
+  description: "Signal testing and control for OSC and beyond",
 };
 
 export default function RootLayout({
@@ -20,7 +21,9 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="h-8 shrink-0" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
-            <main className="flex-1 overflow-auto px-6 pb-6">{children}</main>
+            <main className="flex-1 overflow-auto px-6 pb-6">
+              <ClientLayout>{children}</ClientLayout>
+            </main>
           </div>
         </div>
         <StatusBar />

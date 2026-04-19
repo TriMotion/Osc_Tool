@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { RecorderState } from "@/lib/types";
 import { formatTime } from "@/lib/timeline-util";
@@ -10,8 +11,6 @@ interface TimelineToolbarProps {
   isPlaying: boolean;
   playheadMs: number;
   durationMs: number;
-  audioOffsetMs: number;
-  audioLoaded: boolean;
   onRecord: () => void;
   onStop: () => void;
   onPlay: () => void;
@@ -19,9 +18,6 @@ interface TimelineToolbarProps {
   onSave: () => void;
   onSaveAs: () => void;
   onLoad: () => void;
-  onLoadAudio: () => void;
-  onUnloadAudio: () => void;
-  onOffsetChange: (ms: number) => void;
   onImportMidi: () => void;
   triggersSidebarOpen: boolean;
   onToggleTriggersSidebar: () => void;
@@ -30,18 +26,27 @@ interface TimelineToolbarProps {
 export function TimelineToolbar(props: TimelineToolbarProps) {
   const {
     recorderState, hasRecording, isPlaying, playheadMs, durationMs,
-    audioOffsetMs, audioLoaded,
     onRecord, onStop, onPlay, onPause,
-    onSave, onSaveAs, onLoad, onLoadAudio, onUnloadAudio, onOffsetChange,
-    onImportMidi,
+    onSave, onSaveAs, onLoad, onImportMidi,
     triggersSidebarOpen, onToggleTriggersSidebar,
   } = props;
 
-  const canPlay = hasRecording || audioLoaded;
   const recording = recorderState === "recording";
+  const [openMenu, setOpenMenu] = useState<"open" | null>(null);
+  const openMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!openMenuRef.current?.contains(e.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openMenu]);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      {/* Transport */}
       <motion.button
         whileTap={{ scale: 0.97 }}
         onClick={recording ? onStop : onRecord}
@@ -56,7 +61,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
 
       <button
         onClick={isPlaying ? onPause : onPlay}
-        disabled={!canPlay || recording}
+        disabled={!hasRecording || recording}
         className="px-3 py-1.5 rounded-lg text-sm bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 disabled:opacity-30 disabled:cursor-not-allowed"
       >
         {isPlaying ? "⏸ Pause" : "▶ Play"}
@@ -68,6 +73,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
 
       <div className="w-px h-5 bg-white/10 mx-1" />
 
+      {/* Save */}
       <button
         onClick={onSave}
         disabled={!hasRecording}
@@ -82,18 +88,39 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
       >
         Save As…
       </button>
-      <button
-        onClick={onLoad}
-        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
-      >
-        Load…
-      </button>
-      <button
-        onClick={onImportMidi}
-        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
-      >
-        Import .mid…
-      </button>
+
+      {/* Open submenu */}
+      <div ref={openMenuRef} className="relative">
+        <button
+          onClick={() => setOpenMenu((v) => (v === "open" ? null : "open"))}
+          className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+            openMenu === "open"
+              ? "bg-white/10 text-white border-white/20"
+              : "border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
+          }`}
+        >
+          Open ▾
+        </button>
+        {openMenu === "open" && (
+          <div className="absolute top-full left-0 mt-1 bg-surface border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[140px]">
+            <button
+              onClick={() => { onLoad(); setOpenMenu(null); }}
+              className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              Load recording…
+            </button>
+            <button
+              onClick={() => { onImportMidi(); setOpenMenu(null); }}
+              className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors border-t border-white/5"
+            >
+              Import .mid…
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="w-px h-5 bg-white/10 mx-1" />
+
       <button
         onClick={onToggleTriggersSidebar}
         className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
@@ -104,38 +131,6 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
       >
         📊 Triggers
       </button>
-
-      <div className="w-px h-5 bg-white/10 mx-1" />
-
-      {audioLoaded ? (
-        <>
-          <button
-            onClick={onUnloadAudio}
-            className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-400 hover:text-white hover:border-accent/40"
-          >
-            ♪ Remove audio
-          </button>
-          <span className="text-[10px] text-gray-500 font-mono">offset</span>
-          <input
-            type="number"
-            step={0.001}
-            value={(audioOffsetMs / 1000).toFixed(3)}
-            onChange={(e) => {
-              const s = parseFloat(e.target.value);
-              if (!Number.isNaN(s)) onOffsetChange(Math.round(s * 1000));
-            }}
-            className="w-20 text-xs px-2 py-1 bg-surface-lighter border border-white/10 rounded focus:outline-none focus:border-accent/50 font-mono"
-          />
-          <span className="text-[10px] text-gray-500">s</span>
-        </>
-      ) : (
-        <button
-          onClick={onLoadAudio}
-          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-400 hover:text-white hover:border-accent/40"
-        >
-          ♪ Load audio…
-        </button>
-      )}
     </div>
   );
 }

@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import type { LaneAnalysis, LaneBadge } from "@/lib/types";
+
+type AnalysisBadgeType = "rhythm" | "dynamic" | "melody";
 
 interface LaneBadgesProps {
   analysis?: LaneAnalysis;
   userBadges?: LaneBadge[];
   onAddClick: () => void;
   onBadgeClick: (badge: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+  suppressedTypes?: Set<AnalysisBadgeType>;
+  onSuppressBadge?: (type: AnalysisBadgeType) => void;
 }
 
-export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick }: LaneBadgesProps) {
+export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick, onDeleteBadge, suppressedTypes, onSuppressBadge }: LaneBadgesProps) {
   const items: React.ReactNode[] = [];
 
   if (analysis?.isDead) {
@@ -17,42 +23,24 @@ export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick }: L
       <span key="dead" title="Dead lane (very few events)" className="inline-block w-1.5 h-1.5 rounded-full bg-gray-600" />
     );
   }
-  if (analysis && !analysis.isDead && analysis.rhythmScore >= 0.5) {
+  if (analysis && !analysis.isDead && analysis.rhythmScore >= 0.5 && !suppressedTypes?.has("rhythm")) {
     items.push(
-      <span key="rhythm" title={`Rhythm ${analysis.rhythmScore.toFixed(2)}`} className="inline-block text-[9px] px-1.5 py-[1px] rounded-full bg-accent/20 text-accent border border-accent/30">
-        ♻ {analysis.rhythmScore.toFixed(2)}
-      </span>
+      <AnalysisBadgePill key="rhythm" label={`♻ ${analysis.rhythmScore.toFixed(2)}`} title={`Rhythm ${analysis.rhythmScore.toFixed(2)}`} className="bg-accent/20 text-accent border-accent/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("rhythm") : undefined} />
     );
   }
-  if (analysis && !analysis.isDead && analysis.dynamicScore >= 0.5) {
+  if (analysis && !analysis.isDead && analysis.dynamicScore >= 0.5 && !suppressedTypes?.has("dynamic")) {
     items.push(
-      <span key="dyn" title={`Dynamic ${analysis.dynamicScore.toFixed(2)}`} className="inline-block text-[9px] px-1.5 py-[1px] rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
-        〜 wide
-      </span>
+      <AnalysisBadgePill key="dyn" label="〜 wide" title={`Dynamic ${analysis.dynamicScore.toFixed(2)}`} className="bg-green-500/20 text-green-300 border-green-500/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("dynamic") : undefined} />
     );
   }
-  if (analysis && analysis.melodyScore !== undefined && analysis.melodyScore >= 0.5) {
+  if (analysis && analysis.melodyScore !== undefined && analysis.melodyScore >= 0.5 && !suppressedTypes?.has("melody")) {
     items.push(
-      <span key="mel" title={`Melody ${analysis.melodyScore.toFixed(2)}`} className="inline-block text-[9px] px-1.5 py-[1px] rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">
-        🎵 {analysis.melodyScore.toFixed(2)}
-      </span>
+      <AnalysisBadgePill key="mel" label={`🎵 ${analysis.melodyScore!.toFixed(2)}`} title={`Melody ${analysis.melodyScore!.toFixed(2)}`} className="bg-pink-500/20 text-pink-300 border-pink-500/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("melody") : undefined} />
     );
   }
 
   for (const b of userBadges ?? []) {
-    const color = b.color ?? hashColor(b.label);
-    items.push(
-      <button
-        key={b.id}
-        onClick={(e) => { e.stopPropagation(); onBadgeClick(b); }}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="inline-block text-[9px] px-1.5 py-[1px] rounded-full border"
-        style={{ background: `${color}33`, color, borderColor: `${color}55` }}
-        title="Click to edit"
-      >
-        ⭐ {b.label}
-      </button>
-    );
+    items.push(<BadgePill key={b.id} badge={b} onBadgeClick={onBadgeClick} onDeleteBadge={onDeleteBadge} />);
   }
 
   items.push(
@@ -68,6 +56,74 @@ export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick }: L
   );
 
   return <div className="flex items-center gap-1 flex-wrap mt-0.5">{items}</div>;
+}
+
+function AnalysisBadgePill({ label, title, className, onSuppress }: {
+  label: string;
+  title: string;
+  className: string;
+  onSuppress?: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <span
+      className="inline-flex items-center gap-0.5"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span title={title} className={`inline-block text-[9px] px-1.5 py-[1px] rounded-full border ${className}`}>
+        {label}
+      </span>
+      {onSuppress && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSuppress(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-[9px] text-gray-600 hover:text-red-400 leading-none transition-opacity"
+          style={{ opacity: hovered ? 1 : 0 }}
+          title="Dismiss"
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
+}
+
+function BadgePill({ badge, onBadgeClick, onDeleteBadge }: {
+  badge: LaneBadge;
+  onBadgeClick: (b: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const color = badge.color ?? hashColor(badge.label);
+  return (
+    <span
+      className="inline-flex items-center gap-0.5"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        onClick={(e) => { e.stopPropagation(); onBadgeClick(badge); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="text-[9px] px-1.5 py-[1px] rounded-full border"
+        style={{ background: `${color}33`, color, borderColor: `${color}55` }}
+        title="Click to edit"
+      >
+        ⭐ {badge.label}
+      </button>
+      {onDeleteBadge && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDeleteBadge(badge.id); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-[9px] text-gray-600 hover:text-red-400 leading-none transition-opacity"
+          style={{ opacity: hovered ? 1 : 0 }}
+          title="Remove badge"
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
 }
 
 function hashColor(label: string): string {

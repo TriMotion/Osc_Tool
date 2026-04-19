@@ -72,7 +72,7 @@ export function useRecorder({ getMappingRulesSnapshot }: UseRecorderArgs) {
       events,
       devices,
       mappingRulesSnapshot: getMappingRulesSnapshot(),
-      audio: undefined,
+      audioTracks: [],
     };
 
     setRecording(rec);
@@ -113,6 +113,96 @@ export function useRecorder({ getMappingRulesSnapshot }: UseRecorderArgs) {
     setHasUnsaved(false);
   }, []);
 
+  /** Merge another recording's events into the current buffer (used for multi-MIDI import). */
+  const mergeRecording = useCallback((incoming: Recording) => {
+    const merged = [...bufferRef.current, ...incoming.events].sort((a, b) => a.tRel - b.tRel);
+    bufferRef.current = merged;
+    setRecording((prev) => {
+      const base = prev ?? incoming;
+      const deviceSet = new Set([...base.devices, ...incoming.devices]);
+      return {
+        ...base,
+        events: merged,
+        durationMs: Math.max(base.durationMs, incoming.durationMs),
+        devices: Array.from(deviceSet),
+      };
+    });
+    setHasUnsaved(true);
+    setBufferVersion((v) => v + 1);
+    setState("stopped");
+  }, []);
+
+  /** Remove note-on/note-off pairs for a given device where pitch AND velocity both match. */
+  const deleteNotesByVelocity = useCallback((deviceName: string, pitch: number, velocity: number) => {
+    const events = bufferRef.current;
+
+    // Collect note-on indices that match pitch + velocity, keyed by "channel|pitch|tRel" for pairing.
+    const matchedOnKeys = new Set<string>();
+    for (const e of events) {
+      if (
+        e.midi.deviceName === deviceName &&
+        e.midi.type === "noteon" &&
+        e.midi.data1 === pitch &&
+        e.midi.data2 === velocity
+      ) {
+        matchedOnKeys.add(`${e.midi.channel}|${e.midi.data1}|${e.tRel}`);
+      }
+    }
+
+    // Walk forward pairing note-ons to note-offs (FIFO per channel|pitch).
+    const toRemove = new Set<number>();
+    const openStacks = new Map<string, number[]>(); // "channel|pitch" → stack of event indices
+
+    for (let i = 0; i < events.length; i++) {
+      const e = events[i];
+      const m = e.midi;
+      if (m.deviceName !== deviceName) continue;
+
+      if (m.type === "noteon") {
+        const noteKey = `${m.channel}|${m.data1}|${e.tRel}`;
+        if (matchedOnKeys.has(noteKey)) {
+          toRemove.add(i);
+          const stackKey = `${m.channel}|${m.data1}`;
+          const stack = openStacks.get(stackKey) ?? [];
+          stack.push(i);
+          openStacks.set(stackKey, stack);
+        }
+      } else if (m.type === "noteoff" && m.data1 === pitch) {
+        const stackKey = `${m.channel}|${m.data1}`;
+        const stack = openStacks.get(stackKey);
+        if (stack && stack.length > 0) {
+          stack.shift();
+          toRemove.add(i);
+        }
+      }
+    }
+
+    const filtered = events.filter((_, i) => !toRemove.has(i));
+    bufferRef.current = filtered;
+    setRecording((prev) => {
+      if (!prev) return prev;
+      return { ...prev, events: filtered };
+    });
+    setHasUnsaved(true);
+    setBufferVersion((v) => v + 1);
+  }, []);
+
+  /** Remove all events for a given device name from the buffer. */
+  const deleteDevice = useCallback((deviceName: string) => {
+    const filtered = bufferRef.current.filter((e) => e.midi.deviceName !== deviceName);
+    bufferRef.current = filtered;
+    setRecording((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        events: filtered,
+        devices: prev.devices.filter((d) => d !== deviceName),
+      };
+    });
+    setHasUnsaved(true);
+    setBufferVersion((v) => v + 1);
+  }, []);
+
   // Defensive: if component unmounts mid-recording, don't leak event handler work.
   useEffect(() => () => {
     stateRef.current = "idle";
@@ -128,6 +218,9 @@ export function useRecorder({ getMappingRulesSnapshot }: UseRecorderArgs) {
     stop,
     clear,
     setLoaded,
+    mergeRecording,
+    deleteNotesByVelocity,
+    deleteDevice,
     patchRecording,
     markSaved,
     startedAtRef,

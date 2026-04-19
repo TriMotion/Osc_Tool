@@ -24,6 +24,9 @@ interface NotesLaneProps {
   userBadges?: LaneBadge[];
   onRequestAddBadge?: (laneKey: string) => void;
   onEditBadge?: (badge: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+  suppressedAnalysisTypes?: Set<"rhythm" | "dynamic" | "melody">;
+  onSuppressAnalysisBadge?: (type: "rhythm" | "dynamic" | "melody") => void;
   isFlashing?: boolean;
   onHide?: () => void;
   noteTags?: NoteGroupTag[];
@@ -33,7 +36,8 @@ export function NotesLane(props: NotesLaneProps) {
   const {
     laneKey, spans, viewStartMs, viewEndMs, heightPx, leftGutterPx,
     onHover, onNoteClick, selectedVelocity, activeSectionRange, hiddenNoteKeys,
-    onResize, analysis, userBadges, onRequestAddBadge, onEditBadge, isFlashing, onHide,
+    onResize, analysis, userBadges, onRequestAddBadge, onEditBadge, onDeleteBadge,
+    suppressedAnalysisTypes, onSuppressAnalysisBadge, isFlashing, onHide,
     noteTags,
   } = props;
 
@@ -213,6 +217,9 @@ export function NotesLane(props: NotesLaneProps) {
           userBadges={userBadges}
           onAddClick={() => onRequestAddBadge?.(laneKey)}
           onBadgeClick={(b) => onEditBadge?.(b)}
+          onDeleteBadge={onDeleteBadge}
+          suppressedTypes={suppressedAnalysisTypes}
+          onSuppressBadge={onSuppressAnalysisBadge}
         />
         {onHide && (
           <button
