@@ -12,6 +12,7 @@ interface OscMappingEditorProps {
   endpoints: SavedEndpoint[];
   defaultEndpointId: string | undefined;
   sections: TimelineSection[];
+  defaultSectionName?: string;
   deviceAliases?: Record<string, string>;
   editingMapping?: OscMapping;
   anchorRect: DOMRect;
@@ -23,7 +24,7 @@ interface OscMappingEditorProps {
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  sections, deviceAliases, editingMapping, anchorRect, onAdd, onUpdate, onDelete, onClose,
+  sections, defaultSectionName, deviceAliases, editingMapping, anchorRect, onAdd, onUpdate, onDelete, onClose,
 }: OscMappingEditorProps) {
   const [endpointId, setEndpointId] = useState(editingMapping?.endpointId ?? defaultEndpointId ?? endpoints[0]?.id ?? "");
   const [preset, setPreset] = useState<OscPreset>(editingMapping?.preset ?? "resolume");
@@ -32,7 +33,9 @@ export function OscMappingEditor({
   // custom
   const [address, setAddress] = useState(editingMapping?.address ?? "/");
   // unreal
-  const [sectionName, setSectionName] = useState(editingMapping?.sectionName ?? sections[0]?.name ?? "");
+  const [sectionName, setSectionName] = useState(
+    editingMapping?.sectionName ?? defaultSectionName ?? sections[0]?.name ?? ""
+  );
   const [unrealType, setUnrealType] = useState<"parameter" | "trigger">(editingMapping?.unrealType ?? "parameter");
   const [unrealName, setUnrealName] = useState(editingMapping?.unrealName ?? "");
   // resolume
@@ -152,30 +155,29 @@ export function OscMappingEditor({
           </div>
         )}
 
-        {preset === "unreal" && (
-          <div>
-            <label className="block text-[10px] text-gray-500 mb-1">Section</label>
-            {sections.length > 0 ? (
-              <select
-                value={sectionName}
-                onChange={(e) => setSectionName(e.target.value)}
-                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-              >
-                {sections.map((s) => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={sectionName}
-                onChange={(e) => setSectionName(e.target.value)}
-                placeholder="section name"
-                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
-              />
-            )}
-          </div>
-        )}
+        {/* Section — shown for all presets, only used in Unreal address */}
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-1">Section</label>
+          {sections.length > 0 ? (
+            <select
+              value={sectionName}
+              onChange={(e) => setSectionName(e.target.value)}
+              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+            >
+              {sections.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={sectionName}
+              onChange={(e) => setSectionName(e.target.value)}
+              placeholder="section name"
+              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
+            />
+          )}
+        </div>
 
         {preset === "resolume" && (
           <>
