@@ -134,14 +134,29 @@ export interface MidiMappingRule {
 export type RecorderState = "idle" | "recording" | "stopped";
 
 export interface AudioRef {
-  filePath: string;        // absolute path, resolved on load
-  offsetMs: number;        // audio.t = recording.t + offsetMs (positive = audio starts AFTER MIDI t=0)
+  filePath: string;
+  offsetMs: number;
+}
+
+export interface AudioTrack {
+  id: string;
+  filePath: string;
+  offsetMs: number;
+  label?: string;
 }
 
 export interface RecordedEvent {
   tRel: number;            // ms since Recording.startedAt (not wall-clock)
   midi: MidiEvent["midi"]; // reuses MIDI shape
   osc: OscMessage;         // reuses OSC shape
+}
+
+export interface TimelineSection {
+  id: string;
+  name: string;
+  startMs: number;
+  endMs: number;
+  color?: string;
 }
 
 export interface Recording {
@@ -153,9 +168,12 @@ export interface Recording {
   events: RecordedEvent[]; // sorted by tRel ascending
   devices: string[];
   mappingRulesSnapshot: MidiMappingRule[]; // rules active at stop time
-  audio?: AudioRef;
+  audio?: AudioRef;           // kept for loading old recordings; prefer audioTracks
+  audioTracks?: AudioTrack[];
   badges?: LaneBadge[];
   moments?: Moment[];           // user-created; auto-detected moments are not persisted
+  sections?: TimelineSection[];
+  noteTags?: NoteGroupTag[];
 }
 
 // Pairing of note-on with its matching note-off.
@@ -247,4 +265,14 @@ export interface Moment {
   label: string;                // display text
   color?: string;               // user-chosen color for "user" kind; auto ones use kind-based color
   score?: number;               // 0..1 "interestingness" for auto kinds
+}
+
+/** A user-applied label on a note group (pitch + optional velocity) within a recording. */
+export interface NoteGroupTag {
+  id: string;
+  device: string;
+  pitch: number;
+  velocity: number | null;  // null = match all velocities of this pitch
+  label: string;
+  color?: string;            // CSS color; hash-based fallback at render time
 }
