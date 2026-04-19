@@ -232,7 +232,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     e.stopPropagation();
     const endpointId = defaultEndpointId ?? endpoints[0]?.id;
     if (!endpointId || allGroups.length === 0) return;
-    const sectionName = sections[0]?.name ?? "default";
+    const sectionName = activeSectionName ?? sections[0]?.name ?? "default";
     for (const g of allGroups) {
       const targetId = `${g.pitch}|${g.velocity}`;
       const alreadyHasUnreal = oscMappings.some(
@@ -598,9 +598,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 );
                                 const grouped = new Map<string, typeof rowMappings>();
                                 for (const m of rowMappings) {
-                                  const key = m.sectionName ?? "__none__";
-                                  if (!grouped.has(key)) grouped.set(key, []);
-                                  grouped.get(key)!.push(m);
+                                  const sKey = m.sectionName ?? "__none__";
+                                  if (!grouped.has(sKey)) grouped.set(sKey, []);
+                                  grouped.get(sKey)!.push(m);
                                 }
                                 return (
                                   <div className="relative flex-1 overflow-hidden">
@@ -613,7 +613,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                           anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                         });
                                       }}
-                                      className="absolute opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0 top-1/2 -translate-y-1/2"
+                                      className="absolute z-10 opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0 top-1/2 -translate-y-1/2"
                                       style={{ left: 4 }}
                                     >
                                       + OSC
