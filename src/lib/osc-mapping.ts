@@ -7,7 +7,8 @@ export function resolveOscAddress(mapping: OscMapping): string {
       return mapping.address ?? "/";
     case "unreal": {
       const [pitch, velocity] = mapping.targetId.split("|");
-      return `/unreal/note${pitch}/velocity${velocity}`;
+      const section = mapping.sectionName ?? "default";
+      return `/unreal/${section}/${mapping.deviceId}/${pitch}/${velocity}`;
     }
     case "resolume":
       return mapping.resolumeMode === "column"

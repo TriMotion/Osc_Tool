@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useMemo, useState, useEffect } from "react";
-import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
 import { resolveOscAddress } from "@/lib/osc-mapping";
@@ -48,6 +48,7 @@ interface DeviceSectionProps {
   onDeleteNoteTag?: (id: string) => void;
   oscMappings?: OscMapping[];
   endpoints?: SavedEndpoint[];
+  sections?: TimelineSection[];
   onAddOscMapping?: (mapping: OscMapping) => void;
   onDeleteOscMapping?: (id: string) => void;
   hiddenLanes: Set<string>;
@@ -99,7 +100,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     onDeleteDevice, selectedVelocity, activeSectionRange, onNoteClick,
     allGroups = [], hiddenNoteKeys, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
-    oscMappings = [], endpoints = [], onAddOscMapping, onDeleteOscMapping,
+    oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onDeleteOscMapping,
     hiddenLanes, onHideLane, onShowLane,
   } = props;
 
@@ -480,6 +481,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           )}
           endpoints={endpoints}
           defaultEndpointId={defaultEndpointId}
+          sections={sections}
           anchorRect={oscEditor.anchorRect}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
           onDelete={(id) => { onDeleteOscMapping?.(id); }}

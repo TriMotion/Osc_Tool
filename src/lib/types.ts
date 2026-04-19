@@ -184,6 +184,7 @@ export interface OscMapping {
   trigger: OscTrigger;
   argType: "f" | "i";
   address?: string;
+  sectionName?: string;
   unrealType?: "parameter" | "trigger";
   unrealName?: string;
   resolumeMode?: "column" | "clip";

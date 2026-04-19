@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { OscMapping, OscPreset, OscTrigger, SavedEndpoint } from "@/lib/types";
+import type { OscMapping, OscPreset, OscTrigger, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { resolveOscAddress } from "@/lib/osc-mapping";
 
 interface OscMappingEditorProps {
@@ -11,6 +11,7 @@ interface OscMappingEditorProps {
   mappings: OscMapping[];
   endpoints: SavedEndpoint[];
   defaultEndpointId: string | undefined;
+  sections: TimelineSection[];
   anchorRect: DOMRect;
   onAdd: (mapping: OscMapping) => void;
   onDelete: (id: string) => void;
@@ -19,7 +20,7 @@ interface OscMappingEditorProps {
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  anchorRect, onAdd, onDelete, onClose,
+  sections, anchorRect, onAdd, onDelete, onClose,
 }: OscMappingEditorProps) {
   const [endpointId, setEndpointId] = useState(defaultEndpointId ?? endpoints[0]?.id ?? "");
   const [preset, setPreset] = useState<OscPreset>("custom");
@@ -28,6 +29,7 @@ export function OscMappingEditor({
   // custom
   const [address, setAddress] = useState("/");
   // unreal
+  const [sectionName, setSectionName] = useState(sections[0]?.name ?? "");
   const [unrealType, setUnrealType] = useState<"parameter" | "trigger">("parameter");
   const [unrealName, setUnrealName] = useState("");
   // resolume
@@ -40,6 +42,7 @@ export function OscMappingEditor({
     id: "preview",
     targetType, targetId, deviceId, endpointId,
     preset, trigger, argType, address,
+    sectionName,
     unrealType, unrealName,
     resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
   };
@@ -51,6 +54,7 @@ export function OscMappingEditor({
       id: crypto.randomUUID(),
       targetType, targetId, deviceId, endpointId,
       preset, trigger, argType, address,
+      sectionName,
       unrealType, unrealName: unrealName || "param",
       resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
     });
@@ -136,8 +140,27 @@ export function OscMappingEditor({
         )}
 
         {preset === "unreal" && (
-          <div className="text-[10px] text-gray-500">
-            Address is derived from the note group automatically.
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-1">Section</label>
+            {sections.length > 0 ? (
+              <select
+                value={sectionName}
+                onChange={(e) => setSectionName(e.target.value)}
+                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              >
+                {sections.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={sectionName}
+                onChange={(e) => setSectionName(e.target.value)}
+                placeholder="section name"
+                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
+              />
+            )}
           </div>
         )}
 

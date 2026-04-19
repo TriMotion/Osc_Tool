@@ -594,6 +594,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           noteTags={noteTags}
           onSaveNoteTag={onSaveNoteTag}
           onDeleteNoteTag={onDeleteNoteTag}
+          sections={sections}
           oscMappings={oscMappings}
           endpoints={endpoints}
           onAddOscMapping={onAddOscMapping}
