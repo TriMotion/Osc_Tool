@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteSpan, RecordedEvent, Recording, RedundancyPair } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, RecordedEvent, Recording, RedundancyPair, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
+import { midiNoteName } from "@/lib/timeline-util";
 import { TimeRuler } from "./time-ruler";
 import { AudioLane } from "./audio-lane";
 import { DeviceSection } from "./device-section";
 import { HoverCard } from "./hover-card";
 import { TriggersSidebar } from "./triggers-sidebar";
-import { MomentMarkers } from "./moment-markers";
+import { SectionBar } from "./section-bar";
+import { MarkerLane, MARKER_DEFAULT_COLOR } from "./marker-lane";
 
 const LEFT_GUTTER = 140;
 const MIN_LANE_HEIGHT = 16;
@@ -16,17 +18,27 @@ const AUDIO_LANE_KEY = "audio";
 
 interface Viewport { startMs: number; endMs: number; }
 type ViewAction =
-  | { type: "set"; startMs: number; endMs: number }
-  | { type: "scrollBy"; deltaMs: number }
-  | { type: "zoom"; anchorMs: number; factor: number }
+  | { type: "set"; startMs: number; endMs: number; minMs?: number }
+  | { type: "scrollBy"; deltaMs: number; maxMs?: number; minMs?: number }
+  | { type: "zoom"; anchorMs: number; factor: number; maxMs?: number; minMs?: number }
   | { type: "fit"; durationMs: number };
 
+function clampStart(startMs: number, endMs: number, minMs = 0): Viewport {
+  if (startMs >= minMs) return { startMs, endMs };
+  return { startMs: minMs, endMs: endMs + (minMs - startMs) };
+}
+
 function viewReducer(v: Viewport, a: ViewAction): Viewport {
+  const minMs = (a as { minMs?: number }).minMs ?? 0;
   switch (a.type) {
-    case "set": return { startMs: a.startMs, endMs: a.endMs };
+    case "set": return clampStart(a.startMs, a.endMs, minMs);
     case "scrollBy": {
-      const d = a.deltaMs;
-      return { startMs: v.startMs + d, endMs: v.endMs + d };
+      const next = clampStart(v.startMs + a.deltaMs, v.endMs + a.deltaMs, minMs);
+      if (a.maxMs !== undefined && next.endMs > a.maxMs) {
+        const span = next.endMs - next.startMs;
+        return { startMs: Math.max(minMs, a.maxMs - span), endMs: a.maxMs };
+      }
+      return next;
     }
     case "zoom": {
       const span = (v.endMs - v.startMs) * a.factor;
@@ -34,14 +46,28 @@ function viewReducer(v: Viewport, a: ViewAction): Viewport {
       const maxSpan = 60 * 60 * 1000;
       const clampedSpan = Math.max(minSpan, Math.min(maxSpan, span));
       const leftFrac = (a.anchorMs - v.startMs) / (v.endMs - v.startMs);
-      return {
-        startMs: a.anchorMs - leftFrac * clampedSpan,
-        endMs: a.anchorMs + (1 - leftFrac) * clampedSpan,
-      };
+      const next = clampStart(
+        a.anchorMs - leftFrac * clampedSpan,
+        a.anchorMs + (1 - leftFrac) * clampedSpan,
+        minMs,
+      );
+      if (a.maxMs !== undefined && next.endMs > a.maxMs) {
+        const sp = next.endMs - next.startMs;
+        return { startMs: Math.max(minMs, a.maxMs - sp), endMs: a.maxMs };
+      }
+      return next;
     }
     case "fit":
       return { startMs: 0, endMs: Math.max(1000, a.durationMs) };
   }
+}
+
+export interface AudioTrackRenderProps {
+  id: string;
+  peaks: Array<{ min: number; max: number }> | null;
+  offsetMs: number;
+  durationMs: number;
+  label: string;
 }
 
 interface TimelineCanvasProps {
@@ -54,9 +80,11 @@ interface TimelineCanvasProps {
   mappingRules: MidiMappingRule[];
   playheadMsRef: React.MutableRefObject<number>;
   onSeek: (ms: number) => void;
-  audioPeaks: Array<{ min: number; max: number }> | null;
-  audioLabel?: string;
-  onAudioOffsetDelta?: (deltaPx: number, modifier: "none" | "shift" | "alt") => void;
+  audioTracks: AudioTrackRenderProps[];
+  onLoadAudio: () => void;
+  onUnloadAudio: (id: string) => void;
+  onAudioOffsetChange: (id: string, ms: number) => void;
+  onAudioOffsetDelta: (id: string, deltaPx: number, modifier: "none" | "shift" | "alt") => void;
   analyses: LaneAnalysis[] | null;
   redundantPairs: RedundancyPair[] | null;
   moments: Moment[] | null;
@@ -68,14 +96,24 @@ interface TimelineCanvasProps {
   onRequestAddBadge: (laneKey: string) => void;
   onEditBadge: (badge: LaneBadge) => void;
   onTagCurrentLane: () => void;
+  onDeleteDevice: (deviceName: string) => void;
+  sections: TimelineSection[];
+  onSectionsChange: (sections: TimelineSection[]) => void;
+  userMarkers: Moment[];
+  onMarkersChange: (markers: Moment[]) => void;
+  noteTags: NoteGroupTag[];
+  onSaveNoteTag: (tag: NoteGroupTag) => void;
+  onDeleteNoteTag: (id: string) => void;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
   const {
     recording, events, bufferVersion, isRecording, laneMap, noteSpans, mappingRules,
-    playheadMsRef, onSeek, audioPeaks, audioLabel, onAudioOffsetDelta,
+    playheadMsRef, onSeek, audioTracks, onLoadAudio, onUnloadAudio, onAudioOffsetChange, onAudioOffsetDelta,
     analyses, redundantPairs, moments, analysisReady, analysisError, badges,
     triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onTagCurrentLane,
+    onDeleteDevice, sections, onSectionsChange, userMarkers, onMarkersChange,
+    noteTags, onSaveNoteTag, onDeleteNoteTag,
   } = props;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -165,6 +203,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     recording?.durationMs ?? (isRecording ? latestTRel + 500 : 1000)
   );
 
+  // Hard right edge: the furthest end of any audio track or the MIDI recording.
+  const maxMs = useMemo(() => {
+    const audioEnd = audioTracks.reduce((m, t) => Math.max(m, t.offsetMs + t.durationMs), 0);
+    return Math.max(duration, audioEnd);
+  }, [duration, audioTracks]);
+
   const [view, dispatch] = useReducer(viewReducer, { startMs: 0, endMs: duration });
 
   const tailFollowRef = useRef(true);
@@ -217,12 +261,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       if (trackWidth <= 0) return;
       const anchorMs = view.startMs + (x / trackWidth) * (view.endMs - view.startMs);
       const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-      dispatch({ type: "zoom", anchorMs, factor });
+      dispatch({ type: "zoom", anchorMs, factor, maxMs, minMs: originOffsetMs });
       tailFollowRef.current = false;
     } else {
       const span = view.endMs - view.startMs;
       const delta = (e.deltaX || e.deltaY) / 500 * span;
-      dispatch({ type: "scrollBy", deltaMs: delta });
+      dispatch({ type: "scrollBy", deltaMs: delta, maxMs, minMs: originOffsetMs });
       tailFollowRef.current = false;
     }
   };
@@ -237,6 +281,101 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
 
   const devices = recording?.devices ?? [];
 
+  const [noteSelection, setNoteSelection] = useState<{ device: string; pitch: number; velocity: number } | null>(null);
+  const [hiddenNoteGroups, setHiddenNoteGroups] = useState<Set<string>>(new Set());
+  const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(new Set());
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [originOffsetMs, setOriginOffsetMs] = useState(0);
+
+  const activeSection = useMemo(
+    () => (activeSectionId ? sections.find((s) => s.id === activeSectionId) ?? null : null),
+    [activeSectionId, sections]
+  );
+
+  const selectedCount = useMemo(() => {
+    if (!noteSelection) return 0;
+    return noteSpans.filter((s) => {
+      if (s.device !== noteSelection.device || s.pitch !== noteSelection.pitch || s.velocity !== noteSelection.velocity) return false;
+      if (activeSection && (s.tStart >= activeSection.endMs || s.tEnd <= activeSection.startMs)) return false;
+      return true;
+    }).length;
+  }, [noteSpans, noteSelection, activeSection]);
+
+  // Per-device: set of "pitch|velocity" keys that are hidden (for NotesLane filtering).
+  const hiddenKeysByDevice = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const fullKey of hiddenNoteGroups) {
+      const firstPipe = fullKey.indexOf("|");
+      const device = fullKey.slice(0, firstPipe);
+      const pvKey = fullKey.slice(firstPipe + 1);
+      const set = map.get(device) ?? new Set<string>();
+      set.add(pvKey);
+      map.set(device, set);
+    }
+    return map;
+  }, [hiddenNoteGroups]);
+
+  // Per-device: ALL unique (pitch, velocity) groups with counts, sorted by pitch then velocity.
+  const allGroupsByDevice = useMemo(() => {
+    const interim = new Map<string, Map<string, { pitch: number; velocity: number; count: number }>>();
+    for (const s of noteSpans) {
+      let deviceMap = interim.get(s.device);
+      if (!deviceMap) { deviceMap = new Map(); interim.set(s.device, deviceMap); }
+      const key = `${s.pitch}|${s.velocity}`;
+      const g = deviceMap.get(key);
+      if (g) g.count++;
+      else deviceMap.set(key, { pitch: s.pitch, velocity: s.velocity, count: 1 });
+    }
+    const result = new Map<string, Array<{ pitch: number; velocity: number; count: number }>>();
+    for (const [device, groupMap] of interim) {
+      result.set(device, Array.from(groupMap.values()).sort((a, b) => a.pitch - b.pitch || a.velocity - b.velocity));
+    }
+    return result;
+  }, [noteSpans]);
+
+  // When a section is active, filter groups to only those with notes in that section.
+  const displayGroupsByDevice = useMemo(() => {
+    if (!activeSection) return allGroupsByDevice;
+    const { startMs, endMs } = activeSection;
+    const interim = new Map<string, Map<string, { pitch: number; velocity: number; count: number }>>();
+    for (const s of noteSpans) {
+      if (s.tStart >= endMs || s.tEnd <= startMs) continue;
+      let deviceMap = interim.get(s.device);
+      if (!deviceMap) { deviceMap = new Map(); interim.set(s.device, deviceMap); }
+      const key = `${s.pitch}|${s.velocity}`;
+      const g = deviceMap.get(key);
+      if (g) g.count++;
+      else deviceMap.set(key, { pitch: s.pitch, velocity: s.velocity, count: 1 });
+    }
+    const result = new Map<string, Array<{ pitch: number; velocity: number; count: number }>>();
+    for (const [device, groupMap] of interim) {
+      result.set(device, Array.from(groupMap.values()).sort((a, b) => a.pitch - b.pitch || a.velocity - b.velocity));
+    }
+    return result;
+  }, [activeSection, allGroupsByDevice, noteSpans]);
+
+  const handleNoteClick = useCallback((device: string, span: NoteSpan) => {
+    setNoteSelection((prev) =>
+      prev?.device === device && prev.pitch === span.pitch && prev.velocity === span.velocity
+        ? null
+        : { device, pitch: span.pitch, velocity: span.velocity }
+    );
+  }, []);
+
+  const hideNoteGroup = useCallback((device: string, pitch: number, velocity: number) => {
+    setHiddenNoteGroups((prev) => new Set([...prev, `${device}|${pitch}|${velocity}`]));
+    setNoteSelection(null);
+  }, []);
+
+  const toggleHiddenNoteGroup = useCallback((device: string, pitch: number, velocity: number) => {
+    const key = `${device}|${pitch}|${velocity}`;
+    setHiddenNoteGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
   const jumpLive = () => {
     tailFollowRef.current = true;
     const latest = events.length > 0 ? events[events.length - 1].tRel : 0;
@@ -249,40 +388,109 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       <div
         ref={wrapRef}
         onWheel={handleWheel}
-        className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto"
+        className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none" }}
       >
-      <TimeRuler
-        viewStartMs={view.startMs}
-        viewEndMs={view.endMs}
-        leftGutterPx={LEFT_GUTTER}
-        onSeek={(ms) => { tailFollowRef.current = false; onSeek(ms); }}
-      />
-
-      {moments && moments.length > 0 && (
-        <MomentMarkers
-          moments={moments}
+      {/* Sticky header — time ruler, sections, and markers stay pinned while lanes scroll */}
+      <div className="sticky top-0 z-20" style={{ background: "#0f0f1e", boxShadow: "0 4px 16px rgba(0,0,0,0.8)" }}>
+        <TimeRuler
           viewStartMs={view.startMs}
           viewEndMs={view.endMs}
           leftGutterPx={LEFT_GUTTER}
-          onSelect={(m) => {
-            tailFollowRef.current = false;
-            onSeek(m.tMs);
-            // Zoom to show the moment with context: center on it and set span to ~10s if currently wider
-            const currentSpan = view.endMs - view.startMs;
-            const targetSpan = Math.min(currentSpan, Math.max(8000, (m.durationMs ?? 0) * 2));
-            dispatch({ type: "set", startMs: m.tMs - targetSpan / 2, endMs: m.tMs + targetSpan / 2 });
+          onSeek={(ms) => { tailFollowRef.current = false; onSeek(ms); }}
+          originOffsetMs={originOffsetMs}
+          onOriginChange={(ms) => {
+            const clamped = Math.max(0, ms);
+            setOriginOffsetMs(clamped);
+            const span = view.endMs - view.startMs;
+            dispatch({ type: "set", startMs: clamped, endMs: clamped + span, minMs: clamped });
           }}
         />
-      )}
 
-      <AudioLane
-        peaks={audioPeaks}
-        heightPx={getLaneHeight(AUDIO_LANE_KEY, 38)}
-        label={audioLabel}
-        leftGutterPx={LEFT_GUTTER}
-        onOffsetDragDelta={onAudioOffsetDelta}
-        onResize={(h) => setLaneHeight(AUDIO_LANE_KEY, h)}
-      />
+        <SectionBar
+          sections={sections}
+          activeSectionId={activeSectionId}
+          viewStartMs={view.startMs}
+          viewEndMs={view.endMs}
+          leftGutterPx={LEFT_GUTTER}
+          onActivate={setActiveSectionId}
+          onChange={onSectionsChange}
+        />
+
+        {/* Auto-detected moments (drops/builds/peaks/silences) are computed in useTriggerAnalysis
+            but not shown here — the detection needs more work before it's useful. */}
+        <MarkerLane
+          markers={userMarkers}
+          viewStartMs={view.startMs}
+          viewEndMs={view.endMs}
+          leftGutterPx={LEFT_GUTTER}
+          onAdd={(tMs) => {
+            const marker: Moment = {
+              id: crypto.randomUUID(),
+              tMs,
+              kind: "user",
+              label: "Marker",
+            };
+            onMarkersChange([...userMarkers, marker]);
+          }}
+          onRename={(id, label) => {
+            onMarkersChange(userMarkers.map((m) => (m.id === id ? { ...m, label } : m)));
+          }}
+          onDelete={(id) => {
+            onMarkersChange(userMarkers.filter((m) => m.id !== id));
+          }}
+          onColorChange={(id, color) => {
+            onMarkersChange(userMarkers.map((m) => (m.id === id ? { ...m, color } : m)));
+          }}
+          onSeek={(ms) => { tailFollowRef.current = false; onSeek(ms); }}
+        />
+      </div>
+
+      {audioTracks.map((track) => (
+        <AudioLane
+          key={track.id}
+          peaks={track.peaks}
+          heightPx={getLaneHeight(`audio:${track.id}`, 38)}
+          label={track.label}
+          leftGutterPx={LEFT_GUTTER}
+          onOffsetDragDelta={(deltaPx, mod) => onAudioOffsetDelta(track.id, deltaPx, mod)}
+          onResize={(h) => setLaneHeight(`audio:${track.id}`, h)}
+          viewStartMs={view.startMs}
+          viewEndMs={view.endMs}
+          audioOffsetMs={track.offsetMs}
+          audioDurationMs={track.durationMs}
+          audioLoaded
+          onUnloadAudio={() => onUnloadAudio(track.id)}
+          onOffsetChange={(ms) => onAudioOffsetChange(track.id, ms)}
+        />
+      ))}
+      {/* Load audio — empty lane when no tracks, or add-more button */}
+      {audioTracks.length === 0 ? (
+        <AudioLane
+          peaks={null}
+          heightPx={getLaneHeight(AUDIO_LANE_KEY, 38)}
+          label={undefined}
+          leftGutterPx={LEFT_GUTTER}
+          viewStartMs={view.startMs}
+          viewEndMs={view.endMs}
+          audioOffsetMs={0}
+          audioDurationMs={0}
+          audioLoaded={false}
+          onLoadAudio={onLoadAudio}
+          onResize={(h) => setLaneHeight(AUDIO_LANE_KEY, h)}
+        />
+      ) : (
+        <div className="flex border-b border-white/5" style={{ height: 22 }}>
+          <button
+            onClick={onLoadAudio}
+            className="px-3 text-[10px] text-gray-600 hover:text-gray-300 transition-colors text-left"
+            style={{ width: LEFT_GUTTER, flexShrink: 0 }}
+          >
+            + Add audio
+          </button>
+          <div className="flex-1 border-l border-white/5" />
+        </div>
+      )}
 
       {devices.length === 0 && !isRecording && (
         <div className="p-6 text-xs text-gray-600 italic">
@@ -313,13 +521,46 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onRequestAddBadge={onRequestAddBadge}
           onEditBadge={onEditBadge}
           flashLaneKeys={flashLaneKeys}
+          onDeleteDevice={onDeleteDevice}
+          selectedVelocity={noteSelection?.device === device ? { pitch: noteSelection.pitch, velocity: noteSelection.velocity } : null}
+          activeSectionRange={activeSection ? { startMs: activeSection.startMs, endMs: activeSection.endMs } : null}
+          onNoteClick={(span) => handleNoteClick(device, span)}
+          allGroups={displayGroupsByDevice.get(device) ?? []}
+          hiddenNoteKeys={hiddenKeysByDevice.get(device) ?? new Set()}
+          onToggleNoteGroup={(pitch, velocity) => toggleHiddenNoteGroup(device, pitch, velocity)}
+          noteTags={noteTags}
+          onSaveNoteTag={onSaveNoteTag}
+          onDeleteNoteTag={onDeleteNoteTag}
+          hiddenLanes={hiddenLanes}
+          onHideLane={(key) => setHiddenLanes((prev) => new Set([...prev, key]))}
+          onShowLane={(key) => setHiddenLanes((prev) => { const n = new Set(prev); n.delete(key); return n; })}
         />
       ))}
 
+      {/* Full-height marker lines — rendered as overlay so they span all lanes */}
+      {userMarkers.map((m) => {
+        const viewSpan = Math.max(1, view.endMs - view.startMs);
+        const leftFrac = (m.tMs - view.startMs) / viewSpan;
+        if (leftFrac < -0.02 || leftFrac > 1.02) return null;
+        return (
+          <div
+            key={m.id}
+            className="pointer-events-none absolute top-0 w-px"
+            style={{
+              left: `calc(${LEFT_GUTTER}px + ${leftFrac} * (100% - ${LEFT_GUTTER}px))`,
+              height: "10000px",
+              background: m.color ?? MARKER_DEFAULT_COLOR,
+              opacity: 0.35,
+              zIndex: 5,
+            }}
+          />
+        );
+      })}
+
       <div
         ref={playheadElRef}
-        className="pointer-events-none absolute top-0 bottom-0 w-px bg-orange-400/80"
-        style={{ left: LEFT_GUTTER, zIndex: 10 }}
+        className="pointer-events-none absolute top-0 w-px bg-orange-400/80"
+        style={{ left: LEFT_GUTTER, height: "10000px", zIndex: 10 }}
       >
         <div
           className="absolute -top-0.5 -left-1 w-2 h-1.5 bg-orange-400"
@@ -334,6 +575,27 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         >
           Jump to live ↴
         </button>
+      )}
+
+      {noteSelection && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 border border-white/15 rounded-lg px-3 py-2" style={{ background: "#0f0f1e", boxShadow: "0 8px 24px rgba(0,0,0,0.85)" }}>
+          <span className="text-xs text-gray-300">
+            <span className="text-white font-semibold">{selectedCount}</span> × {midiNoteName(noteSelection.pitch)} · vel {noteSelection.velocity}
+            {activeSection && <span className="ml-1 text-gray-500">in {activeSection.name}</span>}
+          </span>
+          <button
+            onClick={() => hideNoteGroup(noteSelection.device, noteSelection.pitch, noteSelection.velocity)}
+            className="px-2 py-1 text-xs bg-surface-lighter border border-white/10 text-gray-300 rounded hover:text-white transition-colors"
+          >
+            Hide
+          </button>
+          <button
+            onClick={() => setNoteSelection(null)}
+            className="text-gray-600 hover:text-white text-xs transition-colors"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       <HoverCard payload={hover.payload} clientX={hover.x} clientY={hover.y} />
@@ -362,3 +624,4 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     </div>
   );
 }
+
