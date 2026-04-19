@@ -65,6 +65,7 @@ export default function TimelinePage() {
     playheadMs: playheadDisplayMs,
     isPlaying: audio.isPlaying,
     endpoints,
+    deviceAliases: recorder.recording?.deviceAliases,
   });
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
@@ -357,6 +358,19 @@ export default function TimelinePage() {
     recorder.patchRecording({ oscMappings: (rec.oscMappings ?? []).filter((m) => m.id !== id) });
   }, [recorder]);
 
+  const saveDeviceAlias = useCallback((originalName: string, newName: string) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    const trimmed = newName.trim();
+    const aliases = { ...(rec.deviceAliases ?? {}) };
+    if (trimmed && trimmed !== originalName) {
+      aliases[originalName] = trimmed;
+    } else {
+      delete aliases[originalName];
+    }
+    recorder.patchRecording({ deviceAliases: aliases });
+  }, [recorder]);
+
   const saveHiddenLanes = useCallback((lanes: string[]) => {
     recorder.patchRecording({ hiddenLanes: lanes });
   }, [recorder]);
@@ -527,6 +541,8 @@ export default function TimelinePage() {
           onDeleteOscMapping={deleteOscMapping}
           onHiddenLanesChange={saveHiddenLanes}
           onHiddenNoteGroupsChange={saveHiddenNoteGroups}
+          deviceAliases={recorder.recording?.deviceAliases}
+          onRenameDevice={saveDeviceAlias}
         />
       </div>
 
