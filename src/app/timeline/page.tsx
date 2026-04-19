@@ -6,12 +6,13 @@ import { useAudioSync } from "@/hooks/use-audio-sync";
 import { useMidiConfig, useMidiControl } from "@/hooks/use-midi";
 import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
 import { useRecorderContext } from "@/contexts/recorder-context";
+import { useOscPlayback } from "@/hooks/use-osc-playback";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
 import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
-import type { LaneBadge, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording } from "@/lib/types";
+import type { LaneBadge, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording, OscMapping, SavedEndpoint } from "@/lib/types";
 
 const LEFT_GUTTER = 140;
 
@@ -49,6 +50,21 @@ export default function TimelinePage() {
   const audio = useAudioSync({
     durationMs,
     onPlayheadChange: setPlayheadDisplayMs,
+  });
+
+  const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
+
+  useEffect(() => {
+    window.electronAPI?.invoke("endpoints:get-all", "sender").then((res) => {
+      setEndpoints((res as SavedEndpoint[]) ?? []);
+    });
+  }, []);
+
+  useOscPlayback({
+    recording: recorder.recording ?? null,
+    playheadMs: playheadDisplayMs,
+    isPlaying: audio.isPlaying,
+    endpoints,
   });
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
@@ -329,6 +345,34 @@ export default function TimelinePage() {
     recorder.patchRecording({ noteTags: (rec.noteTags ?? []).filter((t) => t.id !== id) });
   }, [recorder]);
 
+  const addOscMapping = useCallback((mapping: OscMapping) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    recorder.patchRecording({ oscMappings: [...(rec.oscMappings ?? []), mapping] });
+  }, [recorder]);
+
+  const deleteOscMapping = useCallback((id: string) => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    recorder.patchRecording({ oscMappings: (rec.oscMappings ?? []).filter((m) => m.id !== id) });
+  }, [recorder]);
+
+  const saveHiddenLanes = useCallback((lanes: string[]) => {
+    recorder.patchRecording({ hiddenLanes: lanes });
+  }, [recorder]);
+
+  const saveHiddenNoteGroups = useCallback((groups: string[]) => {
+    recorder.patchRecording({ hiddenNoteGroups: groups });
+  }, [recorder]);
+
+  const handleSuppressAnalysis = useCallback((laneKey: string, type: "rhythm" | "dynamic" | "melody") => {
+    const rec = recorder.recording;
+    if (!rec) return;
+    const entry = `${laneKey}:${type}`;
+    const current = rec.suppressedAnalysis ?? [];
+    if (!current.includes(entry)) recorder.patchRecording({ suppressedAnalysis: [...current, entry] });
+  }, [recorder]);
+
   const handleRequestAddBadge = useCallback((laneKey: string) => {
     lastHoveredLaneRef.current = laneKey;
     setBadgeEditor({ laneKey, badge: null });
@@ -465,6 +509,9 @@ export default function TimelinePage() {
           onToggleTriggersSidebar={() => setTriggersSidebarOpen((v) => !v)}
           onRequestAddBadge={handleRequestAddBadge}
           onEditBadge={handleEditBadge}
+          onDeleteBadge={deleteBadge}
+          suppressedAnalysis={recorder.recording?.suppressedAnalysis ?? []}
+          onSuppressAnalysis={handleSuppressAnalysis}
           onTagCurrentLane={handleTagCurrentLane}
           onDeleteDevice={handleDeleteDevice}
           sections={recorder.recording?.sections ?? []}
@@ -474,6 +521,12 @@ export default function TimelinePage() {
           noteTags={noteTags}
           onSaveNoteTag={saveNoteTag}
           onDeleteNoteTag={deleteNoteTag}
+          oscMappings={recorder.recording?.oscMappings ?? []}
+          endpoints={endpoints}
+          onAddOscMapping={addOscMapping}
+          onDeleteOscMapping={deleteOscMapping}
+          onHiddenLanesChange={saveHiddenLanes}
+          onHiddenNoteGroupsChange={saveHiddenNoteGroups}
         />
       </div>
 
