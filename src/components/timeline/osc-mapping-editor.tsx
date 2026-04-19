@@ -78,8 +78,8 @@ export function OscMappingEditor({
 
   return (
     <div
-      className="fixed z-50 bg-surface-light border border-white/10 rounded-lg p-4 shadow-xl"
-      style={{ top, left, width: 292 }}
+      className="fixed z-50 border border-white/10 rounded-lg p-4"
+      style={{ top, left, width: 292, background: "#0f0f1e", boxShadow: "0 8px 32px rgba(0,0,0,0.9)" }}
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-3">
