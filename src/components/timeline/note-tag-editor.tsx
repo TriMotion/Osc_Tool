@@ -33,21 +33,24 @@ export function NoteTagEditor({
   const [allVelocities, setAllVelocities] = useState(tag ? tag.velocity === null : true);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+  }, []);
 
   const suggestions = existingLabels
-    .filter((l) => l.toLowerCase().startsWith(label.toLowerCase()) && l !== label)
+    .filter((l) => l.toLowerCase().startsWith(label.toLowerCase()) && l.toLowerCase() !== label.toLowerCase())
     .slice(0, 5);
 
   const handleSave = () => {
