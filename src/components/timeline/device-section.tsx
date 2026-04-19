@@ -111,7 +111,8 @@ export function DeviceSection(props: DeviceSectionProps) {
     [noteSpans, device]
   );
 
-  const headerCount = `${laneEntries.length - hiddenLanes.size} / ${laneEntries.length} lane${laneEntries.length === 1 ? "" : "s"}`;
+  const thisDeviceHiddenCount = laneEntries.filter((e) => hiddenLanes.has(laneKeyString(e.key))).length;
+  const headerCount = `${laneEntries.length - thisDeviceHiddenCount} / ${laneEntries.length} lane${laneEntries.length === 1 ? "" : "s"}`;
   const hiddenCount = allGroups.filter((g) => hiddenNoteKeys?.has(`${g.pitch}|${g.velocity}`)).length;
   const [panelOpen, setPanelOpen] = useState(false);
   const [lanesOpen, setLanesOpen] = useState(false);
@@ -166,14 +167,14 @@ export function DeviceSection(props: DeviceSectionProps) {
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               lanesOpen
                 ? "bg-accent/20 text-accent border-accent/30"
-                : hiddenLanes.size > 0
+                : thisDeviceHiddenCount > 0
                   ? "text-amber-400 border-amber-400/30 hover:border-amber-400/50"
                   : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
             title="Toggle lanes"
           >
             <span>Lanes</span>
-            {hiddenLanes.size > 0 && <span className="text-gray-600">· ⊘{hiddenLanes.size}</span>}
+            {thisDeviceHiddenCount > 0 && <span className="text-gray-600">· ⊘{thisDeviceHiddenCount}</span>}
             <span>{lanesOpen ? "▴" : "▾"}</span>
           </button>
           {lanesOpen && (
@@ -221,6 +222,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           {allGroups.map(({ pitch, velocity, count }) => {
             const hidden = hiddenNoteKeys?.has(`${pitch}|${velocity}`) ?? false;
             const tag = findNoteTag(noteTags, device, pitch, velocity);
+            const chipColor = tag ? tagColor(tag) : undefined;
             return (
               <div
                 key={`${pitch}|${velocity}`}
@@ -257,7 +259,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                         setTagEditor({ pitch, velocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                       }}
                       className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border border-white/10 hover:border-white/20 transition-colors"
-                      style={{ color: tagColor(tag), borderColor: `${tagColor(tag)}44` }}
+                      style={{ color: chipColor, borderColor: `${chipColor}44` }}
                     >
                       <span>{tag.label}</span>
                     </button>
@@ -280,30 +282,29 @@ export function DeviceSection(props: DeviceSectionProps) {
       )}
 
 
-      {tagEditor && (
-        <NoteTagEditor
-          tag={findNoteTag(noteTags, device, tagEditor.pitch, tagEditor.velocity) ?? null}
-          device={device}
-          pitch={tagEditor.pitch}
-          velocity={tagEditor.velocity}
-          existingLabels={[...new Set(noteTags.map((t) => t.label))]}
-          anchorRect={tagEditor.anchorRect}
-          onSave={(tag) => {
-            onSaveNoteTag?.(tag);
-            setTagEditor(null);
-          }}
-          onDelete={
-            findNoteTag(noteTags, device, tagEditor.pitch, tagEditor.velocity)
-              ? () => {
-                  const existing = findNoteTag(noteTags, device, tagEditor.pitch, tagEditor.velocity);
-                  if (existing) onDeleteNoteTag?.(existing.id);
-                  setTagEditor(null);
-                }
-              : undefined
-          }
-          onClose={() => setTagEditor(null)}
-        />
-      )}
+      {tagEditor && (() => {
+        const resolvedTag = findNoteTag(noteTags, device, tagEditor.pitch, tagEditor.velocity) ?? null;
+        return (
+          <NoteTagEditor
+            tag={resolvedTag}
+            device={device}
+            pitch={tagEditor.pitch}
+            velocity={tagEditor.velocity}
+            existingLabels={[...new Set(noteTags.map((t) => t.label))]}
+            anchorRect={tagEditor.anchorRect}
+            onSave={(tag) => {
+              onSaveNoteTag?.(tag);
+              setTagEditor(null);
+            }}
+            onDelete={
+              resolvedTag
+                ? () => { onDeleteNoteTag?.(resolvedTag.id); setTagEditor(null); }
+                : undefined
+            }
+            onClose={() => setTagEditor(null)}
+          />
+        );
+      })()}
 
       {collapsed ? (
         <CollapsedSummaryRow
