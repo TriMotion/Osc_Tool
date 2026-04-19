@@ -223,16 +223,23 @@ export function DeviceSection(props: DeviceSectionProps) {
             const hidden = hiddenNoteKeys?.has(`${pitch}|${velocity}`) ?? false;
             const tag = findNoteTag(noteTags, device, pitch, velocity);
             const chipColor = tag ? tagColor(tag) : undefined;
+            const isSelected = selectedVelocity?.pitch === pitch && selectedVelocity?.velocity === velocity;
             return (
               <div
                 key={`${pitch}|${velocity}`}
                 className="flex items-center border-t border-white/[0.03] first:border-t-0 group/row"
-                style={{ height: 24 }}
+                style={{
+                  height: 24,
+                  background: isSelected ? "rgba(142,203,255,0.08)" : undefined,
+                }}
               >
                 {/* Gutter */}
                 <div
                   className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
-                  style={{ width: leftGutterPx }}
+                  style={{
+                    width: leftGutterPx,
+                    borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
+                  }}
                 >
                   <button
                     onClick={() => onToggleNoteGroup?.(pitch, velocity)}
@@ -246,20 +253,15 @@ export function DeviceSection(props: DeviceSectionProps) {
                   <span className={`font-mono text-[10px] ${hidden ? "text-gray-600" : "text-gray-300"}`}>
                     {midiNoteName(pitch)}
                   </span>
-                  <span className="text-gray-700 text-[10px]">#{pitch}</span>
                   <span className="text-gray-600 text-[10px]">v{velocity}</span>
-                </div>
-                {/* Track area */}
-                <div className="flex-1 flex items-center justify-between px-3">
-                  <span className="text-[10px] text-gray-700">{count}×</span>
                   {tag ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setTagEditor({ pitch, velocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                       }}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border border-white/10 hover:border-white/20 transition-colors"
-                      style={{ color: chipColor, borderColor: `${chipColor}44` }}
+                      className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
+                      style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
                     >
                       <span>{tag.label}</span>
                     </button>
@@ -269,11 +271,15 @@ export function DeviceSection(props: DeviceSectionProps) {
                         e.stopPropagation();
                         setTagEditor({ pitch, velocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                       }}
-                      className="opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
+                      className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
                     >
                       + tag
                     </button>
                   )}
+                </div>
+                {/* Track area */}
+                <div className="flex-1 flex items-center px-3">
+                  <span className="text-[10px] text-gray-700">{count}×</span>
                 </div>
               </div>
             );
@@ -343,6 +349,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onEditBadge={onEditBadge}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
+                      noteTags={noteTags}
                     />
                   </div>
                 );
