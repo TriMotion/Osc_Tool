@@ -9,14 +9,15 @@ interface UseOscPlaybackArgs {
   playheadMs: number;
   isPlaying: boolean;
   endpoints: SavedEndpoint[];
+  deviceAliases?: Record<string, string>;
 }
 
-export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints }: UseOscPlaybackArgs) {
+export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints, deviceAliases }: UseOscPlaybackArgs) {
   const firedRef = useRef<Set<string>>(new Set());
   const lastPlayheadRef = useRef<number>(0);
   const wasPlayingRef = useRef<boolean>(false);
 
-  // Pre-compute annotated event queue — rebuilt only when recording or its mappings change.
+  // Pre-compute annotated event queue — rebuilt when recording, mappings, or aliases change.
   const queue = useMemo(() => {
     if (!recording?.oscMappings?.length) return [];
     const result: Array<{ tRel: number; eventIdx: number; mappingId: string; address: string; value: number; argType: "f" | "i"; endpointId: string }> = [];
@@ -28,7 +29,7 @@ export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints }: 
           tRel: evt.tRel,
           eventIdx: idx,
           mappingId: mapping.id,
-          address: resolveOscAddress(mapping),
+          address: resolveOscAddress(mapping, deviceAliases),
           value: computeOscArgValue(evt, mapping),
           argType: mapping.argType,
           endpointId: mapping.endpointId,
@@ -37,7 +38,7 @@ export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints }: 
     });
 
     return result; // already sorted because recording.events is sorted by tRel
-  }, [recording?.id, recording?.oscMappings]);
+  }, [recording?.id, recording?.oscMappings, deviceAliases]);
 
   useEffect(() => {
     // Detect backward seek and reset fired set.
