@@ -41,6 +41,7 @@ interface DeviceSectionProps {
   deviceAliases?: Record<string, string>;
   selectedVelocity?: { pitch: number; velocity: number } | null;
   activeSectionRange?: { startMs: number; endMs: number } | null;
+  activeSectionName?: string;
   onNoteClick?: (span: NoteSpan) => void;
   allGroups?: Array<{ pitch: number; velocity: number; count: number }>;
   hiddenNoteKeys?: Set<string>;
@@ -101,7 +102,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     getLaneHeight, onLaneResize,
     getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, onDeleteBadge,
     suppressedAnalysis, onSuppressAnalysis, flashLaneKeys,
-    onDeleteDevice, displayName, onRenameDevice, deviceAliases, selectedVelocity, activeSectionRange, onNoteClick,
+    onDeleteDevice, displayName, onRenameDevice, deviceAliases, selectedVelocity, activeSectionRange, activeSectionName, onNoteClick,
     allGroups = [], hiddenNoteKeys, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
     oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
@@ -393,166 +394,6 @@ export function DeviceSection(props: DeviceSectionProps) {
         )}
       </div>
 
-      {/* Note groups panel — in-flow, full timeline width, same gutter layout as lanes */}
-      {panelOpen && allGroups.length > 0 && (
-        <div className="border-t border-white/5 bg-black/10">
-          {/* Filter toolbar */}
-          <div className="flex items-center gap-1.5 px-3 py-1 border-b border-white/[0.04]">
-            <button
-              onClick={() => setFilterTagged((v) => !v)}
-              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
-                filterTagged
-                  ? "bg-accent/20 text-accent border-accent/30"
-                  : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
-              }`}
-            >
-              tagged only
-            </button>
-            <button
-              onClick={() => setCombineVelocity((v) => !v)}
-              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
-                combineVelocity
-                  ? "bg-accent/20 text-accent border-accent/30"
-                  : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
-              }`}
-            >
-              combine vel
-            </button>
-          </div>
-
-          {displayGroups.map(({ key, pitch, velocity, velocities, count }) => {
-            const hidden = velocities.every((v) => effectiveHiddenKeys?.has(`${pitch}|${v}`));
-            const tag = velocity !== null
-              ? findNoteTag(noteTags, device, pitch, velocity)
-              : noteTags.find((t) => t.device === device && t.pitch === pitch && t.velocity === null) ??
-                (velocities.length > 0 ? findNoteTag(noteTags, device, pitch, velocities[0]) : undefined);
-            const chipColor = tag ? tagColor(tag) : undefined;
-            const isSelected = velocity !== null
-              ? selectedVelocity?.pitch === pitch && selectedVelocity?.velocity === velocity
-              : selectedVelocity?.pitch === pitch;
-
-            const handleToggle = () => {
-              for (const v of velocities) onToggleNoteGroup?.(pitch, v);
-            };
-
-            const handleSelect = () => {
-              if (velocity !== null) onSelectGroup?.(pitch, velocity);
-            };
-
-            const tagVelocity = velocity ?? velocities[0];
-
-            return (
-              <div
-                key={key}
-                className="flex items-center border-t border-white/[0.03] first:border-t-0 group/row"
-                style={{
-                  height: 24,
-                  background: isSelected ? "rgba(142,203,255,0.08)" : undefined,
-                  cursor: velocity !== null ? "pointer" : "default",
-                }}
-                onClick={handleSelect}
-              >
-                {/* Gutter */}
-                <div
-                  className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
-                  style={{
-                    width: leftGutterPx,
-                    borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
-                  }}
-                >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleToggle(); }}
-                    className={`text-[11px] leading-none transition-colors ${
-                      hidden ? "text-gray-600 hover:text-gray-300" : "text-accent hover:text-white"
-                    }`}
-                    title={hidden ? "Show" : "Hide"}
-                  >
-                    {hidden ? "○" : "●"}
-                  </button>
-                  <span className={`font-mono text-[10px] ${hidden ? "text-gray-600" : "text-gray-300"}`}>
-                    {midiNoteName(pitch)}
-                  </span>
-                  <span className={`font-mono text-[10px] ${hidden ? "text-gray-700" : "text-gray-600"}`}>
-                    {pitch}
-                  </span>
-                  {velocity !== null && (
-                    <span className="text-gray-600 text-[10px]">v{velocity}</span>
-                  )}
-                  {tag ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                      }}
-                      className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
-                      style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
-                    >
-                      <span>{tag.label}</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                      }}
-                      className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
-                    >
-                      + tag
-                    </button>
-                  )}
-                </div>
-                {/* Track area — OSC mapping chips + add button */}
-                {(() => {
-                  const rowMappings = oscMappings.filter(
-                    (m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device
-                  );
-                  return (
-                    <div className="flex-1 flex items-center gap-1.5 px-3 overflow-hidden">
-                      {rowMappings.map((m) => (
-                        <div
-                          key={m.id}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOscEditor({
-                              targetType: "noteGroup",
-                              targetId: `${pitch}|${tagVelocity}`,
-                              anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                              editingMapping: m,
-                            });
-                          }}
-                        >
-                          <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
-                            className="text-accent/40 hover:text-red-400 leading-none transition-colors"
-                          >×</button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOscEditor({
-                            targetType: "noteGroup",
-                            targetId: `${pitch}|${tagVelocity}`,
-                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                          });
-                        }}
-                        className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0"
-                      >
-                        + OSC
-                      </button>
-                      <span className="ml-auto text-[10px] text-gray-700 shrink-0">{count}×</span>
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-
       {tagEditor && (() => {
         const resolvedTag = findNoteTag(noteTags, device, tagEditor.pitch, tagEditor.velocity) ?? null;
         return (
@@ -615,32 +456,179 @@ export function DeviceSection(props: DeviceSectionProps) {
             switch (entry.key.kind) {
               case "notes":
                 return (
-                  <div data-lane-key={keyStr} key="notes">
-                    <NotesLane
-                      spans={deviceNoteSpans}
-                      viewStartMs={viewStartMs}
-                      viewEndMs={viewEndMs}
-                      heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
-                      leftGutterPx={leftGutterPx}
-                      onHover={onHoverSpan}
-                      onNoteClick={onNoteClick}
-                      selectedVelocity={selectedVelocity}
-                      activeSectionRange={activeSectionRange}
-                      hiddenNoteKeys={effectiveHiddenKeys}
-                      onResize={(h) => onLaneResize(keyStr, h)}
-                      laneKey={keyStr}
-                      analysis={getAnalysisFor?.(keyStr)}
-                      userBadges={getBadgesFor?.(keyStr)}
-                      onRequestAddBadge={onRequestAddBadge}
-                      onEditBadge={onEditBadge}
-                      onDeleteBadge={onDeleteBadge}
-                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
-                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
-                      isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                      onHide={() => onHideLane(keyStr)}
-                      noteTags={noteTags}
-                    />
-                  </div>
+                  <>
+                    <div data-lane-key={keyStr} key="notes">
+                      <NotesLane
+                        spans={deviceNoteSpans}
+                        viewStartMs={viewStartMs}
+                        viewEndMs={viewEndMs}
+                        heightPx={getLaneHeight(keyStr, NOTES_HEIGHT)}
+                        leftGutterPx={leftGutterPx}
+                        onHover={onHoverSpan}
+                        onNoteClick={onNoteClick}
+                        selectedVelocity={selectedVelocity}
+                        activeSectionRange={activeSectionRange}
+                        hiddenNoteKeys={effectiveHiddenKeys}
+                        onResize={(h) => onLaneResize(keyStr, h)}
+                        laneKey={keyStr}
+                        analysis={getAnalysisFor?.(keyStr)}
+                        userBadges={getBadgesFor?.(keyStr)}
+                        onRequestAddBadge={onRequestAddBadge}
+                        onEditBadge={onEditBadge}
+                        onDeleteBadge={onDeleteBadge}
+                        suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                        onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
+                        isFlashing={flashLaneKeys?.has(keyStr) ?? false}
+                        onHide={() => onHideLane(keyStr)}
+                        noteTags={noteTags}
+                      />
+                    </div>
+                    {panelOpen && allGroups.length > 0 && (
+                      <div className="border-t border-white/5 bg-black/10">
+                        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-white/[0.04]">
+                          <button
+                            onClick={() => setFilterTagged((v) => !v)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                              filterTagged
+                                ? "bg-accent/20 text-accent border-accent/30"
+                                : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
+                            }`}
+                          >
+                            tagged only
+                          </button>
+                          <button
+                            onClick={() => setCombineVelocity((v) => !v)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                              combineVelocity
+                                ? "bg-accent/20 text-accent border-accent/30"
+                                : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
+                            }`}
+                          >
+                            combine vel
+                          </button>
+                        </div>
+                        {displayGroups.map(({ key, pitch, velocity, velocities, count }) => {
+                          const hidden = velocities.every((v) => effectiveHiddenKeys?.has(`${pitch}|${v}`));
+                          const tag = velocity !== null
+                            ? findNoteTag(noteTags, device, pitch, velocity)
+                            : noteTags.find((t) => t.device === device && t.pitch === pitch && t.velocity === null) ??
+                              (velocities.length > 0 ? findNoteTag(noteTags, device, pitch, velocities[0]) : undefined);
+                          const chipColor = tag ? tagColor(tag) : undefined;
+                          const isSelected = velocity !== null
+                            ? selectedVelocity?.pitch === pitch && selectedVelocity?.velocity === velocity
+                            : selectedVelocity?.pitch === pitch;
+                          const handleToggle = () => { for (const v of velocities) onToggleNoteGroup?.(pitch, v); };
+                          const handleSelect = () => { if (velocity !== null) onSelectGroup?.(pitch, velocity); };
+                          const tagVelocity = velocity ?? velocities[0];
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-center border-t border-white/[0.03] first:border-t-0 group/row"
+                              style={{
+                                height: 24,
+                                background: isSelected ? "rgba(142,203,255,0.08)" : undefined,
+                                cursor: velocity !== null ? "pointer" : "default",
+                              }}
+                              onClick={handleSelect}
+                            >
+                              <div
+                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
+                                style={{
+                                  width: leftGutterPx,
+                                  borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
+                                }}
+                              >
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+                                  className={`text-[11px] leading-none transition-colors ${
+                                    hidden ? "text-gray-600 hover:text-gray-300" : "text-accent hover:text-white"
+                                  }`}
+                                  title={hidden ? "Show" : "Hide"}
+                                >
+                                  {hidden ? "○" : "●"}
+                                </button>
+                                <span className={`font-mono text-[10px] ${hidden ? "text-gray-600" : "text-gray-300"}`}>
+                                  {midiNoteName(pitch)}
+                                </span>
+                                <span className={`font-mono text-[10px] ${hidden ? "text-gray-700" : "text-gray-600"}`}>
+                                  {pitch}
+                                </span>
+                                {velocity !== null && (
+                                  <span className="text-gray-600 text-[10px]">v{velocity}</span>
+                                )}
+                                {tag ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                    }}
+                                    className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
+                                    style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
+                                  >
+                                    <span>{tag.label}</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                    }}
+                                    className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
+                                  >
+                                    + tag
+                                  </button>
+                                )}
+                              </div>
+                              {(() => {
+                                const rowMappings = oscMappings.filter(
+                                  (m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device
+                                );
+                                return (
+                                  <div className="flex-1 flex items-center gap-1.5 px-3 overflow-hidden">
+                                    {rowMappings.map((m) => (
+                                      <div
+                                        key={m.id}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOscEditor({
+                                            targetType: "noteGroup",
+                                            targetId: `${pitch}|${tagVelocity}`,
+                                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                                            editingMapping: m,
+                                          });
+                                        }}
+                                      >
+                                        <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
+                                          className="text-accent/40 hover:text-red-400 leading-none transition-colors"
+                                        >×</button>
+                                      </div>
+                                    ))}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOscEditor({
+                                          targetType: "noteGroup",
+                                          targetId: `${pitch}|${tagVelocity}`,
+                                          anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                                        });
+                                      }}
+                                      className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0"
+                                    >
+                                      + OSC
+                                    </button>
+                                    <span className="ml-auto text-[10px] text-gray-700 shrink-0">{count}×</span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 );
               case "cc":
                 return (

@@ -588,6 +588,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           deviceAliases={deviceAliases}
           selectedVelocity={noteSelection?.device === device ? { pitch: noteSelection.pitch, velocity: noteSelection.velocity } : null}
           activeSectionRange={activeSection ? { startMs: activeSection.startMs, endMs: activeSection.endMs } : null}
+          activeSectionName={activeSection?.name}
           onNoteClick={(span) => handleNoteClick(device, span)}
           allGroups={displayGroupsByDevice.get(device) ?? []}
           hiddenNoteKeys={hiddenKeysByDevice.get(device) ?? new Set()}
