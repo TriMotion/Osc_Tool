@@ -566,31 +566,28 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 {velocity !== null && (
                                   <span className="text-gray-600 text-[10px]">v{velocity}</span>
                                 )}
-                                <div className="ml-auto flex items-center gap-1.5">
-                                  <span className="text-[10px] text-gray-700">{count}×</span>
-                                  {tag ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                                      }}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
-                                      style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
-                                    >
-                                      <span>{tag.label}</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                                      }}
-                                      className="opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
-                                    >
-                                      + tag
-                                    </button>
-                                  )}
-                                </div>
+                                {tag ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                    }}
+                                    className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
+                                    style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
+                                  >
+                                    <span>{tag.label}</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                    }}
+                                    className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
+                                  >
+                                    + tag
+                                  </button>
+                                )}
                               </div>
                               {(() => {
                                 const rowMappings = oscMappings.filter(
@@ -604,6 +601,54 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 }
                                 return (
                                   <div className="relative flex-1 h-full overflow-hidden" style={{ minHeight: 24 }}>
+                                    {/* Count badge — far right, always visible */}
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-700 pointer-events-none">
+                                      {count}×
+                                    </span>
+                                    {/* Chips — grouped by section, positioned at section startMs */}
+                                    {Array.from(grouped.entries()).map(([sKey, chips]) => {
+                                      const sec = sKey !== "__none__" ? sections.find((s) => s.name === sKey) : undefined;
+                                      const secColor = sec?.color;
+                                      return (
+                                        <div
+                                          key={sKey}
+                                          className="absolute flex items-center gap-1 top-1/2 -translate-y-1/2"
+                                          style={{ left: sectionLeftPct(sKey === "__none__" ? undefined : sKey) }}
+                                        >
+                                          {chips.map((m) => (
+                                            <div
+                                              key={m.id}
+                                              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 cursor-pointer transition-colors"
+                                              style={secColor ? {
+                                                borderColor: `${secColor}55`,
+                                                background: `${secColor}18`,
+                                                color: secColor,
+                                              } : {
+                                                borderColor: "rgba(142,203,255,0.2)",
+                                                background: "rgba(142,203,255,0.05)",
+                                                color: "rgba(142,203,255,0.8)",
+                                              }}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOscEditor({
+                                                  targetType: "noteGroup",
+                                                  targetId: `${pitch}|${tagVelocity}`,
+                                                  anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                                                  editingMapping: m,
+                                                });
+                                              }}
+                                            >
+                                              <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
+                                                className="opacity-40 hover:text-red-400 leading-none transition-colors"
+                                              >×</button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })}
+                                    {/* + OSC button rendered last so it stacks on top of chips */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -613,40 +658,11 @@ export function DeviceSection(props: DeviceSectionProps) {
                                           anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                         });
                                       }}
-                                      className="absolute z-10 opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0 top-1/2 -translate-y-1/2"
+                                      className="absolute opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 top-1/2 -translate-y-1/2 bg-surface"
                                       style={{ left: 4 }}
                                     >
                                       + OSC
                                     </button>
-                                    {Array.from(grouped.entries()).map(([sKey, chips]) => (
-                                      <div
-                                        key={sKey}
-                                        className="absolute flex items-center gap-1 top-1/2 -translate-y-1/2"
-                                        style={{ left: sectionLeftPct(sKey === "__none__" ? undefined : sKey) }}
-                                      >
-                                        {chips.map((m) => (
-                                          <div
-                                            key={m.id}
-                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setOscEditor({
-                                                targetType: "noteGroup",
-                                                targetId: `${pitch}|${tagVelocity}`,
-                                                anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                                                editingMapping: m,
-                                              });
-                                            }}
-                                          >
-                                            <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
-                                              className="text-accent/40 hover:text-red-400 leading-none transition-colors"
-                                            >×</button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ))}
                                   </div>
                                 );
                               })()}
