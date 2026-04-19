@@ -14,6 +14,7 @@ interface UseOscPlaybackArgs {
 export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints }: UseOscPlaybackArgs) {
   const firedRef = useRef<Set<string>>(new Set());
   const lastPlayheadRef = useRef<number>(0);
+  const wasPlayingRef = useRef<boolean>(false);
 
   // Pre-compute annotated event queue — rebuilt only when recording or its mappings change.
   const queue = useMemo(() => {
@@ -44,6 +45,16 @@ export function useOscPlayback({ recording, playheadMs, isPlaying, endpoints }: 
       firedRef.current.clear();
     }
     lastPlayheadRef.current = playheadMs;
+
+    // On transition from paused → playing, seed firedRef with all events already behind
+    // the playhead so they don't burst-fire on the first tick after resume/seek.
+    if (isPlaying && !wasPlayingRef.current) {
+      for (const item of queue) {
+        if (item.tRel > playheadMs) break;
+        firedRef.current.add(`${item.eventIdx}-${item.mappingId}`);
+      }
+    }
+    wasPlayingRef.current = isPlaying;
 
     if (!isPlaying || queue.length === 0) return;
 

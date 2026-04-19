@@ -48,6 +48,8 @@ export function matchesMapping(evt: RecordedEvent, mapping: OscMapping): boolean
       return evt.midi.data1 === pitch && evt.midi.data2 === velocity;
     }
     if ((mapping.trigger === "off" || mapping.trigger === "both") && evt.midi.type === "noteoff") {
+      // Note-off events don't carry the originating note-on velocity, so we match
+      // on pitch only — all velocity variants of this pitch will fire on note-off.
       return evt.midi.data1 === pitch;
     }
     return false;
