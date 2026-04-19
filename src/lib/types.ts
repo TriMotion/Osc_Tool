@@ -159,6 +159,16 @@ export interface TimelineSection {
   color?: string;
 }
 
+/** A user-applied label on a note group (pitch + optional velocity) within a recording. */
+export interface NoteGroupTag {
+  id: string;
+  device: string;
+  pitch: number;
+  velocity: number | null;  // null = match all velocities of this pitch
+  label: string;
+  color?: string;            // CSS color; hash-based fallback at render time
+}
+
 export interface Recording {
   version: 1;
   id: string;
@@ -265,14 +275,4 @@ export interface Moment {
   label: string;                // display text
   color?: string;               // user-chosen color for "user" kind; auto ones use kind-based color
   score?: number;               // 0..1 "interestingness" for auto kinds
-}
-
-/** A user-applied label on a note group (pitch + optional velocity) within a recording. */
-export interface NoteGroupTag {
-  id: string;
-  device: string;
-  pitch: number;
-  velocity: number | null;  // null = match all velocities of this pitch
-  label: string;
-  color?: string;            // CSS color; hash-based fallback at render time
 }
