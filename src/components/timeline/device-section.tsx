@@ -603,7 +603,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                   grouped.get(sKey)!.push(m);
                                 }
                                 return (
-                                  <div className="relative flex-1 overflow-hidden">
+                                  <div className="relative flex-1 h-full overflow-hidden" style={{ minHeight: 24 }}>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
