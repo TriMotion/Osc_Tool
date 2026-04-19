@@ -429,6 +429,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           endpoints={endpoints}
           defaultEndpointId={defaultEndpointId}
           sections={sections}
+          defaultSectionName={activeSectionName}
           anchorRect={oscEditor.anchorRect}
           deviceAliases={deviceAliases}
           editingMapping={oscEditor.editingMapping}
@@ -556,56 +557,52 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 {velocity !== null && (
                                   <span className="text-gray-600 text-[10px]">v{velocity}</span>
                                 )}
-                                {tag ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                                    }}
-                                    className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
-                                    style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
-                                  >
-                                    <span>{tag.label}</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
-                                    }}
-                                    className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
-                                  >
-                                    + tag
-                                  </button>
-                                )}
+                                <div className="ml-auto flex items-center gap-1.5">
+                                  <span className="text-[10px] text-gray-700">{count}×</span>
+                                  {tag ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                      }}
+                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
+                                      style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
+                                    >
+                                      <span>{tag.label}</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                                      }}
+                                      className="opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
+                                    >
+                                      + tag
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               {(() => {
                                 const rowMappings = oscMappings.filter(
                                   (m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device
                                 );
+                                const viewSpan = Math.max(1, viewEndMs - viewStartMs);
+                                const sectionLeftPct = (sName: string | undefined): string => {
+                                  if (!sName) return "0%";
+                                  const sec = sections.find((s) => s.name === sName);
+                                  if (!sec) return "0%";
+                                  const frac = Math.max(0, (sec.startMs - viewStartMs) / viewSpan);
+                                  return `${frac * 100}%`;
+                                };
+                                const grouped = new Map<string, typeof rowMappings>();
+                                for (const m of rowMappings) {
+                                  const key = m.sectionName ?? "__none__";
+                                  if (!grouped.has(key)) grouped.set(key, []);
+                                  grouped.get(key)!.push(m);
+                                }
                                 return (
-                                  <div className="flex-1 flex items-center gap-1.5 px-3 overflow-hidden">
-                                    {rowMappings.map((m) => (
-                                      <div
-                                        key={m.id}
-                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOscEditor({
-                                            targetType: "noteGroup",
-                                            targetId: `${pitch}|${tagVelocity}`,
-                                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                                            editingMapping: m,
-                                          });
-                                        }}
-                                      >
-                                        <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
-                                          className="text-accent/40 hover:text-red-400 leading-none transition-colors"
-                                        >×</button>
-                                      </div>
-                                    ))}
+                                  <div className="relative flex-1 h-full overflow-hidden">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -615,11 +612,40 @@ export function DeviceSection(props: DeviceSectionProps) {
                                           anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                         });
                                       }}
-                                      className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0"
+                                      className="absolute opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15 shrink-0 top-1/2 -translate-y-1/2"
+                                      style={{ left: 4 }}
                                     >
                                       + OSC
                                     </button>
-                                    <span className="ml-auto text-[10px] text-gray-700 shrink-0">{count}×</span>
+                                    {Array.from(grouped.entries()).map(([sKey, chips]) => (
+                                      <div
+                                        key={sKey}
+                                        className="absolute flex items-center gap-1 top-1/2 -translate-y-1/2"
+                                        style={{ left: sectionLeftPct(sKey === "__none__" ? undefined : sKey) }}
+                                      >
+                                        {chips.map((m) => (
+                                          <div
+                                            key={m.id}
+                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border border-accent/20 bg-accent/5 text-accent/80 shrink-0 cursor-pointer hover:border-accent/40 hover:bg-accent/10 transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setOscEditor({
+                                                targetType: "noteGroup",
+                                                targetId: `${pitch}|${tagVelocity}`,
+                                                anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                                                editingMapping: m,
+                                              });
+                                            }}
+                                          >
+                                            <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
+                                              className="text-accent/40 hover:text-red-400 leading-none transition-colors"
+                                            >×</button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ))}
                                   </div>
                                 );
                               })()}
