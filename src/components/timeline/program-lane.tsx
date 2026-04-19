@@ -21,7 +21,13 @@ interface ProgramLaneProps {
   userBadges?: LaneBadge[];
   onRequestAddBadge?: (laneKey: string) => void;
   onEditBadge?: (badge: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+  suppressedAnalysisTypes?: Set<"rhythm" | "dynamic" | "melody">;
+  onSuppressAnalysisBadge?: (type: "rhythm" | "dynamic" | "melody") => void;
   isFlashing?: boolean;
+  onHide?: () => void;
+  onRequestOscEditor?: (targetId: string, anchorRect: DOMRect) => void;
+  hasOscMapping?: boolean;
 }
 
 export function ProgramLane(props: ProgramLaneProps) {
@@ -29,7 +35,8 @@ export function ProgramLane(props: ProgramLaneProps) {
     label, sublabel, events, eventIndices,
     viewStartMs, viewEndMs, heightPx, leftGutterPx,
     onHover, onResize, laneKey, analysis, userBadges,
-    onRequestAddBadge, onEditBadge, isFlashing,
+    onRequestAddBadge, onEditBadge, onDeleteBadge, suppressedAnalysisTypes, onSuppressAnalysisBadge, isFlashing, onHide,
+    onRequestOscEditor, hasOscMapping,
   } = props;
 
   const visible = useMemo(() => {
@@ -59,7 +66,7 @@ export function ProgramLane(props: ProgramLaneProps) {
       style={{ height: heightPx }}
     >
       <div
-        className="text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden"
+        className="group/gutter text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden relative"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         <span className="truncate">{label}</span>
@@ -69,7 +76,33 @@ export function ProgramLane(props: ProgramLaneProps) {
           userBadges={userBadges}
           onAddClick={() => onRequestAddBadge?.(laneKey)}
           onBadgeClick={(b) => onEditBadge?.(b)}
+          onDeleteBadge={onDeleteBadge}
+          suppressedTypes={suppressedAnalysisTypes}
+          onSuppressBadge={onSuppressAnalysisBadge}
         />
+        {onHide && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onHide(); }}
+            className="absolute top-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] text-gray-600 hover:text-red-400 leading-none"
+            title="Hide lane"
+          >⊘</button>
+        )}
+        {onRequestOscEditor && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestOscEditor(laneKey, (e.currentTarget as HTMLElement).getBoundingClientRect());
+            }}
+            className={`absolute bottom-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] px-1 py-0.5 rounded border leading-none ${
+              hasOscMapping
+                ? "text-accent border-accent/30 opacity-100"
+                : "text-gray-600 border-white/5 hover:text-gray-400"
+            }`}
+            title="OSC mapping"
+          >
+            OSC
+          </button>
+        )}
       </div>
       <div className="flex-1 relative">
         {visible.map((idx) => {

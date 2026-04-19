@@ -27,7 +27,13 @@ interface ContinuousLaneProps {
   userBadges?: LaneBadge[];
   onRequestAddBadge?: (laneKey: string) => void;
   onEditBadge?: (badge: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+  suppressedAnalysisTypes?: Set<"rhythm" | "dynamic" | "melody">;
+  onSuppressAnalysisBadge?: (type: "rhythm" | "dynamic" | "melody") => void;
   isFlashing?: boolean;
+  onHide?: () => void;
+  onRequestOscEditor?: (targetId: string, anchorRect: DOMRect) => void;
+  hasOscMapping?: boolean;
 }
 
 export function ContinuousLane({
@@ -50,7 +56,13 @@ export function ContinuousLane({
   userBadges,
   onRequestAddBadge,
   onEditBadge,
+  onDeleteBadge,
+  suppressedAnalysisTypes,
+  onSuppressAnalysisBadge,
   isFlashing,
+  onHide,
+  onRequestOscEditor,
+  hasOscMapping,
 }: ContinuousLaneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -80,42 +92,51 @@ export function ContinuousLane({
       (e) => map(eventValue(e))
     );
 
-    // Fill under curve
+    // Fill under curve — one closed path per contiguous data segment to avoid bridging gaps
     ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.moveTo(0, height);
-    let hadAny = false;
+    let inSeg = false;
     for (let i = 0; i < pixelCount; i++) {
       const b = buckets[i];
-      if (b) {
-        const yTop = height - b.max * height;
-        ctx.lineTo(i, yTop);
-        hadAny = true;
+      if (!b) {
+        if (inSeg) {
+          ctx.lineTo(i - 1, height);
+          ctx.closePath();
+          ctx.fill();
+          inSeg = false;
+        }
+        continue;
       }
+      if (!inSeg) {
+        ctx.beginPath();
+        ctx.moveTo(i, height);
+        inSeg = true;
+      }
+      ctx.lineTo(i, height - b.max * height);
     }
-    if (hadAny) {
+    if (inSeg) {
       ctx.lineTo(pixelCount - 1, height);
       ctx.closePath();
       ctx.fill();
     }
 
-    // Stroke (top of each bucket)
+    // Stroke — restart path on every gap so segments never connect across empty regions
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.2;
     ctx.beginPath();
-    let started = false;
+    let prevHadData = false;
     for (let i = 0; i < pixelCount; i++) {
       const b = buckets[i];
-      if (!b) continue;
+      if (!b) { prevHadData = false; continue; }
       const yMax = height - b.max * height;
       const yMin = height - b.min * height;
-      if (!started) { ctx.moveTo(i, yMax); started = true; }
+      if (!prevHadData) ctx.moveTo(i, yMax);
       else ctx.lineTo(i, yMax);
       if (yMin !== yMax) {
         ctx.moveTo(i, yMin);
         ctx.lineTo(i, yMax);
         ctx.moveTo(i, yMax);
       }
+      prevHadData = true;
     }
     ctx.stroke();
   }, [events, eventIndices, viewStartMs, viewEndMs, heightPx, color, fill, map, bufferVersion]);
@@ -155,7 +176,7 @@ export function ContinuousLane({
       onMouseLeave={handleMouseLeave}
     >
       <div
-        className="text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden"
+        className="group/gutter text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden relative"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         <span className="truncate">{label}</span>
@@ -165,7 +186,33 @@ export function ContinuousLane({
           userBadges={userBadges}
           onAddClick={() => onRequestAddBadge?.(laneKey)}
           onBadgeClick={(b) => onEditBadge?.(b)}
+          onDeleteBadge={onDeleteBadge}
+          suppressedTypes={suppressedAnalysisTypes}
+          onSuppressBadge={onSuppressAnalysisBadge}
         />
+        {onHide && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onHide(); }}
+            className="absolute top-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] text-gray-600 hover:text-red-400 leading-none"
+            title="Hide lane"
+          >⊘</button>
+        )}
+        {onRequestOscEditor && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestOscEditor(laneKey, (e.currentTarget as HTMLElement).getBoundingClientRect());
+            }}
+            className={`absolute bottom-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] px-1 py-0.5 rounded border leading-none ${
+              hasOscMapping
+                ? "text-accent border-accent/30 opacity-100"
+                : "text-gray-600 border-white/5 hover:text-gray-400"
+            }`}
+            title="OSC mapping"
+          >
+            OSC
+          </button>
+        )}
       </div>
       <div className="flex-1 relative">
         <canvas ref={canvasRef} className="w-full h-full block" />
