@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
+import { useRef, useMemo, useState, useEffect, Fragment } from "react";
 import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
@@ -456,8 +456,8 @@ export function DeviceSection(props: DeviceSectionProps) {
             switch (entry.key.kind) {
               case "notes":
                 return (
-                  <>
-                    <div data-lane-key={keyStr} key="notes">
+                  <Fragment key="notes">
+                    <div data-lane-key={keyStr}>
                       <NotesLane
                         spans={deviceNoteSpans}
                         viewStartMs={viewStartMs}
@@ -628,7 +628,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                         })}
                       </div>
                     )}
-                  </>
+                  </Fragment>
                 );
               case "cc":
                 return (
