@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useMemo, useState, useEffect } from "react";
-import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
 import { NoteTagEditor } from "./note-tag-editor";
+import { OscMappingEditor } from "./osc-mapping-editor";
 import { NotesLane } from "./notes-lane";
 import { ContinuousLane } from "./continuous-lane";
 import { ProgramLane } from "./program-lane";
@@ -29,6 +30,9 @@ interface DeviceSectionProps {
   getBadgesFor?: (key: string) => LaneBadge[] | undefined;
   onRequestAddBadge?: (laneKey: string) => void;
   onEditBadge?: (badge: LaneBadge) => void;
+  onDeleteBadge?: (id: string) => void;
+  suppressedAnalysis?: Set<string>;
+  onSuppressAnalysis?: (laneKey: string, type: "rhythm" | "dynamic" | "melody") => void;
   flashLaneKeys?: Set<string>;
   onDeleteDevice?: (deviceName: string) => void;
   selectedVelocity?: { pitch: number; velocity: number } | null;
@@ -37,9 +41,14 @@ interface DeviceSectionProps {
   allGroups?: Array<{ pitch: number; velocity: number; count: number }>;
   hiddenNoteKeys?: Set<string>;
   onToggleNoteGroup?: (pitch: number, velocity: number) => void;
+  onSelectGroup?: (pitch: number, velocity: number) => void;
   noteTags?: NoteGroupTag[];
   onSaveNoteTag?: (tag: NoteGroupTag) => void;
   onDeleteNoteTag?: (id: string) => void;
+  oscMappings?: OscMapping[];
+  endpoints?: SavedEndpoint[];
+  onAddOscMapping?: (mapping: OscMapping) => void;
+  onDeleteOscMapping?: (id: string) => void;
   hiddenLanes: Set<string>;
   onHideLane: (key: string) => void;
   onShowLane: (key: string) => void;
@@ -84,10 +93,12 @@ export function DeviceSection(props: DeviceSectionProps) {
     viewStartMs, viewEndMs, leftGutterPx, collapsed, onToggleCollapsed,
     bufferVersion, onHoverEvent, onHoverSpan,
     getLaneHeight, onLaneResize,
-    getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, flashLaneKeys,
+    getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, onDeleteBadge,
+    suppressedAnalysis, onSuppressAnalysis, flashLaneKeys,
     onDeleteDevice, selectedVelocity, activeSectionRange, onNoteClick,
-    allGroups = [], hiddenNoteKeys, onToggleNoteGroup,
+    allGroups = [], hiddenNoteKeys, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
+    oscMappings = [], endpoints = [], onAddOscMapping, onDeleteOscMapping,
     hiddenLanes, onHideLane, onShowLane,
   } = props;
 
@@ -113,15 +124,85 @@ export function DeviceSection(props: DeviceSectionProps) {
 
   const thisDeviceHiddenCount = laneEntries.filter((e) => hiddenLanes.has(laneKeyString(e.key))).length;
   const headerCount = `${laneEntries.length - thisDeviceHiddenCount} / ${laneEntries.length} lane${laneEntries.length === 1 ? "" : "s"}`;
-  const hiddenCount = allGroups.filter((g) => hiddenNoteKeys?.has(`${g.pitch}|${g.velocity}`)).length;
   const [panelOpen, setPanelOpen] = useState(false);
   const [lanesOpen, setLanesOpen] = useState(false);
+  const [filterTagged, setFilterTagged] = useState(false);
+  const [combineVelocity, setCombineVelocity] = useState(false);
   const [tagEditor, setTagEditor] = useState<{
     pitch: number;
     velocity: number;
     anchorRect: DOMRect;
   } | null>(null);
+  const [oscEditor, setOscEditor] = useState<{
+    targetType: "noteGroup" | "lane";
+    targetId: string;
+    anchorRect: DOMRect;
+  } | null>(null);
+  const defaultEndpointId = useMemo(
+    () => oscMappings.length > 0 ? oscMappings[oscMappings.length - 1].endpointId : endpoints[0]?.id,
+    [oscMappings, endpoints]
+  );
   const lanesMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Merged/filtered rows for the panel
+  const displayGroups = useMemo(() => {
+    type DisplayGroup = {
+      key: string;
+      pitch: number;
+      velocity: number | null;
+      velocities: number[];
+      count: number;
+    };
+
+    let groups: DisplayGroup[];
+
+    if (combineVelocity) {
+      const byPitch = new Map<number, { velocities: number[]; count: number }>();
+      for (const g of allGroups) {
+        const entry = byPitch.get(g.pitch) ?? { velocities: [], count: 0 };
+        entry.velocities.push(g.velocity);
+        entry.count += g.count;
+        byPitch.set(g.pitch, entry);
+      }
+      groups = Array.from(byPitch.entries()).map(([pitch, { velocities, count }]) => ({
+        key: `${pitch}|combined`,
+        pitch,
+        velocity: null,
+        velocities,
+        count,
+      }));
+    } else {
+      groups = allGroups.map((g) => ({
+        key: `${g.pitch}|${g.velocity}`,
+        pitch: g.pitch,
+        velocity: g.velocity,
+        velocities: [g.velocity],
+        count: g.count,
+      }));
+    }
+
+    if (filterTagged) {
+      groups = groups.filter((g) =>
+        g.velocities.some((v) => !!findNoteTag(noteTags, device, g.pitch, v))
+      );
+    }
+
+    return groups;
+  }, [allGroups, combineVelocity, filterTagged, noteTags, device]);
+
+  // Keys to hide on the canvas (merges parent hidden set with filter state)
+  const effectiveHiddenKeys = useMemo(() => {
+    if (!filterTagged) return hiddenNoteKeys;
+    const extra = new Set(hiddenNoteKeys);
+    for (const g of allGroups) {
+      if (!findNoteTag(noteTags, device, g.pitch, g.velocity)) {
+        extra.add(`${g.pitch}|${g.velocity}`);
+      }
+    }
+    return extra;
+  }, [filterTagged, hiddenNoteKeys, allGroups, noteTags, device]);
+
+  const hiddenCount = allGroups.filter((g) => effectiveHiddenKeys?.has(`${g.pitch}|${g.velocity}`)).length;
 
   useEffect(() => {
     if (!lanesOpen) return;
@@ -219,19 +300,61 @@ export function DeviceSection(props: DeviceSectionProps) {
       {/* Note groups panel — in-flow, full timeline width, same gutter layout as lanes */}
       {panelOpen && allGroups.length > 0 && (
         <div className="border-t border-white/5 bg-black/10">
-          {allGroups.map(({ pitch, velocity, count }) => {
-            const hidden = hiddenNoteKeys?.has(`${pitch}|${velocity}`) ?? false;
-            const tag = findNoteTag(noteTags, device, pitch, velocity);
+          {/* Filter toolbar */}
+          <div className="flex items-center gap-1.5 px-3 py-1 border-b border-white/[0.04]">
+            <button
+              onClick={() => setFilterTagged((v) => !v)}
+              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                filterTagged
+                  ? "bg-accent/20 text-accent border-accent/30"
+                  : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
+              }`}
+            >
+              tagged only
+            </button>
+            <button
+              onClick={() => setCombineVelocity((v) => !v)}
+              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                combineVelocity
+                  ? "bg-accent/20 text-accent border-accent/30"
+                  : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
+              }`}
+            >
+              combine vel
+            </button>
+          </div>
+
+          {displayGroups.map(({ key, pitch, velocity, velocities, count }) => {
+            const hidden = velocities.every((v) => effectiveHiddenKeys?.has(`${pitch}|${v}`));
+            const tag = velocity !== null
+              ? findNoteTag(noteTags, device, pitch, velocity)
+              : noteTags.find((t) => t.device === device && t.pitch === pitch && t.velocity === null) ??
+                (velocities.length > 0 ? findNoteTag(noteTags, device, pitch, velocities[0]) : undefined);
             const chipColor = tag ? tagColor(tag) : undefined;
-            const isSelected = selectedVelocity?.pitch === pitch && selectedVelocity?.velocity === velocity;
+            const isSelected = velocity !== null
+              ? selectedVelocity?.pitch === pitch && selectedVelocity?.velocity === velocity
+              : selectedVelocity?.pitch === pitch;
+
+            const handleToggle = () => {
+              for (const v of velocities) onToggleNoteGroup?.(pitch, v);
+            };
+
+            const handleSelect = () => {
+              if (velocity !== null) onSelectGroup?.(pitch, velocity);
+            };
+
+            const tagVelocity = velocity ?? velocities[0];
+
             return (
               <div
-                key={`${pitch}|${velocity}`}
+                key={key}
                 className="flex items-center border-t border-white/[0.03] first:border-t-0 group/row"
                 style={{
                   height: 24,
                   background: isSelected ? "rgba(142,203,255,0.08)" : undefined,
+                  cursor: velocity !== null ? "pointer" : "default",
                 }}
+                onClick={handleSelect}
               >
                 {/* Gutter */}
                 <div
@@ -242,7 +365,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                   }}
                 >
                   <button
-                    onClick={() => onToggleNoteGroup?.(pitch, velocity)}
+                    onClick={(e) => { e.stopPropagation(); handleToggle(); }}
                     className={`text-[11px] leading-none transition-colors ${
                       hidden ? "text-gray-600 hover:text-gray-300" : "text-accent hover:text-white"
                     }`}
@@ -253,12 +376,14 @@ export function DeviceSection(props: DeviceSectionProps) {
                   <span className={`font-mono text-[10px] ${hidden ? "text-gray-600" : "text-gray-300"}`}>
                     {midiNoteName(pitch)}
                   </span>
-                  <span className="text-gray-600 text-[10px]">v{velocity}</span>
+                  {velocity !== null && (
+                    <span className="text-gray-600 text-[10px]">v{velocity}</span>
+                  )}
                   {tag ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setTagEditor({ pitch, velocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                       }}
                       className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border hover:opacity-80 transition-opacity"
                       style={{ color: chipColor, borderColor: `${chipColor}44`, background: `${chipColor}11` }}
@@ -269,13 +394,31 @@ export function DeviceSection(props: DeviceSectionProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setTagEditor({ pitch, velocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                       }}
                       className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
                     >
                       + tag
                     </button>
                   )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOscEditor({
+                        targetType: "noteGroup",
+                        targetId: `${pitch}|${tagVelocity}`,
+                        anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                      });
+                    }}
+                    className={`opacity-0 group-hover/row:opacity-100 text-[10px] transition-all px-1.5 py-0.5 rounded border ${
+                      oscMappings.some((m) => m.targetType === "noteGroup" && m.targetId === `${pitch}|${tagVelocity}` && m.deviceId === device)
+                        ? "text-accent border-accent/30 opacity-100"
+                        : "text-gray-600 border-white/5 hover:text-gray-400 hover:border-white/15"
+                    }`}
+                    title="OSC mapping"
+                  >
+                    OSC
+                  </button>
                 </div>
                 {/* Track area */}
                 <div className="flex-1 flex items-center px-3">
@@ -312,6 +455,23 @@ export function DeviceSection(props: DeviceSectionProps) {
         );
       })()}
 
+      {oscEditor && (
+        <OscMappingEditor
+          targetType={oscEditor.targetType}
+          targetId={oscEditor.targetId}
+          deviceId={device}
+          mappings={oscMappings.filter(
+            (m) => m.targetType === oscEditor.targetType && m.targetId === oscEditor.targetId && m.deviceId === device
+          )}
+          endpoints={endpoints}
+          defaultEndpointId={defaultEndpointId}
+          anchorRect={oscEditor.anchorRect}
+          onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
+          onDelete={(id) => { onDeleteOscMapping?.(id); }}
+          onClose={() => setOscEditor(null)}
+        />
+      )}
+
       {collapsed ? (
         <CollapsedSummaryRow
           entries={laneEntries}
@@ -340,13 +500,16 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onNoteClick={onNoteClick}
                       selectedVelocity={selectedVelocity}
                       activeSectionRange={activeSectionRange}
-                      hiddenNoteKeys={hiddenNoteKeys}
+                      hiddenNoteKeys={effectiveHiddenKeys}
                       onResize={(h) => onLaneResize(keyStr, h)}
                       laneKey={keyStr}
                       analysis={getAnalysisFor?.(keyStr)}
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
+                      onDeleteBadge={onDeleteBadge}
+                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
                       noteTags={noteTags}
@@ -375,6 +538,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
+                      onDeleteBadge={onDeleteBadge}
+                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
                     />
@@ -403,6 +569,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
+                      onDeleteBadge={onDeleteBadge}
+                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
                     />
@@ -431,6 +600,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
+                      onDeleteBadge={onDeleteBadge}
+                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
                     />
@@ -456,6 +628,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                       userBadges={getBadgesFor?.(keyStr)}
                       onRequestAddBadge={onRequestAddBadge}
                       onEditBadge={onEditBadge}
+                      onDeleteBadge={onDeleteBadge}
+                      suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
+                      onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
                     />
@@ -470,6 +645,14 @@ export function DeviceSection(props: DeviceSectionProps) {
 }
 
 function keyDevice(k: LaneKey): string { return k.device; }
+
+function suppressedTypesFor(suppressed: Set<string>, laneKey: string): Set<"rhythm" | "dynamic" | "melody"> | undefined {
+  const result = new Set<"rhythm" | "dynamic" | "melody">();
+  for (const type of ["rhythm", "dynamic", "melody"] as const) {
+    if (suppressed.has(`${laneKey}:${type}`)) result.add(type);
+  }
+  return result.size > 0 ? result : undefined;
+}
 
 function laneLabelShort(k: LaneKey): string {
   switch (k.kind) {
