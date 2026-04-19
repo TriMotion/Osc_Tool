@@ -311,12 +311,10 @@ export function DeviceSection(props: DeviceSectionProps) {
             )}
           </span>
         )}
-        <span className="ml-auto text-gray-600 font-normal">{headerCount}</span>
-
         {allGroups.length > 0 && (
           <button
             onClick={(e) => { e.stopPropagation(); setPanelOpen((v) => !v); }}
-            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+            className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               panelOpen
                 ? "bg-accent/20 text-accent border-accent/30"
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
@@ -345,14 +343,11 @@ export function DeviceSection(props: DeviceSectionProps) {
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               lanesOpen
                 ? "bg-accent/20 text-accent border-accent/30"
-                : thisDeviceHiddenCount > 0
-                  ? "text-amber-400 border-amber-400/30 hover:border-amber-400/50"
-                  : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
+                : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
             title="Toggle lanes"
           >
             <span>Lanes</span>
-            {thisDeviceHiddenCount > 0 && <span className="text-gray-600">· ⊘{thisDeviceHiddenCount}</span>}
             <span>{lanesOpen ? "▴" : "▾"}</span>
           </button>
           {lanesOpen && (
@@ -583,7 +578,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                       e.stopPropagation();
                                       setTagEditor({ pitch, velocity: tagVelocity, anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
                                     }}
-                                    className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-white/15"
+                                    className="ml-auto opacity-0 group-hover/row:opacity-100 text-[10px] text-gray-600 hover:text-gray-400 transition-all px-1 py-px rounded border border-white/5 hover:border-white/15 leading-none"
                                   >
                                     + tag
                                   </button>
@@ -608,6 +603,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                     {/* Chips — grouped by section, positioned at section startMs */}
                                     {Array.from(grouped.entries()).map(([sKey, chips]) => {
                                       const sec = sKey !== "__none__" ? sections.find((s) => s.name === sKey) : undefined;
+                                      if (sec && (sec.startMs < viewStartMs || sec.startMs > viewEndMs)) return null;
                                       const secColor = sec?.color;
                                       return (
                                         <div
