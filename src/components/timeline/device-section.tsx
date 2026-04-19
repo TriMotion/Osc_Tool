@@ -543,6 +543,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
+                      onRequestOscEditor={(targetId, anchorRect) => {
+                        setOscEditor({ targetType: "lane", targetId, anchorRect });
+                      }}
+                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
                     />
                   </div>
                 );
@@ -574,6 +578,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
+                      onRequestOscEditor={(targetId, anchorRect) => {
+                        setOscEditor({ targetType: "lane", targetId, anchorRect });
+                      }}
+                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
                     />
                   </div>
                 );
@@ -605,6 +613,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
+                      onRequestOscEditor={(targetId, anchorRect) => {
+                        setOscEditor({ targetType: "lane", targetId, anchorRect });
+                      }}
+                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
                     />
                   </div>
                 );
@@ -633,6 +645,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                       onHide={() => onHideLane(keyStr)}
+                      onRequestOscEditor={(targetId, anchorRect) => {
+                        setOscEditor({ targetType: "lane", targetId, anchorRect });
+                      }}
+                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
                     />
                   </div>
                 );
