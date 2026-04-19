@@ -211,6 +211,7 @@ export interface Recording {
   hiddenLanes?: string[];
   hiddenNoteGroups?: string[];
   oscMappings?: OscMapping[];
+  deviceAliases?: Record<string, string>;  // original device name → display name
   suppressedAnalysis?: string[];  // "${laneKey}:rhythm" | "${laneKey}:dynamic" | "${laneKey}:melody"
 }
 
