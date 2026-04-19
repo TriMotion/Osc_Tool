@@ -36,6 +36,9 @@ interface DeviceSectionProps {
   onSuppressAnalysis?: (laneKey: string, type: "rhythm" | "dynamic" | "melody") => void;
   flashLaneKeys?: Set<string>;
   onDeleteDevice?: (deviceName: string) => void;
+  displayName?: string;
+  onRenameDevice?: (newName: string) => void;
+  deviceAliases?: Record<string, string>;
   selectedVelocity?: { pitch: number; velocity: number } | null;
   activeSectionRange?: { startMs: number; endMs: number } | null;
   onNoteClick?: (span: NoteSpan) => void;
@@ -97,7 +100,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     getLaneHeight, onLaneResize,
     getAnalysisFor, getBadgesFor, onRequestAddBadge, onEditBadge, onDeleteBadge,
     suppressedAnalysis, onSuppressAnalysis, flashLaneKeys,
-    onDeleteDevice, selectedVelocity, activeSectionRange, onNoteClick,
+    onDeleteDevice, displayName, onRenameDevice, deviceAliases, selectedVelocity, activeSectionRange, onNoteClick,
     allGroups = [], hiddenNoteKeys, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
     oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onDeleteOscMapping,
@@ -140,6 +143,22 @@ export function DeviceSection(props: DeviceSectionProps) {
     targetId: string;
     anchorRect: DOMRect;
   } | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const startNameEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditValue(displayName ?? device);
+    setIsEditingName(true);
+  };
+
+  const commitNameEdit = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== device) onRenameDevice?.(trimmed);
+    setIsEditingName(false);
+  };
+
+  const cancelNameEdit = () => setIsEditingName(false);
+
   const defaultEndpointId = useMemo(
     () => oscMappings.length > 0 ? oscMappings[oscMappings.length - 1].endpointId : endpoints[0]?.id,
     [oscMappings, endpoints]
@@ -225,7 +244,38 @@ export function DeviceSection(props: DeviceSectionProps) {
         className="flex items-center gap-2 px-3 py-1.5 bg-black/20 text-accent text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
       >
         <span>{collapsed ? "▸" : "▾"}</span>
-        <span>{device}</span>
+        {isEditingName ? (
+          <input
+            autoFocus
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitNameEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commitNameEdit(); }
+              if (e.key === "Escape") cancelNameEdit();
+              e.stopPropagation();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-surface-lighter border border-accent/40 rounded px-1 text-xs text-accent font-semibold focus:outline-none min-w-[60px]"
+            style={{ width: Math.max(60, editValue.length * 7) }}
+          />
+        ) : (
+          <span
+            className="group/devname flex items-center gap-1 cursor-default"
+            onDoubleClick={onRenameDevice ? startNameEdit : undefined}
+            title={onRenameDevice ? "Double-click to rename" : undefined}
+          >
+            {displayName ?? device}
+            {onRenameDevice && (
+              <span
+                className="opacity-0 group-hover/devname:opacity-50 text-[9px] text-gray-500 hover:text-gray-300 cursor-pointer leading-none"
+                onClick={startNameEdit}
+              >
+                ✎
+              </span>
+            )}
+          </span>
+        )}
         <span className="ml-auto text-gray-600 font-normal">{headerCount}</span>
 
         {allGroups.length > 0 && (
@@ -483,6 +533,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           defaultEndpointId={defaultEndpointId}
           sections={sections}
           anchorRect={oscEditor.anchorRect}
+          deviceAliases={deviceAliases}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
           onDelete={(id) => { onDeleteOscMapping?.(id); }}
           onClose={() => setOscEditor(null)}
