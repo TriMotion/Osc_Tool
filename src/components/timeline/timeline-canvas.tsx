@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, RecordedEvent, Recording, RedundancyPair, TimelineSection } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, OscMapping, RecordedEvent, Recording, RedundancyPair, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName } from "@/lib/timeline-util";
 import { TimeRuler } from "./time-ruler";
@@ -95,6 +95,9 @@ interface TimelineCanvasProps {
   onToggleTriggersSidebar: () => void;
   onRequestAddBadge: (laneKey: string) => void;
   onEditBadge: (badge: LaneBadge) => void;
+  onDeleteBadge: (id: string) => void;
+  suppressedAnalysis: string[];
+  onSuppressAnalysis: (laneKey: string, type: "rhythm" | "dynamic" | "melody") => void;
   onTagCurrentLane: () => void;
   onDeleteDevice: (deviceName: string) => void;
   sections: TimelineSection[];
@@ -104,6 +107,12 @@ interface TimelineCanvasProps {
   noteTags: NoteGroupTag[];
   onSaveNoteTag: (tag: NoteGroupTag) => void;
   onDeleteNoteTag: (id: string) => void;
+  oscMappings: OscMapping[];
+  endpoints: SavedEndpoint[];
+  onAddOscMapping: (mapping: OscMapping) => void;
+  onDeleteOscMapping: (id: string) => void;
+  onHiddenLanesChange: (lanes: string[]) => void;
+  onHiddenNoteGroupsChange: (groups: string[]) => void;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -111,9 +120,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     recording, events, bufferVersion, isRecording, laneMap, noteSpans, mappingRules,
     playheadMsRef, onSeek, audioTracks, onLoadAudio, onUnloadAudio, onAudioOffsetChange, onAudioOffsetDelta,
     analyses, redundantPairs, moments, analysisReady, analysisError, badges,
-    triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onTagCurrentLane,
+    triggersSidebarOpen, onToggleTriggersSidebar, onRequestAddBadge, onEditBadge, onDeleteBadge,
+    suppressedAnalysis, onSuppressAnalysis, onTagCurrentLane,
     onDeleteDevice, sections, onSectionsChange, userMarkers, onMarkersChange,
     noteTags, onSaveNoteTag, onDeleteNoteTag,
+    oscMappings, endpoints, onAddOscMapping, onDeleteOscMapping,
+    onHiddenLanesChange, onHiddenNoteGroupsChange,
   } = props;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -281,9 +293,49 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
 
   const devices = recording?.devices ?? [];
 
+  const suppressedAnalysisSet = useMemo(
+    () => new Set(suppressedAnalysis),
+    [suppressedAnalysis]
+  );
+
   const [noteSelection, setNoteSelection] = useState<{ device: string; pitch: number; velocity: number } | null>(null);
-  const [hiddenNoteGroups, setHiddenNoteGroups] = useState<Set<string>>(new Set());
-  const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(new Set());
+  const [hiddenNoteGroups, setHiddenNoteGroups] = useState<Set<string>>(
+    () => new Set(recording?.hiddenNoteGroups ?? [])
+  );
+  const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(
+    () => new Set(recording?.hiddenLanes ?? [])
+  );
+
+  // Reset hidden state when a different recording is loaded.
+  const recordingId = recording?.id;
+  const prevRecordingIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (recordingId === prevRecordingIdRef.current) return;
+    prevRecordingIdRef.current = recordingId;
+    setHiddenNoteGroups(new Set(recording?.hiddenNoteGroups ?? []));
+    setHiddenLanes(new Set(recording?.hiddenLanes ?? []));
+    setNoteSelection(null);
+  }, [recordingId, recording]);
+
+  // Persist hidden state changes to recording (skip if already in sync).
+  const recordingHiddenLanesRef = useRef(recording?.hiddenLanes);
+  const recordingHiddenGroupsRef = useRef(recording?.hiddenNoteGroups);
+  useEffect(() => { recordingHiddenLanesRef.current = recording?.hiddenLanes; }, [recording]);
+  useEffect(() => { recordingHiddenGroupsRef.current = recording?.hiddenNoteGroups; }, [recording]);
+
+  useEffect(() => {
+    const arr = [...hiddenLanes];
+    const current = recordingHiddenLanesRef.current;
+    if (current && current.length === arr.length && arr.every((k) => current.includes(k))) return;
+    onHiddenLanesChange(arr);
+  }, [hiddenLanes]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const arr = [...hiddenNoteGroups];
+    const current = recordingHiddenGroupsRef.current;
+    if (current && current.length === arr.length && arr.every((k) => current.includes(k))) return;
+    onHiddenNoteGroupsChange(arr);
+  }, [hiddenNoteGroups]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [originOffsetMs, setOriginOffsetMs] = useState(0);
 
@@ -439,6 +491,9 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onDelete={(id) => {
             onMarkersChange(userMarkers.filter((m) => m.id !== id));
           }}
+          onClearSystem={() => {
+            onMarkersChange(userMarkers.filter((m) => m.kind === "user"));
+          }}
           onColorChange={(id, color) => {
             onMarkersChange(userMarkers.map((m) => (m.id === id ? { ...m, color } : m)));
           }}
@@ -520,6 +575,9 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           getBadgesFor={(k) => badgesByKey.get(k)}
           onRequestAddBadge={onRequestAddBadge}
           onEditBadge={onEditBadge}
+          onDeleteBadge={onDeleteBadge}
+          suppressedAnalysis={suppressedAnalysisSet}
+          onSuppressAnalysis={onSuppressAnalysis}
           flashLaneKeys={flashLaneKeys}
           onDeleteDevice={onDeleteDevice}
           selectedVelocity={noteSelection?.device === device ? { pitch: noteSelection.pitch, velocity: noteSelection.velocity } : null}
@@ -528,9 +586,18 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           allGroups={displayGroupsByDevice.get(device) ?? []}
           hiddenNoteKeys={hiddenKeysByDevice.get(device) ?? new Set()}
           onToggleNoteGroup={(pitch, velocity) => toggleHiddenNoteGroup(device, pitch, velocity)}
+          onSelectGroup={(pitch, velocity) => setNoteSelection((prev) =>
+            prev?.device === device && prev.pitch === pitch && prev.velocity === velocity
+              ? null
+              : { device, pitch, velocity }
+          )}
           noteTags={noteTags}
           onSaveNoteTag={onSaveNoteTag}
           onDeleteNoteTag={onDeleteNoteTag}
+          oscMappings={oscMappings}
+          endpoints={endpoints}
+          onAddOscMapping={onAddOscMapping}
+          onDeleteOscMapping={onDeleteOscMapping}
           hiddenLanes={hiddenLanes}
           onHideLane={(key) => setHiddenLanes((prev) => new Set([...prev, key]))}
           onShowLane={(key) => setHiddenLanes((prev) => { const n = new Set(prev); n.delete(key); return n; })}
