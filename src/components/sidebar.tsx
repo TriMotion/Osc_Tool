@@ -10,6 +10,7 @@ const navItems = [
   { href: "/deck", label: "Deck", icon: "🎛" },
   { href: "/midi", label: "MIDI", icon: "🎹" },
   { href: "/timeline", label: "Timeline", icon: "📼" },
+  { href: "/live", label: "Live", icon: "🎙" },
   { href: "/diagnostics", label: "Diagnostics", icon: "🔬" },
 ];
 

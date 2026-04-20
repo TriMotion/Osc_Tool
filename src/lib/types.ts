@@ -193,6 +193,20 @@ export interface OscMapping {
   resolumeClip?: number;
 }
 
+export interface ActivityEntry {
+  id: string;
+  wallMs: number;
+  device: string;
+  eventType: MidiEvent["midi"]["type"];
+  data1: number;
+  data2: number;
+  mapping: OscMapping | null;
+  address: string | null;
+  endpointId: string | null;
+  value: number | null;
+  argType: "f" | "i" | null;
+}
+
 export interface Recording {
   version: 1;
   id: string;
