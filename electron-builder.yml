@@ -8,6 +8,28 @@ files:
   - electron/**/*.js
   - web/**/*
   - package.json
+  - "!**/node_modules/sharp/**"
+  - "!**/node_modules/@img/**"
+  - "!**/node_modules/electron/**"
+  - "!**/node_modules/electron-builder/**"
+  - "!**/node_modules/electron-winstaller/**"
+  - "!**/node_modules/@electron/**"
+  - "!**/node_modules/esbuild/**"
+  - "!**/node_modules/@esbuild/**"
+  - "!**/node_modules/tsx/**"
+  - "!**/node_modules/next/**"
+  - "!**/node_modules/@next/**"
+  - "!**/node_modules/react/**"
+  - "!**/node_modules/react-dom/**"
+  - "!**/node_modules/framer-motion/**"
+  - "!**/node_modules/@types/**"
+  - "!**/node_modules/typescript/**"
+  - "!**/node_modules/tailwindcss/**"
+  - "!**/node_modules/@tailwindcss/**"
+  - "!**/node_modules/postcss/**"
+  - "!**/node_modules/autoprefixer/**"
+  - "!**/node_modules/concurrently/**"
+  - "!**/node_modules/wait-on/**"
 extraResources:
   - from: project
     to: project
@@ -19,7 +41,7 @@ mac:
   target:
     - target: dmg
       arch:
-        - universal
+        - arm64
   category: public.app-category.utilities
 win:
   target:
