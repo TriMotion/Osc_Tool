@@ -304,7 +304,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       if (trackWidth <= 0) return;
       const anchorMs = view.startMs + (x / trackWidth) * (view.endMs - view.startMs);
       const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-      dispatch({ type: "zoom", anchorMs, factor, maxMs, minMs: originOffsetMs });
+      dispatch({ type: "zoom", anchorMs, factor, maxMs: focusMaxMs, minMs: focusMinMs });
       tailFollowRef.current = false;
       return;
     }
@@ -316,7 +316,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     if (hDelta === 0) return;
     e.preventDefault();
     const span = view.endMs - view.startMs;
-    dispatch({ type: "scrollBy", deltaMs: (hDelta / 500) * span, maxMs, minMs: originOffsetMs });
+    dispatch({ type: "scrollBy", deltaMs: (hDelta / 500) * span, maxMs: focusMaxMs, minMs: focusMinMs });
     tailFollowRef.current = false;
   };
 
@@ -433,7 +433,9 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   }, [hiddenNoteGroups]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [originOffsetMs, setOriginOffsetMs] = useState(0);
-  panMinMsRef.current = originOffsetMs;
+  const focusMinMs = props.focusedSection?.startMs ?? originOffsetMs;
+  const focusMaxMs = props.focusedSection?.endMs ?? maxMs;
+  panMinMsRef.current = focusMinMs;
 
   const activeSection = useMemo(
     () => (activeSectionId ? sections.find((s) => s.id === activeSectionId) ?? null : null),

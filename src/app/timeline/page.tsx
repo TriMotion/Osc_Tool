@@ -523,11 +523,11 @@ export default function TimelinePage() {
       if (recorder.state === "recording") return;
       if (!recorder.recording && audio.tracks.length === 0) return;
       if (audio.isPlaying) audio.pause();
-      else audio.play();
+      else handlePlay();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [audio, recorder.state, recorder.recording]);
+  }, [audio, recorder.state, recorder.recording, handlePlay]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
