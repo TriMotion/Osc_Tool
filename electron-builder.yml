@@ -8,6 +8,13 @@ files:
   - electron/**/*.js
   - web/**/*
   - package.json
+  - "node_modules/**/*"
+  - "!**/node_modules/next/**"
+  - "!**/node_modules/@next/**"
+  - "!**/node_modules/react/**"
+  - "!**/node_modules/react-dom/**"
+  - "!**/node_modules/framer-motion/**"
+  - "!**/node_modules/scheduler/**"
   - "!**/node_modules/sharp/**"
   - "!**/node_modules/@img/**"
   - "!**/node_modules/electron/**"
@@ -17,11 +24,6 @@ files:
   - "!**/node_modules/esbuild/**"
   - "!**/node_modules/@esbuild/**"
   - "!**/node_modules/tsx/**"
-  - "!**/node_modules/next/**"
-  - "!**/node_modules/@next/**"
-  - "!**/node_modules/react/**"
-  - "!**/node_modules/react-dom/**"
-  - "!**/node_modules/framer-motion/**"
   - "!**/node_modules/@types/**"
   - "!**/node_modules/typescript/**"
   - "!**/node_modules/tailwindcss/**"
@@ -30,6 +32,8 @@ files:
   - "!**/node_modules/autoprefixer/**"
   - "!**/node_modules/concurrently/**"
   - "!**/node_modules/wait-on/**"
+  - "!**/node_modules/@swc/**"
+  - "!**/node_modules/caniuse-lite/**"
 extraResources:
   - from: project
     to: project

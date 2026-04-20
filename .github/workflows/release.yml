@@ -33,14 +33,23 @@ jobs:
 
       - run: pnpm install
 
-      - name: Rebuild native modules for Electron ABI
-        run: pnpm exec electron-rebuild -f -w @julusian/midi
-
       - run: pnpm electron:compile:prod
 
       - run: pnpm build
 
+      # electron-builder + pnpm symlinks loses transitive deps (e.g. ee-first).
+      # Swap to a clean npm-flat node_modules with prod deps only, then rebuild
+      # native modules for the Electron ABI and package from there.
+      - name: Reinstall with npm for flat layout
+        run: |
+          rm -rf node_modules
+          npm install --omit=dev --no-package-lock --ignore-scripts
+          npm install @electron/rebuild electron-builder --no-save --no-package-lock --ignore-scripts
+
+      - name: Rebuild native modules for Electron ABI
+        run: npx electron-rebuild -f -w @julusian/midi
+
       - name: Build Electron app
-        run: pnpm exec electron-builder --publish always
+        run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
