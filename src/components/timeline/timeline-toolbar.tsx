@@ -138,7 +138,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
             : "border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
         }`}
       >
-        📊 Triggers
+        Mappings
       </button>
     </div>
   );

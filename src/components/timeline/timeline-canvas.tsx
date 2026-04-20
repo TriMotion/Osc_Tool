@@ -828,6 +828,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
             dispatch({ type: "set", startMs: m.tMs - targetSpan / 2, endMs: m.tMs + targetSpan / 2 });
           }}
           onTagCurrentLane={onTagCurrentLane}
+          oscMappings={oscMappings}
+          focusedSectionId={props.focusedSectionId}
         />
       )}
     </div>

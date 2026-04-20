@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { LaneAnalysis, LaneBadge, Moment, RedundancyPair } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, Moment, OscMapping, RedundancyPair } from "@/lib/types";
 import { momentColor } from "@/lib/moment-detection";
 
 interface TriggersSidebarProps {
@@ -16,12 +16,22 @@ interface TriggersSidebarProps {
   onSelectPair: (a: string, b: string) => void;
   onSelectMoment: (m: Moment) => void;
   onTagCurrentLane: () => void;
+  oscMappings: OscMapping[];
+  focusedSectionId: string | null;
 }
 
 type SectionKey = "moments" | "rhythm" | "melody" | "dynamic" | "redundant" | "tagged";
 
 export function TriggersSidebar(props: TriggersSidebarProps) {
-  const { analyses, pairs, moments, ready, error, userBadges, laneLabelFor, onSelectLane, onSelectPair, onSelectMoment, onTagCurrentLane } = props;
+  const { analyses, pairs, moments, ready, error, userBadges, laneLabelFor, onSelectLane, onSelectPair, onSelectMoment, onTagCurrentLane, oscMappings, focusedSectionId } = props;
+
+  const visible = focusedSectionId
+    ? oscMappings.filter((m) => m.sectionId === focusedSectionId)
+    : oscMappings.filter((m) => !m.sectionId);
+
+  const mappingsLabel = focusedSectionId
+    ? `Mappings in this song — ${visible.length}`
+    : `Unassigned mappings — ${visible.length}`;
 
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     moments: true, rhythm: true, melody: false, dynamic: false, redundant: false, tagged: true,
@@ -66,8 +76,12 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
   return (
     <div className="w-72 flex-shrink-0 bg-surface-light border-l border-white/10 overflow-y-auto text-xs">
       <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-        <span className="font-semibold text-sm">📊 Triggers</span>
+        <span className="font-semibold text-sm">Mappings</span>
         {!ready && <span className="text-[10px] text-gray-500 italic">Analyzing…</span>}
+      </div>
+
+      <div className="px-3 py-1.5 border-b border-white/5 text-[10px] text-gray-500">
+        {mappingsLabel}
       </div>
 
       {error && (
