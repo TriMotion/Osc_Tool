@@ -1,6 +1,6 @@
 {
   "name": "oscilot",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Signal testing and control for OSC and beyond",
   "repository": {
     "type": "git",
