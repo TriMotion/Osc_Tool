@@ -9,6 +9,7 @@ import { useRecorderContext } from "@/contexts/recorder-context";
 import { useOscPlayback } from "@/hooks/use-osc-playback";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
+import { SongsStrip } from "@/components/timeline/songs-strip";
 import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
@@ -629,6 +630,15 @@ export default function TimelinePage() {
           </div>
         );
       })()}
+
+      <SongsStrip
+        sections={recorder.recording?.sections ?? []}
+        focusedSectionId={focusedSectionId}
+        onFocus={setFocusedSectionId}
+        onChange={handleSectionsChange}
+        durationMs={durationMs}
+        playheadMsRef={audio.playheadMsRef}
+      />
 
       <div ref={canvasWrapRef} className="flex-1 min-h-0 flex flex-col">
         <TimelineCanvas
