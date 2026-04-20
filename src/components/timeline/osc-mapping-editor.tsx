@@ -17,6 +17,8 @@ interface OscMappingEditorProps {
   deviceAliases?: Record<string, string>;
   editingMapping?: OscMapping;
   anchorRect: DOMRect;
+  sectionId?: string | null;
+  prefill?: Partial<OscMapping>;
   onAdd: (mapping: OscMapping) => void;
   onUpdate?: (mapping: OscMapping) => void;
   onDelete: (id: string) => void;
@@ -25,24 +27,24 @@ interface OscMappingEditorProps {
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  sections, defaultSectionName, defaultMapping, deviceAliases, editingMapping, anchorRect, onAdd, onUpdate, onDelete, onClose,
+  sections, defaultSectionName, defaultMapping, deviceAliases, editingMapping, anchorRect, sectionId, prefill, onAdd, onUpdate, onDelete, onClose,
 }: OscMappingEditorProps) {
-  // When adding a new mapping, seed from: last target-specific mapping → defaultMapping (last across device) → hard defaults.
+  // When adding a new mapping, seed from: last target-specific mapping → defaultMapping (last across device) → prefill → hard defaults.
   const lastMapping = !editingMapping && mappings.length > 0 ? mappings[mappings.length - 1] : undefined;
-  const seed = editingMapping ?? lastMapping ?? defaultMapping;
+  const seed = editingMapping ?? lastMapping ?? defaultMapping ?? prefill;
 
   const [endpointId, setEndpointId] = useState(seed?.endpointId ?? defaultEndpointId ?? endpoints[0]?.id ?? "");
   const [preset, setPreset] = useState<OscPreset>(seed?.preset ?? "resolume");
   const [trigger, setTrigger] = useState<OscTrigger>(seed?.trigger ?? "on");
   const [argType, setArgType] = useState<"f" | "i">(seed?.argType ?? "f");
   // custom
-  const [address, setAddress] = useState(editingMapping?.address ?? "/");
+  const [address, setAddress] = useState(editingMapping?.address ?? prefill?.address ?? "/");
   // unreal
   const [sectionName, setSectionName] = useState(
     editingMapping?.sectionName ?? defaultSectionName ?? sections[0]?.name ?? ""
   );
   const [unrealType, setUnrealType] = useState<"parameter" | "trigger">(seed?.unrealType ?? "parameter");
-  const [unrealName, setUnrealName] = useState(editingMapping?.unrealName ?? "");
+  const [unrealName, setUnrealName] = useState(editingMapping?.unrealName ?? prefill?.unrealName ?? "");
   // resolume
   const [resolumeMode, setResolumeMode] = useState<"column" | "clip">(seed?.resolumeMode ?? "column");
   const [resolumeColumn, setResolumeColumn] = useState(seed?.resolumeColumn ?? 1);
@@ -68,6 +70,7 @@ export function OscMappingEditor({
       sectionName,
       unrealType, unrealName: unrealName || "param",
       resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+      sectionId: sectionId ?? undefined,
     });
   };
 
@@ -78,6 +81,7 @@ export function OscMappingEditor({
       endpointId, preset, trigger, argType, address,
       sectionName, unrealType, unrealName: unrealName || "param",
       resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+      sectionId: editingMapping.sectionId ?? sectionId ?? undefined,
     });
   };
 
