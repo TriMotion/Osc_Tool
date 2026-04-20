@@ -78,6 +78,12 @@ export default function TimelinePage() {
   const [badgeEditor, setBadgeEditor] = useState<{ laneKey: string; badge: LaneBadge | null } | null>(null);
   const lastHoveredLaneRef = useRef<string | null>(null);
 
+  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
+  const focusedSection = useMemo(
+    () => recorder.recording?.sections?.find((s) => s.id === focusedSectionId) ?? null,
+    [recorder.recording?.sections, focusedSectionId],
+  );
+
   useEffect(() => {
     const wrap = canvasWrapRef.current;
     if (!wrap) return;
@@ -147,11 +153,13 @@ export default function TimelinePage() {
     }
     if (recorder.hasUnsaved && recorder.recording) {
       setConfirmDiscard(() => () => {
+        setFocusedSectionId(null);
         recorder.start();
         setConfirmDiscard(null);
       });
       return;
     }
+    setFocusedSectionId(null);
     recorder.start();
   }, [bridgeRunning, recorder]);
 
@@ -192,6 +200,7 @@ export default function TimelinePage() {
     async (rec: Recording, loadedFromPath: string | null) => {
       const migrated = migrateOscMappings(rec);
       recorder.setLoaded(migrated);
+      setFocusedSectionId(null);
       setSaveSuggestedPath(loadedFromPath);
       audio.unloadAll();
 
@@ -510,7 +519,10 @@ export default function TimelinePage() {
 
   const handleSectionsChange = useCallback((sections: Recording["sections"]) => {
     recorder.patchRecording({ sections });
-  }, [recorder]);
+    if (focusedSectionId && !sections?.some((s) => s.id === focusedSectionId)) {
+      setFocusedSectionId(null);
+    }
+  }, [recorder, focusedSectionId]);
 
   const handleMarkersChange = useCallback((moments: Moment[]) => {
     recorder.patchRecording({ moments });
