@@ -39,10 +39,14 @@ export function useLiveMonitor({ recording, endpoints }: UseLiveMonitorArgs): Us
     const newEntries: ActivityEntry[] = [];
     const activityUpdates: Record<string, { lastMidiAt?: number; lastOscAt?: number }> = {};
 
+    const disabled = new Set(rec?.disabledLiveDevices ?? []);
+
     for (const event of incoming) {
       const liveDevice = event.midi.deviceName;
       // Resolve live port name → recording device name via user-defined links.
       const resolvedDevice = rec?.liveDeviceLinks?.[liveDevice] ?? liveDevice;
+      // Drop events from disabled devices: no flash, no OSC, no log entry.
+      if (disabled.has(resolvedDevice) || disabled.has(liveDevice)) continue;
       // Bump activity for both the live name (so an unlinked card lights up)
       // and the resolved name (so its linked recording card lights up too).
       if (!activityUpdates[liveDevice]) activityUpdates[liveDevice] = {};

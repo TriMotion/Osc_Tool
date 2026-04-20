@@ -12,10 +12,17 @@ import type { OscMapping, SavedEndpoint } from "@/lib/types";
 export default function LivePage() {
   const recorder = useRecorderContext();
   const recording = recorder.recording;
-  const { devices: connectedLivePorts } = useMidiControl();
+  const {
+    running: bridgeRunning,
+    devices: connectedLivePorts,
+    start: startBridge,
+    stop: stopBridge,
+    refreshDevices,
+  } = useMidiControl();
 
   const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
   const [showUnmapped, setShowUnmapped] = useState(true);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   useEffect(() => {
     window.electronAPI?.invoke("endpoints:get-all", "sender").then((res) => {
@@ -52,6 +59,30 @@ export default function LivePage() {
     [recorder],
   );
 
+  const handleToggleDevice = useCallback(
+    (deviceName: string, nextDisabled: boolean) => {
+      const current = new Set(recording?.disabledLiveDevices ?? []);
+      if (nextDisabled) current.add(deviceName);
+      else current.delete(deviceName);
+      recorder.patchRecording({ disabledLiveDevices: Array.from(current) });
+    },
+    [recorder, recording?.disabledLiveDevices],
+  );
+
+  const handleToggleBridge = useCallback(async () => {
+    setBridgeError(null);
+    try {
+      if (bridgeRunning) {
+        await stopBridge();
+      } else {
+        await refreshDevices();
+        await startBridge();
+      }
+    } catch (err) {
+      setBridgeError(String(err));
+    }
+  }, [bridgeRunning, startBridge, stopBridge, refreshDevices]);
+
   if (!recording) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 text-sm">
@@ -62,6 +93,35 @@ export default function LivePage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden -mx-6 -mb-6">
+      {/* Bridge control bar */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-white/5 bg-surface-light/50 shrink-0">
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              bridgeRunning
+                ? "bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]"
+                : "bg-white/20"
+            }`}
+          />
+          <span className="text-xs text-gray-300">
+            MIDI bridge {bridgeRunning ? "running" : "stopped"}
+          </span>
+        </div>
+        <button
+          onClick={handleToggleBridge}
+          className={`text-xs px-3 py-1 rounded border transition-colors ${
+            bridgeRunning
+              ? "border-red-500/40 text-red-300 hover:bg-red-500/10"
+              : "border-green-500/40 text-green-300 hover:bg-green-500/10"
+          }`}
+        >
+          {bridgeRunning ? "Stop bridge" : "Start bridge"}
+        </button>
+        {bridgeError && (
+          <span className="text-xs text-red-400 truncate">{bridgeError}</span>
+        )}
+      </div>
+
       {/* Zone 1 — Device strip */}
       <DeviceStrip
         devices={recording.devices}
@@ -69,7 +129,9 @@ export default function LivePage() {
         aliases={recording.deviceAliases}
         liveDeviceLinks={recording.liveDeviceLinks}
         connectedLivePorts={connectedLivePorts}
+        disabledDevices={recording.disabledLiveDevices}
         onUpdateLinks={handleUpdateLinks}
+        onToggleDevice={handleToggleDevice}
       />
 
       {/* Zone 2 — Activity feed */}

@@ -231,6 +231,9 @@ export interface Recording {
   /** Live MIDI port name → recording device name. Used to route live events
    * to mappings when port names differ between the recording and live sessions. */
   liveDeviceLinks?: Record<string, string>;
+  /** Recording-device names that are muted in the Live tab — events from
+   * these are dropped before firing OSC and before emitting ActivityEntries. */
+  disabledLiveDevices?: string[];
   suppressedAnalysis?: string[];  // "${laneKey}:rhythm" | "${laneKey}:dynamic" | "${laneKey}:melody"
 }
 

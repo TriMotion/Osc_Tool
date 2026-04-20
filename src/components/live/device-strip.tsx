@@ -13,6 +13,8 @@ interface DeviceCardProps {
   recordingDevices?: string[];
   liveSources?: string[];
   currentLiveSource?: string | null;
+  disabled?: boolean;
+  onToggleDisabled?: (name: string, next: boolean) => void;
   onSetSource?: (recordingName: string, liveSource: string | null) => void;
   onLink?: (liveName: string, recordingName: string) => void;
 }
@@ -25,29 +27,53 @@ function DeviceCard({
   recordingDevices,
   liveSources,
   currentLiveSource,
+  disabled,
+  onToggleDisabled,
   onSetSource,
   onLink,
 }: DeviceCardProps) {
   const displayName = aliases?.[name] ?? name;
-  const midiFlashing = useFlash(activity?.lastMidiAt ?? 0);
-  const oscFlashing = useFlash(activity?.lastOscAt ?? 0);
+  const midiFlashing = useFlash(activity?.lastMidiAt ?? 0) && !disabled;
+  const oscFlashing = useFlash(activity?.lastOscAt ?? 0) && !disabled;
 
   return (
     <div
-      className={`flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg min-w-[160px] ${
-        unlinked
+      className={`relative flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg min-w-[160px] transition-opacity ${
+        disabled
+          ? "bg-surface-light/40 border border-white/5 opacity-50"
+          : unlinked
           ? "bg-amber-950/20 border border-amber-400/20"
           : "bg-surface-light border border-white/5"
       }`}
-      title={unlinked ? `${name}\n(Live MIDI port not linked to a recording device)` : name}
+      title={
+        disabled
+          ? `${name}\n(Detached — MIDI ignored, no OSC sent)`
+          : unlinked
+          ? `${name}\n(Live MIDI port not linked to a recording device)`
+          : name
+      }
     >
+      {onToggleDisabled && (
+        <button
+          onClick={() => onToggleDisabled(name, !disabled)}
+          className={`absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+            disabled
+              ? "border-white/20 text-gray-400 hover:text-gray-200 hover:border-white/40"
+              : "border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20"
+          }`}
+          title={disabled ? "Re-attach: resume sending OSC from this device" : "Detach: stop sending OSC from this device"}
+        >
+          {disabled ? "⏻ off" : "⏻"}
+        </button>
+      )}
       <span
-        className={`text-xs font-medium truncate max-w-[200px] ${
-          unlinked ? "text-amber-200" : "text-gray-300"
+        className={`text-xs font-medium truncate max-w-[180px] ${
+          disabled ? "text-gray-500 line-through" : unlinked ? "text-amber-200" : "text-gray-300"
         }`}
       >
         {displayName}
-        {unlinked && <span className="ml-1 text-[10px] text-amber-400/80">(unlinked)</span>}
+        {disabled && <span className="ml-1 text-[10px] text-gray-500 no-underline">(detached)</span>}
+        {!disabled && unlinked && <span className="ml-1 text-[10px] text-amber-400/80">(unlinked)</span>}
       </span>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
@@ -117,7 +143,9 @@ interface DeviceStripProps {
   aliases?: Record<string, string>;
   liveDeviceLinks?: Record<string, string>;
   connectedLivePorts?: string[];
+  disabledDevices?: string[];
   onUpdateLinks?: (links: Record<string, string>) => void;
+  onToggleDevice?: (deviceName: string, next: boolean) => void;
 }
 
 export function DeviceStrip({
@@ -126,8 +154,11 @@ export function DeviceStrip({
   aliases,
   liveDeviceLinks,
   connectedLivePorts,
+  disabledDevices,
   onUpdateLinks,
+  onToggleDevice,
 }: DeviceStripProps) {
+  const disabledSet = new Set(disabledDevices ?? []);
   const links = liveDeviceLinks ?? {};
   const recordingSet = new Set(devices);
 
@@ -196,6 +227,8 @@ export function DeviceStrip({
           aliases={aliases}
           liveSources={allLivePorts}
           currentLiveSource={liveSourceForRecording(rec)}
+          disabled={disabledSet.has(rec)}
+          onToggleDisabled={onToggleDevice}
           onSetSource={handleSetSource}
         />
       ))}
@@ -207,6 +240,8 @@ export function DeviceStrip({
           aliases={aliases}
           unlinked
           recordingDevices={devices}
+          disabled={disabledSet.has(live)}
+          onToggleDisabled={onToggleDevice}
           onLink={handleLink}
         />
       ))}
