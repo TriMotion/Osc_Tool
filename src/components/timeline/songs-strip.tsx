@@ -229,12 +229,6 @@ export function SongsStrip(props: SongsStripProps) {
                 className="absolute inset-0 left-1.5 right-1.5 flex items-center"
                 style={{ cursor: isDraggingThis && dragOp?.kind === "move" ? "grabbing" : "grab" }}
                 onMouseDown={(e) => handleSectionBodyDown(e, section)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (Math.abs(e.clientX - dragStartClientXRef.current) <= 5) {
-                    props.onFocus(focused ? null : section.id);
-                  }
-                }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   setEditingId(section.id);
