@@ -529,6 +529,28 @@ export default function TimelinePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [audio, recorder.state, recorder.recording]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      const sections = recorder.recording?.sections ?? [];
+      if (!sections.length) return;
+      if (e.key === "[" || e.key === "]") {
+        e.preventDefault();
+        const idx = sections.findIndex((s) => s.id === focusedSectionId);
+        const next = e.key === "]"
+          ? sections[Math.min(sections.length - 1, (idx < 0 ? 0 : idx + 1))]
+          : sections[Math.max(0, (idx < 0 ? 0 : idx - 1))];
+        setFocusedSectionId(next?.id ?? null);
+      } else if (e.key === "Escape" && focusedSectionId) {
+        e.preventDefault();
+        setFocusedSectionId(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [recorder.recording?.sections, focusedSectionId]);
+
   const handleSectionsChange = useCallback((sections: Recording["sections"]) => {
     recorder.patchRecording({ sections });
     if (focusedSectionId && !sections?.some((s) => s.id === focusedSectionId)) {
