@@ -441,6 +441,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           defaultMapping={oscMappings.filter((m) => m.deviceId === device).slice(-1)[0]}
           anchorRect={oscEditor.anchorRect}
           deviceAliases={deviceAliases}
+          sectionId={focusedSectionId}
           editingMapping={oscEditor.editingMapping}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
           onUpdate={(mapping) => { onUpdateOscMapping?.(mapping); setOscEditor(null); }}
