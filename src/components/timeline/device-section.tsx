@@ -70,6 +70,41 @@ const CONT_HEIGHT = 36;
 const MARKER_HEIGHT = 28;
 const SUMMARY_HEIGHT = 22;
 
+function LaneControlsPopover({
+  actions,
+}: {
+  actions: Array<{ label: string; onClick: () => void; danger?: boolean }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="px-1 text-gray-500 hover:text-white"
+        title="Lane options"
+      >⋯</button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-30 w-[180px] bg-surface border border-white/10 rounded shadow-xl">
+          {actions.map((a) => (
+            <button
+              key={a.label}
+              onClick={() => { a.onClick(); setOpen(false); }}
+              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 ${a.danger ? "text-red-400" : "text-gray-300 hover:text-white"}`}
+            >{a.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Find an OSC address from a mapping rule that matches the given lane key, if any.
  * Used to show the user's named address (e.g. "/fader/master") alongside the lane label.
@@ -280,7 +315,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       {/* Device header row */}
       <div
         onClick={onToggleCollapsed}
-        className="flex items-center gap-2 px-3 py-1.5 bg-black/20 text-accent text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
+        className="group flex items-center gap-2 px-3 py-1.5 bg-black/20 text-accent text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
       >
         <span>{collapsed ? "▸" : "▾"}</span>
         {isEditingName ? (
@@ -383,14 +418,13 @@ export function DeviceSection(props: DeviceSectionProps) {
           )}
         </div>
 
-        {onDeleteDevice && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDeleteDevice(device); }}
-            className="ml-1 text-gray-600 hover:text-red-400 transition-colors leading-none"
-            title="Remove track"
-          >
-            ✕
-          </button>
+        {(onDeleteDevice || onRenameDevice) && (
+          <LaneControlsPopover
+            actions={[
+              ...(onRenameDevice ? [{ label: "Rename device…", onClick: () => { setEditValue(displayName ?? device); setIsEditingName(true); } }] : []),
+              ...(onDeleteDevice ? [{ label: "Delete device", danger: true, onClick: () => onDeleteDevice(device) }] : []),
+            ]}
+          />
         )}
       </div>
 
@@ -468,7 +502,7 @@ export function DeviceSection(props: DeviceSectionProps) {
               case "notes":
                 return (
                   <Fragment key="notes">
-                    <div data-lane-key={keyStr}>
+                    <div data-lane-key={keyStr} className="relative group">
                       <NotesLane
                         spans={deviceNoteSpans}
                         viewStartMs={viewStartMs}
@@ -491,7 +525,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                         suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
                         onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                         isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                        onHide={() => onHideLane(keyStr)}
                         noteTags={noteTags}
                         oscMappings={oscMappings}
                         focusedSectionId={focusedSectionId}
@@ -503,6 +536,18 @@ export function DeviceSection(props: DeviceSectionProps) {
                           });
                         }}
                       />
+                      <div className="absolute top-0.5 right-1 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
+                        <LaneControlsPopover
+                          actions={[
+                            { label: "Hide lane", onClick: () => onHideLane(keyStr) },
+                            ...(onSuppressAnalysis ? [
+                              { label: "Suppress: rhythm", onClick: () => onSuppressAnalysis(keyStr, "rhythm") },
+                              { label: "Suppress: dynamic", onClick: () => onSuppressAnalysis(keyStr, "dynamic") },
+                              { label: "Suppress: melody", onClick: () => onSuppressAnalysis(keyStr, "melody") },
+                            ] : []),
+                          ]}
+                        />
+                      </div>
                     </div>
                     {panelOpen && allGroups.length > 0 && (
                       <div className="border-t border-white/5 bg-black/10">
@@ -727,7 +772,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                 );
               case "cc":
                 return (
-                  <div data-lane-key={keyStr} key={`cc|${entry.key.channel}|${entry.key.cc}`}>
+                  <div data-lane-key={keyStr} key={`cc|${entry.key.channel}|${entry.key.cc}`} className="relative group">
                     <ContinuousLane
                       label={`CC ${entry.key.cc} · ch${entry.key.channel}`}
                       sublabel={osc}
@@ -751,7 +796,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                       suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                      onHide={() => onHideLane(keyStr)}
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
@@ -761,11 +805,23 @@ export function DeviceSection(props: DeviceSectionProps) {
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
+                    <div className="absolute top-0.5 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
+                      <LaneControlsPopover
+                        actions={[
+                          { label: "Hide lane", onClick: () => onHideLane(keyStr) },
+                          ...(onSuppressAnalysis ? [
+                            { label: "Suppress: rhythm", onClick: () => onSuppressAnalysis(keyStr, "rhythm") },
+                            { label: "Suppress: dynamic", onClick: () => onSuppressAnalysis(keyStr, "dynamic") },
+                            { label: "Suppress: melody", onClick: () => onSuppressAnalysis(keyStr, "melody") },
+                          ] : []),
+                        ]}
+                      />
+                    </div>
                   </div>
                 );
               case "pitch":
                 return (
-                  <div data-lane-key={keyStr} key={`pitch|${entry.key.channel}`}>
+                  <div data-lane-key={keyStr} key={`pitch|${entry.key.channel}`} className="relative group">
                     <ContinuousLane
                       label={`Pitch · ch${entry.key.channel}`}
                       sublabel={osc}
@@ -790,7 +846,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                       suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                      onHide={() => onHideLane(keyStr)}
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
@@ -800,12 +855,24 @@ export function DeviceSection(props: DeviceSectionProps) {
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
+                    <div className="absolute top-0.5 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
+                      <LaneControlsPopover
+                        actions={[
+                          { label: "Hide lane", onClick: () => onHideLane(keyStr) },
+                          ...(onSuppressAnalysis ? [
+                            { label: "Suppress: rhythm", onClick: () => onSuppressAnalysis(keyStr, "rhythm") },
+                            { label: "Suppress: dynamic", onClick: () => onSuppressAnalysis(keyStr, "dynamic") },
+                            { label: "Suppress: melody", onClick: () => onSuppressAnalysis(keyStr, "melody") },
+                          ] : []),
+                        ]}
+                      />
+                    </div>
                   </div>
                 );
               case "aftertouch": {
                 const labelSuffix = entry.key.note !== undefined ? ` #${entry.key.note}` : "";
                 return (
-                  <div data-lane-key={keyStr} key={`at|${entry.key.channel}|${entry.key.note ?? "ch"}`}>
+                  <div data-lane-key={keyStr} key={`at|${entry.key.channel}|${entry.key.note ?? "ch"}`} className="relative group">
                     <ContinuousLane
                       label={`AT · ch${entry.key.channel}${labelSuffix}`}
                       sublabel={osc}
@@ -829,7 +896,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                       suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                      onHide={() => onHideLane(keyStr)}
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
@@ -839,12 +905,24 @@ export function DeviceSection(props: DeviceSectionProps) {
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
+                    <div className="absolute top-0.5 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
+                      <LaneControlsPopover
+                        actions={[
+                          { label: "Hide lane", onClick: () => onHideLane(keyStr) },
+                          ...(onSuppressAnalysis ? [
+                            { label: "Suppress: rhythm", onClick: () => onSuppressAnalysis(keyStr, "rhythm") },
+                            { label: "Suppress: dynamic", onClick: () => onSuppressAnalysis(keyStr, "dynamic") },
+                            { label: "Suppress: melody", onClick: () => onSuppressAnalysis(keyStr, "melody") },
+                          ] : []),
+                        ]}
+                      />
+                    </div>
                   </div>
                 );
               }
               case "program":
                 return (
-                  <div data-lane-key={keyStr} key={`prog|${entry.key.channel}`}>
+                  <div data-lane-key={keyStr} key={`prog|${entry.key.channel}`} className="relative group">
                     <ProgramLane
                       label={`Program · ch${entry.key.channel}`}
                       sublabel={osc}
@@ -865,12 +943,23 @@ export function DeviceSection(props: DeviceSectionProps) {
                       suppressedAnalysisTypes={suppressedAnalysis ? suppressedTypesFor(suppressedAnalysis, keyStr) : undefined}
                       onSuppressAnalysisBadge={(type) => onSuppressAnalysis?.(keyStr, type)}
                       isFlashing={flashLaneKeys?.has(keyStr) ?? false}
-                      onHide={() => onHideLane(keyStr)}
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
                       hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
                     />
+                    <div className="absolute top-0.5 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
+                      <LaneControlsPopover
+                        actions={[
+                          { label: "Hide lane", onClick: () => onHideLane(keyStr) },
+                          ...(onSuppressAnalysis ? [
+                            { label: "Suppress: rhythm", onClick: () => onSuppressAnalysis(keyStr, "rhythm") },
+                            { label: "Suppress: dynamic", onClick: () => onSuppressAnalysis(keyStr, "dynamic") },
+                            { label: "Suppress: melody", onClick: () => onSuppressAnalysis(keyStr, "melody") },
+                          ] : []),
+                        ]}
+                      />
+                    </div>
                   </div>
                 );
             }
