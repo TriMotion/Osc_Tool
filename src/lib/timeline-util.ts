@@ -1,4 +1,4 @@
-import type { LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent } from "@/lib/types";
+import type { LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 
 /**
@@ -289,4 +289,16 @@ export function findNoteTag(
   return tags.find(
     (t) => t.device === device && t.pitch === pitch && t.velocity === null
   );
+}
+
+/** Return the section whose [startMs, endMs) contains `ms`, or null. */
+export function sectionContainingMs(
+  sections: TimelineSection[] | undefined,
+  ms: number,
+): TimelineSection | null {
+  if (!sections?.length) return null;
+  for (const s of sections) {
+    if (ms >= s.startMs && ms < s.endMs) return s;
+  }
+  return null;
 }
