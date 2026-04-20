@@ -174,6 +174,9 @@ export type OscTrigger = "on" | "off" | "both";
 
 export interface OscMapping {
   id: string;
+  /** Song/section this mapping belongs to. Optional only during migration of
+   * legacy recordings; new mappings always set this. */
+  sectionId?: string;
   targetType: "noteGroup" | "lane";
   /** Note groups: "${pitch}|${velocity}". Lanes: laneKeyString output. */
   targetId: string;
