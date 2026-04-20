@@ -431,16 +431,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     if (current && current.length === arr.length && arr.every((k) => current.includes(k))) return;
     onHiddenNoteGroupsChange(arr);
   }, [hiddenNoteGroups]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const activeSectionId = props.focusedSection?.id ?? null;
+  const activeSection = props.focusedSection ?? null;
   const [originOffsetMs, setOriginOffsetMs] = useState(0);
   const focusMinMs = props.focusedSection?.startMs ?? originOffsetMs;
   const focusMaxMs = props.focusedSection?.endMs ?? maxMs;
   panMinMsRef.current = focusMinMs;
-
-  const activeSection = useMemo(
-    () => (activeSectionId ? sections.find((s) => s.id === activeSectionId) ?? null : null),
-    [activeSectionId, sections]
-  );
 
   const selectedCount = useMemo(() => {
     if (!noteSelection) return 0;
