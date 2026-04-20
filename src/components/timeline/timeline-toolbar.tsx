@@ -17,6 +17,7 @@ interface TimelineToolbarProps {
   onPause: () => void;
   onSave: () => void;
   onSaveAs: () => void;
+  onSaveProject: () => void;
   onLoad: () => void;
   onImportMidi: () => void;
   triggersSidebarOpen: boolean;
@@ -27,7 +28,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
   const {
     recorderState, hasRecording, isPlaying, playheadMs, durationMs,
     onRecord, onStop, onPlay, onPause,
-    onSave, onSaveAs, onLoad, onImportMidi,
+    onSave, onSaveAs, onSaveProject, onLoad, onImportMidi,
     triggersSidebarOpen, onToggleTriggersSidebar,
   } = props;
 
@@ -87,6 +88,14 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed"
       >
         Save As…
+      </button>
+      <button
+        onClick={onSaveProject}
+        disabled={!hasRecording}
+        title="Write recording and audio to ./project/ for committing to git"
+        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        Save project
       </button>
 
       {/* Open submenu */}

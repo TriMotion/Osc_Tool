@@ -20,13 +20,107 @@ const MIDI_FILTERS = [
 export class RecordingStore {
   private recordingsDir: string;
   private recentFile: string;
+  /** Repo-relative folder used to bundle a "project" recording that can be
+   * committed to git and shared across machines. */
+  private projectDir: string;
+  private projectRecordingPath: string;
+  private projectAudioDir: string;
 
   constructor() {
     this.recordingsDir = path.join(app.getPath("userData"), "recordings");
     this.recentFile = path.join(app.getPath("userData"), "recent-recordings.json");
+    this.projectDir = path.join(process.cwd(), "project");
+    this.projectRecordingPath = path.join(this.projectDir, "recording.oscrec");
+    this.projectAudioDir = path.join(this.projectDir, "audio");
     if (!fs.existsSync(this.recordingsDir)) {
       fs.mkdirSync(this.recordingsDir, { recursive: true });
     }
+  }
+
+  hasProjectRecording(): boolean {
+    return fs.existsSync(this.projectRecordingPath);
+  }
+
+  /**
+   * Load the bundled project recording. Audio track paths stored as
+   * "project/audio/<file>" are resolved against the repo root so they work
+   * on any machine with the repo checked out.
+   */
+  loadProject(): { recording: Recording; path: string } {
+    const recording = this.readFile(this.projectRecordingPath);
+    if (recording.audioTracks) {
+      recording.audioTracks = recording.audioTracks.map((t) => ({
+        ...t,
+        filePath: this.resolveProjectAudioPath(t.filePath),
+      }));
+    }
+    if (recording.audio) {
+      recording.audio = {
+        ...recording.audio,
+        filePath: this.resolveProjectAudioPath(recording.audio.filePath),
+      };
+    }
+    return { recording, path: this.projectRecordingPath };
+  }
+
+  /**
+   * Save the recording as the project recording: copies referenced audio
+   * files into project/audio/ and rewrites their paths to be project-relative
+   * so the whole thing is portable and git-friendly.
+   */
+  saveProject(rec: Recording): { path: string } {
+    if (!fs.existsSync(this.projectDir)) {
+      fs.mkdirSync(this.projectDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.projectAudioDir)) {
+      fs.mkdirSync(this.projectAudioDir, { recursive: true });
+    }
+
+    const copied: Recording = {
+      ...rec,
+      audioTracks: rec.audioTracks?.map((t) => ({
+        ...t,
+        filePath: this.copyAudioIntoProject(t.filePath),
+      })),
+      audio: rec.audio
+        ? { ...rec.audio, filePath: this.copyAudioIntoProject(rec.audio.filePath) }
+        : undefined,
+    };
+    this.writeFile(this.projectRecordingPath, copied);
+    this.pushRecent({ path: this.projectRecordingPath, name: rec.name, savedAt: Date.now() });
+    return { path: this.projectRecordingPath };
+  }
+
+  /** If the given path is already project-relative, returns it unchanged.
+   * Otherwise copies the file into project/audio/ and returns its relative path. */
+  private copyAudioIntoProject(filePath: string): string {
+    if (!filePath) return filePath;
+    if (this.isProjectAudioPath(filePath)) return filePath;
+    // Resolve to absolute so we can read it.
+    const absSrc = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+    if (!fs.existsSync(absSrc)) {
+      // Source is missing — keep the existing path so the user can relink later.
+      return filePath;
+    }
+    const base = path.basename(absSrc);
+    const dest = path.join(this.projectAudioDir, base);
+    if (path.resolve(absSrc) !== path.resolve(dest)) {
+      fs.copyFileSync(absSrc, dest);
+    }
+    return path.posix.join("project", "audio", base);
+  }
+
+  private isProjectAudioPath(filePath: string): boolean {
+    const normalized = filePath.replace(/\\/g, "/");
+    return normalized.startsWith("project/audio/");
+  }
+
+  private resolveProjectAudioPath(filePath: string): string {
+    if (!filePath) return filePath;
+    if (this.isProjectAudioPath(filePath)) {
+      return path.resolve(process.cwd(), filePath);
+    }
+    return filePath;
   }
 
   async saveDialog(win: BrowserWindow | null, rec: Recording, defaultPath?: string): Promise<

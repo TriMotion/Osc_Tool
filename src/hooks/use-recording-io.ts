@@ -106,6 +106,32 @@ export function useRecordingIO() {
     return res;
   }, []);
 
+  const loadProject = useCallback(async () => {
+    setLastError(null);
+    const api = getAPI();
+    if (!api) return null;
+    const res = (await api.invoke("recording:load-project")) as
+      | { recording: Recording; path: string }
+      | { cancelled: true }
+      | { error: string };
+    if ("error" in res) { setLastError(res.error); return null; }
+    if ("cancelled" in res) return null;
+    return res;
+  }, []);
+
+  const saveProject = useCallback(async (rec: Recording) => {
+    setLastError(null);
+    const api = getAPI();
+    if (!api) return null;
+    const res = (await api.invoke("recording:save-project", rec)) as
+      | { path: string }
+      | { error: string };
+    if ("error" in res) { setLastError(res.error); return null; }
+    setLastSavedPath(res.path);
+    refreshRecent();
+    return res.path;
+  }, [refreshRecent]);
+
   const importMidi = useCallback(async () => {
     setLastError(null);
     const api = getAPI();
@@ -128,6 +154,8 @@ export function useRecordingIO() {
     saveAs,
     load,
     loadPath,
+    loadProject,
+    saveProject,
     pickAudio,
     readAudioBytes,
     importMidi,

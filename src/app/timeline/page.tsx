@@ -62,7 +62,7 @@ export default function TimelinePage() {
 
   useOscPlayback({
     recording: recorder.recording ?? null,
-    playheadMs: playheadDisplayMs,
+    playheadMsRef: audio.playheadMsRef,
     isPlaying: audio.isPlaying,
     endpoints,
     deviceAliases: recorder.recording?.deviceAliases,
@@ -187,6 +187,32 @@ export default function TimelinePage() {
     });
   }, [audio.tracks, recorder]);
 
+  const applyLoadedRecording = useCallback(
+    async (rec: Recording, loadedFromPath: string | null) => {
+      recorder.setLoaded(rec);
+      setSaveSuggestedPath(loadedFromPath);
+      audio.unloadAll();
+
+      // Support both old single-audio and new multi-track recordings.
+      const tracksToLoad: Array<{ id: string; filePath: string; offsetMs: number }> = [];
+      if (rec.audioTracks?.length) {
+        tracksToLoad.push(...rec.audioTracks);
+      } else if (rec.audio) {
+        tracksToLoad.push({ id: crypto.randomUUID(), ...rec.audio });
+      }
+
+      for (const t of tracksToLoad) {
+        const bytes = await io.readAudioBytes(t.filePath);
+        if (bytes) {
+          await audio.loadTrack(t.id, t.filePath, bytes.bytes, bytes.mimeType, t.offsetMs);
+        }
+        // Missing tracks stay in recording.audioTracks but aren't loaded into
+        // the player — the UI will surface a relink control for them.
+      }
+    },
+    [io, recorder, audio],
+  );
+
   const handleLoad = useCallback(async () => {
     if (recorder.state === "recording") {
       alert("Stop the current recording before loading another file.");
@@ -195,30 +221,7 @@ export default function TimelinePage() {
     const applyLoad = async () => {
       const res = await io.load();
       if (!res) return;
-      recorder.setLoaded(res.recording);
-      setSaveSuggestedPath(res.path);
-      audio.unloadAll();
-
-      // Support both old single-audio and new multi-track recordings.
-      const tracksToLoad: Array<{ id: string; filePath: string; offsetMs: number }> = [];
-      if (res.recording.audioTracks?.length) {
-        tracksToLoad.push(...res.recording.audioTracks);
-      } else if (res.recording.audio) {
-        tracksToLoad.push({ id: crypto.randomUUID(), ...res.recording.audio });
-      }
-
-      const missing: string[] = [];
-      for (const t of tracksToLoad) {
-        const bytes = await io.readAudioBytes(t.filePath);
-        if (bytes) {
-          await audio.loadTrack(t.id, t.filePath, bytes.bytes, bytes.mimeType, t.offsetMs);
-        } else {
-          missing.push(t.filePath);
-        }
-      }
-      if (missing.length) {
-        alert(`Audio file(s) not found:\n${missing.join("\n")}\n\nYou can attach them again after loading.`);
-      }
+      await applyLoadedRecording(res.recording, res.path);
     };
     if (recorder.hasUnsaved && recorder.recording) {
       setConfirmDiscard(() => () => {
@@ -228,7 +231,58 @@ export default function TimelinePage() {
       return;
     }
     applyLoad();
-  }, [io, recorder, audio]);
+  }, [io, recorder, applyLoadedRecording]);
+
+  const handleSaveProject = useCallback(async () => {
+    if (!recorder.recording) return;
+    const savedPath = await io.saveProject(recorder.recording);
+    if (!savedPath) return;
+    setSaveSuggestedPath(savedPath);
+    // Re-apply: saveProject rewrites audio paths to project-relative, so reload
+    // from disk to pick up the new paths (and resolved absolute versions).
+    const res = await io.loadProject();
+    if (res) await applyLoadedRecording(res.recording, res.path);
+  }, [io, recorder.recording, applyLoadedRecording]);
+
+  const handleRelinkAudio = useCallback(
+    async (trackId: string) => {
+      const newPath = await io.pickAudio();
+      if (!newPath) return;
+      const bytes = await io.readAudioBytes(newPath);
+      if (!bytes) return;
+      const existing = recorder.recording?.audioTracks?.find((t) => t.id === trackId);
+      const offsetMs = existing?.offsetMs ?? 0;
+      await audio.loadTrack(trackId, newPath, bytes.bytes, bytes.mimeType, offsetMs);
+      recorder.patchRecording({
+        audioTracks: (recorder.recording?.audioTracks ?? []).map((t) =>
+          t.id === trackId ? { ...t, filePath: newPath } : t,
+        ),
+      });
+    },
+    [io, audio, recorder],
+  );
+
+  // Auto-load on mount: prefer the bundled project recording, then fall back to the
+  // most recent recording. Skips if a recording is already loaded.
+  const autoLoadAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (autoLoadAttemptedRef.current) return;
+    if (recorder.recording || recorder.state === "recording") return;
+    autoLoadAttemptedRef.current = true;
+
+    (async () => {
+      const project = await io.loadProject();
+      if (project) {
+        await applyLoadedRecording(project.recording, project.path);
+        return;
+      }
+      const recent = io.recent[0];
+      if (!recent) return;
+      const res = await io.loadPath(recent.path);
+      if (!res || "error" in res) return;
+      await applyLoadedRecording(res.recording, res.path);
+    })();
+  }, [io, recorder.recording, recorder.state, applyLoadedRecording]);
 
   const handleImportMidi = useCallback(async () => {
     if (recorder.state === "recording") {
@@ -493,6 +547,7 @@ export default function TimelinePage() {
         onPause={audio.pause}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
+        onSaveProject={handleSaveProject}
         onLoad={handleLoad}
         onImportMidi={handleImportMidi}
         triggersSidebarOpen={triggersSidebarOpen}
@@ -505,6 +560,32 @@ export default function TimelinePage() {
           <button onClick={io.clearError} className="ml-auto text-red-300 hover:text-white">✕</button>
         </div>
       )}
+
+      {(() => {
+        const loadedIds = new Set(audio.tracks.map((t) => t.id));
+        const missing = (recorder.recording?.audioTracks ?? []).filter((t) => !loadedIds.has(t.id));
+        if (missing.length === 0) return null;
+        return (
+          <div className="flex flex-col gap-1 text-xs bg-amber-500/10 border border-amber-400/30 rounded px-3 py-2">
+            <span className="text-amber-300 font-medium">
+              Audio missing ({missing.length}) — file{missing.length === 1 ? "" : "s"} referenced by this recording couldn't be found
+            </span>
+            {missing.map((t) => (
+              <div key={t.id} className="flex items-center gap-2">
+                <span className="text-amber-200/70 font-mono truncate flex-1" title={t.filePath}>
+                  {t.filePath}
+                </span>
+                <button
+                  onClick={() => handleRelinkAudio(t.id)}
+                  className="shrink-0 px-2 py-0.5 rounded border border-amber-400/40 text-amber-200 hover:bg-amber-400/20 transition-colors"
+                >
+                  🔗 Relink…
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <div ref={canvasWrapRef} className="flex-1 min-h-0 flex flex-col">
         <TimelineCanvas

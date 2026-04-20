@@ -213,6 +213,27 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     return { entries: recordingStore.listRecent() };
   });
 
+  ipcMain.handle("recording:has-project", () => {
+    return { has: recordingStore.hasProjectRecording() };
+  });
+
+  ipcMain.handle("recording:load-project", async () => {
+    try {
+      if (!recordingStore.hasProjectRecording()) return { cancelled: true };
+      return recordingStore.loadProject();
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle("recording:save-project", async (_e, rec: Recording) => {
+    try {
+      return recordingStore.saveProject(rec);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
   ipcMain.handle("recording:pick-audio", async () => {
     return recordingStore.pickAudio(getMainWindow());
   });
