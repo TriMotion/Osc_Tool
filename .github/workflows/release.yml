@@ -41,6 +41,7 @@ jobs:
       # Swap to a clean npm-flat node_modules with prod deps only, then rebuild
       # native modules for the Electron ABI and package from there.
       - name: Reinstall with npm for flat layout
+        shell: bash
         run: |
           rm -rf node_modules
           npm install --omit=dev --no-package-lock --ignore-scripts
