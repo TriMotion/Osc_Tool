@@ -217,6 +217,23 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     return { has: recordingStore.hasProjectRecording() };
   });
 
+  ipcMain.handle("recording:get-project-dir", () => {
+    return recordingStore.getProjectDir();
+  });
+
+  ipcMain.handle("recording:pick-project-dir", async () => {
+    try {
+      return await recordingStore.pickProjectDir(getMainWindow());
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle("recording:reset-project-dir", () => {
+    recordingStore.setProjectDir(null);
+    return { ok: true };
+  });
+
   ipcMain.handle("recording:load-project", async () => {
     try {
       if (!recordingStore.hasProjectRecording()) return { cancelled: true };

@@ -17,28 +17,94 @@ const MIDI_FILTERS = [
   { name: "Standard MIDI File", extensions: ["mid", "midi"] },
 ];
 
+interface AppConfig {
+  /** User-chosen project folder (absolute path). Overrides the default. */
+  projectDir?: string;
+}
+
 export class RecordingStore {
   private recordingsDir: string;
   private recentFile: string;
-  /** Repo-relative folder used to bundle a "project" recording that can be
-   * committed to git and shared across machines. */
-  private projectDir: string;
-  private projectRecordingPath: string;
-  private projectAudioDir: string;
+  private configFile: string;
+  private config: AppConfig = {};
+  /** Built-in default project folder: dev → repo/project, packaged → Resources/project. */
+  private defaultProjectDir: string;
 
   constructor() {
     this.recordingsDir = path.join(app.getPath("userData"), "recordings");
     this.recentFile = path.join(app.getPath("userData"), "recent-recordings.json");
-    // In dev the project lives next to the source tree; in packaged builds
-    // electron-builder copies `project/` into Contents/Resources/ via
-    // `extraResources`, which is `process.resourcesPath` at runtime.
+    this.configFile = path.join(app.getPath("userData"), "app-config.json");
     const projectBase = app.isPackaged ? process.resourcesPath : process.cwd();
-    this.projectDir = path.join(projectBase, "project");
-    this.projectRecordingPath = path.join(this.projectDir, "recording.oscrec");
-    this.projectAudioDir = path.join(this.projectDir, "audio");
+    this.defaultProjectDir = path.join(projectBase, "project");
+    this.loadConfig();
     if (!fs.existsSync(this.recordingsDir)) {
       fs.mkdirSync(this.recordingsDir, { recursive: true });
     }
+  }
+
+  private loadConfig(): void {
+    try {
+      if (fs.existsSync(this.configFile)) {
+        this.config = JSON.parse(fs.readFileSync(this.configFile, "utf-8"));
+      }
+    } catch {
+      this.config = {};
+    }
+  }
+
+  private saveConfig(): void {
+    fs.writeFileSync(this.configFile, JSON.stringify(this.config, null, 2), "utf-8");
+  }
+
+  /** Effective project directory: user-chosen if set, else the built-in default. */
+  private get projectDir(): string {
+    return this.config.projectDir ?? this.defaultProjectDir;
+  }
+
+  private get projectRecordingPath(): string {
+    return path.join(this.projectDir, "recording.oscrec");
+  }
+
+  private get projectAudioDir(): string {
+    return path.join(this.projectDir, "audio");
+  }
+
+  getProjectDir(): { path: string; isDefault: boolean } {
+    return {
+      path: this.projectDir,
+      isDefault: this.config.projectDir === undefined,
+    };
+  }
+
+  setProjectDir(absPath: string | null): void {
+    if (absPath === null) {
+      delete this.config.projectDir;
+    } else {
+      if (!path.isAbsolute(absPath)) {
+        throw new Error("Project folder path must be absolute");
+      }
+      this.config.projectDir = absPath;
+    }
+    this.saveConfig();
+  }
+
+  async pickProjectDir(win: BrowserWindow | null): Promise<
+    { path: string } | { cancelled: true }
+  > {
+    const options = {
+      title: "Choose Project Folder",
+      properties: ["openDirectory", "createDirectory"] as Array<
+        "openDirectory" | "createDirectory"
+      >,
+      defaultPath: this.projectDir,
+    };
+    const result = await (win
+      ? dialog.showOpenDialog(win, options)
+      : dialog.showOpenDialog(options));
+    if (result.canceled || result.filePaths.length === 0) return { cancelled: true };
+    const picked = result.filePaths[0];
+    this.setProjectDir(picked);
+    return { path: picked };
   }
 
   hasProjectRecording(): boolean {
@@ -73,9 +139,11 @@ export class RecordingStore {
    * so the whole thing is portable and git-friendly.
    */
   saveProject(rec: Recording): { path: string } {
-    if (app.isPackaged) {
+    // The built-in default is read-only in packaged builds (it's inside the
+    // app bundle's Resources folder). A user-chosen project folder is fine.
+    if (app.isPackaged && this.config.projectDir === undefined) {
       throw new Error(
-        "Save project is only available in the development build — the packaged app's project folder is read-only. Use Save / Save As… instead.",
+        "Pick a project folder first — the built-in one inside the app is read-only. Use \"Choose project folder…\" to select a writable location (e.g. an iCloud or Dropbox folder).",
       );
     }
     if (!fs.existsSync(this.projectDir)) {

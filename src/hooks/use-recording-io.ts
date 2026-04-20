@@ -106,6 +106,25 @@ export function useRecordingIO() {
     return res;
   }, []);
 
+  const getProjectDir = useCallback(async () => {
+    const api = getAPI();
+    if (!api) return null;
+    return (await api.invoke("recording:get-project-dir")) as { path: string; isDefault: boolean };
+  }, []);
+
+  const pickProjectDir = useCallback(async () => {
+    setLastError(null);
+    const api = getAPI();
+    if (!api) return null;
+    const res = (await api.invoke("recording:pick-project-dir")) as
+      | { path: string }
+      | { cancelled: true }
+      | { error: string };
+    if ("error" in res) { setLastError(res.error); return null; }
+    if ("cancelled" in res) return null;
+    return res.path;
+  }, []);
+
   const loadProject = useCallback(async () => {
     setLastError(null);
     const api = getAPI();
@@ -156,6 +175,8 @@ export function useRecordingIO() {
     loadPath,
     loadProject,
     saveProject,
+    getProjectDir,
+    pickProjectDir,
     pickAudio,
     readAudioBytes,
     importMidi,

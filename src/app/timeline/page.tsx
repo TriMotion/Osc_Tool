@@ -242,6 +242,7 @@ export default function TimelinePage() {
     // from disk to pick up the new paths (and resolved absolute versions).
     const res = await io.loadProject();
     if (res) await applyLoadedRecording(res.recording, res.path);
+    setProjectFound(true);
   }, [io, recorder.recording, applyLoadedRecording]);
 
   const handleRelinkAudio = useCallback(
@@ -262,8 +263,36 @@ export default function TimelinePage() {
     [io, audio, recorder],
   );
 
-  // Auto-load on mount: prefer the bundled project recording, then fall back to the
-  // most recent recording. Skips if a recording is already loaded.
+  // Project folder state — surfaces current path + "not found" banner.
+  const [projectDirInfo, setProjectDirInfo] = useState<{ path: string; isDefault: boolean } | null>(null);
+  const [projectFound, setProjectFound] = useState<boolean>(true);
+
+  const refreshProjectDirInfo = useCallback(async () => {
+    const info = await io.getProjectDir();
+    if (info) setProjectDirInfo(info);
+  }, [io]);
+
+  const tryLoadProject = useCallback(async () => {
+    const project = await io.loadProject();
+    if (project) {
+      await applyLoadedRecording(project.recording, project.path);
+      setProjectFound(true);
+      return true;
+    }
+    setProjectFound(false);
+    return false;
+  }, [io, applyLoadedRecording]);
+
+  const handlePickProjectDir = useCallback(async () => {
+    const picked = await io.pickProjectDir();
+    if (!picked) return;
+    await refreshProjectDirInfo();
+    await tryLoadProject();
+  }, [io, refreshProjectDirInfo, tryLoadProject]);
+
+  // Auto-load on mount: prefer the user-configured project folder; if its
+  // recording isn't present, keep the folder setting but fall back to recents.
+  // Skips if a recording is already loaded.
   const autoLoadAttemptedRef = useRef(false);
   useEffect(() => {
     if (autoLoadAttemptedRef.current) return;
@@ -271,18 +300,16 @@ export default function TimelinePage() {
     autoLoadAttemptedRef.current = true;
 
     (async () => {
-      const project = await io.loadProject();
-      if (project) {
-        await applyLoadedRecording(project.recording, project.path);
-        return;
-      }
+      await refreshProjectDirInfo();
+      const loaded = await tryLoadProject();
+      if (loaded) return;
       const recent = io.recent[0];
       if (!recent) return;
       const res = await io.loadPath(recent.path);
       if (!res || "error" in res) return;
       await applyLoadedRecording(res.recording, res.path);
     })();
-  }, [io, recorder.recording, recorder.state, applyLoadedRecording]);
+  }, [io, recorder.recording, recorder.state, applyLoadedRecording, refreshProjectDirInfo, tryLoadProject]);
 
   const handleImportMidi = useCallback(async () => {
     if (recorder.state === "recording") {
@@ -558,6 +585,30 @@ export default function TimelinePage() {
         <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-1.5">
           <span>{io.lastError}</span>
           <button onClick={io.clearError} className="ml-auto text-red-300 hover:text-white">✕</button>
+        </div>
+      )}
+
+      {projectDirInfo && (
+        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+          <span className="shrink-0">Project folder:</span>
+          <span
+            className={`font-mono truncate ${projectFound ? "text-gray-400" : "text-amber-300"}`}
+            title={projectDirInfo.path}
+          >
+            {projectDirInfo.path}
+            {projectDirInfo.isDefault && <span className="ml-1 text-gray-600">(default)</span>}
+          </span>
+          <button
+            onClick={handlePickProjectDir}
+            className="shrink-0 px-2 py-0.5 rounded border border-white/10 text-gray-400 hover:text-white hover:border-accent/40 transition-colors"
+          >
+            Change…
+          </button>
+          {!projectFound && (
+            <span className="shrink-0 text-amber-300">
+              (no recording.oscrec found here — pick a folder or Save project to create one)
+            </span>
+          )}
         </div>
       )}
 
