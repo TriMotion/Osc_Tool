@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { LaneAnalysis, LaneBadge, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, OscMapping, RecordedEvent, Recording, RedundancyPair, SavedEndpoint, TimelineSection } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, OscMapping, RecordedEvent, Recording, RedundancyPair, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName } from "@/lib/timeline-util";
 import { TimeRuler } from "./time-ruler";
@@ -116,6 +116,8 @@ interface TimelineCanvasProps {
   onHiddenLanesChange: (lanes: string[]) => void;
   onHiddenNoteGroupsChange: (groups: string[]) => void;
   focusedSection: import("@/lib/types").TimelineSection | null;
+  focusedSectionId: string | null;
+  onOpenLaneMapping: (laneKey: LaneKey) => void;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -733,6 +735,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           sections={sections}
           oscMappings={visibleOscMappings}
           endpoints={endpoints}
+          focusedSectionId={props.focusedSectionId}
+          onOpenLaneMapping={props.onOpenLaneMapping}
           onAddOscMapping={onAddOscMapping}
           onUpdateOscMapping={onUpdateOscMapping}
           onDeleteOscMapping={onDeleteOscMapping}

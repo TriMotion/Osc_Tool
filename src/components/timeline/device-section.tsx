@@ -55,6 +55,8 @@ interface DeviceSectionProps {
   oscMappings?: OscMapping[];
   endpoints?: SavedEndpoint[];
   sections?: TimelineSection[];
+  focusedSectionId?: string | null;
+  onOpenLaneMapping?: (laneKey: LaneKey) => void;
   onAddOscMapping?: (mapping: OscMapping) => void;
   onUpdateOscMapping?: (mapping: OscMapping) => void;
   onDeleteOscMapping?: (id: string) => void;
@@ -107,7 +109,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     onDeleteDevice, displayName, onRenameDevice, deviceAliases, selectedVelocity, activeSectionRange, activeSectionName, onNoteClick,
     allGroups = [], hiddenNoteKeys, sidebarHiddenNoteKeys, sectionHiddenRanges, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
-    oscMappings = [], endpoints = [], sections = [], onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
+    oscMappings = [], endpoints = [], sections = [], focusedSectionId, onOpenLaneMapping, onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
     hiddenLanes, onHideLane, onShowLane,
   } = props;
 
@@ -706,7 +708,11 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
-                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
+                      mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
+                      onOpenMapping={(e) => {
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        onOpenLaneMapping?.(entry.key);
+                      }}
                     />
                   </div>
                 );
@@ -741,7 +747,11 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
-                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
+                      mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
+                      onOpenMapping={(e) => {
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        onOpenLaneMapping?.(entry.key);
+                      }}
                     />
                   </div>
                 );
@@ -776,7 +786,11 @@ export function DeviceSection(props: DeviceSectionProps) {
                       onRequestOscEditor={(targetId, anchorRect) => {
                         setOscEditor({ targetType: "lane", targetId, anchorRect });
                       }}
-                      hasOscMapping={oscMappings.some((m) => m.targetType === "lane" && m.targetId === keyStr && m.deviceId === device)}
+                      mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
+                      onOpenMapping={(e) => {
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        onOpenLaneMapping?.(entry.key);
+                      }}
                     />
                   </div>
                 );

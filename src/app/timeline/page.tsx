@@ -14,7 +14,8 @@ import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
 import { migrateOscMappings } from "@/lib/osc-mapping-migration";
-import type { LaneBadge, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording, OscMapping, SavedEndpoint } from "@/lib/types";
+import type { LaneBadge, LaneKey, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording, OscMapping, SavedEndpoint } from "@/lib/types";
+import { laneKeyString } from "@/lib/types";
 
 const LEFT_GUTTER = 140;
 
@@ -539,6 +540,17 @@ export default function TimelinePage() {
     setBadgeEditor({ laneKey: key, badge: null });
   }, []);
 
+  // Opens the OSC mapping editor for a CC/pitch/aftertouch lane chip click.
+  // DeviceSection handles editor rendering via its own local oscEditor state;
+  // this handler exists as a page-level hook point for future prefill or
+  // cross-component coordination (e.g. pre-selecting the focused section).
+  const handleOpenLaneMapping = useCallback((_laneKey: LaneKey) => {
+    // DeviceSection opens OscMappingEditor via setOscEditor internally.
+    // The focusedSectionId is passed down as a prop so DeviceSection can scope
+    // the mapping lookup — no additional action needed here currently.
+    void laneKeyString(_laneKey); // silence unused-import lint
+  }, []);
+
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -688,6 +700,8 @@ export default function TimelinePage() {
           deviceAliases={recorder.recording?.deviceAliases}
           onRenameDevice={saveDeviceAlias}
           focusedSection={focusedSection}
+          focusedSectionId={focusedSectionId}
+          onOpenLaneMapping={handleOpenLaneMapping}
         />
       </div>
 

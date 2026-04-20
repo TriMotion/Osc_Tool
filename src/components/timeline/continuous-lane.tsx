@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { LaneAnalysis, LaneBadge, RecordedEvent } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, OscMapping, RecordedEvent } from "@/lib/types";
 import { bucketContinuous, eventValue } from "@/lib/timeline-util";
 import { ResizeHandle } from "./resize-handle";
 import { LaneBadges } from "./lane-badges";
@@ -33,7 +33,8 @@ interface ContinuousLaneProps {
   isFlashing?: boolean;
   onHide?: () => void;
   onRequestOscEditor?: (targetId: string, anchorRect: DOMRect) => void;
-  hasOscMapping?: boolean;
+  mapping?: OscMapping | null;
+  onOpenMapping?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export function ContinuousLane({
@@ -62,7 +63,8 @@ export function ContinuousLane({
   isFlashing,
   onHide,
   onRequestOscEditor,
-  hasOscMapping,
+  mapping,
+  onOpenMapping,
 }: ContinuousLaneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -200,20 +202,21 @@ export function ContinuousLane({
               title="Hide lane"
             >⊘</button>
           )}
-          {onRequestOscEditor && (
+          {mapping ? (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestOscEditor(laneKey, (e.currentTarget as HTMLElement).getBoundingClientRect());
-              }}
-              className={`text-[9px] px-1 py-0.5 rounded border leading-none transition-colors ${
-                hasOscMapping
-                  ? "text-accent border-accent/30"
-                  : "text-gray-600 border-white/5 hover:text-gray-400 hover:border-white/15"
-              }`}
-              title="OSC mapping"
+              onClick={(e) => onOpenMapping?.(e)}
+              title={`Edit OSC mapping → ${mapping.address ?? "(preset)"}`}
+              className="ml-1 max-w-[140px] truncate px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent/15 text-accent border border-accent/40 hover:bg-accent/25"
             >
-              OSC
+              → {mapping.address ?? mapping.preset}
+            </button>
+          ) : (
+            <button
+              onClick={(e) => onOpenMapping?.(e)}
+              title="Map this CC to OSC"
+              className="ml-1 px-1.5 py-0.5 rounded text-[10px] border border-white/10 text-gray-500 hover:text-white hover:border-accent/40"
+            >
+              ＋ Map
             </button>
           )}
         </div>
