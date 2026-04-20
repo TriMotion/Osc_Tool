@@ -64,8 +64,8 @@ interface DeviceSectionProps {
 }
 
 const NOTES_HEIGHT = 48;
-const CONT_HEIGHT = 22;
-const MARKER_HEIGHT = 22;
+const CONT_HEIGHT = 36;
+const MARKER_HEIGHT = 28;
 const SUMMARY_HEIGHT = 22;
 
 /**

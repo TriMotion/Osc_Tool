@@ -278,13 +278,77 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
       dispatch({ type: "zoom", anchorMs, factor, maxMs, minMs: originOffsetMs });
       tailFollowRef.current = false;
-    } else {
-      const span = view.endMs - view.startMs;
-      const delta = (e.deltaX || e.deltaY) / 500 * span;
-      dispatch({ type: "scrollBy", deltaMs: delta, maxMs, minMs: originOffsetMs });
-      tailFollowRef.current = false;
+      return;
     }
+    // Horizontal pan only when the gesture is actually horizontal: trackpad two-finger swipe
+    // (deltaX nonzero) or Shift+wheel on a mouse. Plain vertical wheel falls through to native
+    // scroll so the lanes list can be scrolled on a mouse-only system.
+    const hMouse = e.shiftKey ? e.deltaY : 0;
+    const hDelta = e.deltaX || hMouse;
+    if (hDelta === 0) return;
+    e.preventDefault();
+    const span = view.endMs - view.startMs;
+    dispatch({ type: "scrollBy", deltaMs: (hDelta / 500) * span, maxMs, minMs: originOffsetMs });
+    tailFollowRef.current = false;
   };
+
+  // Drag-to-pan on lane track area. Starts below the sticky header so the time ruler, section
+  // bar, and marker lane keep their own drag semantics (seek, section create/resize, marker
+  // placement). A 3px threshold lets simple clicks through untouched.
+  const panRef = useRef<{ startX: number; startMs: number; endMs: number; active: boolean } | null>(null);
+  const panMinMsRef = useRef(0);
+  const [panActive, setPanActive] = useState(false);
+
+  const handlePanMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest("[data-sticky-header]")) return;
+    if (target.closest("button, input, select, textarea, [data-no-pan]")) return;
+    panRef.current = { startX: e.clientX, startMs: view.startMs, endMs: view.endMs, active: false };
+  };
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const p = panRef.current;
+      if (!p) return;
+      const dx = e.clientX - p.startX;
+      if (!p.active) {
+        if (Math.abs(dx) < 3) return;
+        p.active = true;
+        setPanActive(true);
+      }
+      e.preventDefault();
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+      const trackWidth = wrap.getBoundingClientRect().width - LEFT_GUTTER;
+      if (trackWidth <= 0) return;
+      const span = p.endMs - p.startMs;
+      const deltaMs = -(dx / trackWidth) * span;
+      dispatch({
+        type: "set",
+        startMs: p.startMs + deltaMs,
+        endMs: p.endMs + deltaMs,
+        minMs: panMinMsRef.current,
+      });
+      tailFollowRef.current = false;
+    };
+    const onUp = (e: MouseEvent) => {
+      const p = panRef.current;
+      if (p?.active) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      panRef.current = null;
+      setPanActive(false);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp, true);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp, true);
+    };
+  }, []);
 
   const toggleCollapsed = (device: string) => {
     setCollapsed((prev) => {
@@ -341,6 +405,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   }, [hiddenNoteGroups]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [originOffsetMs, setOriginOffsetMs] = useState(0);
+  panMinMsRef.current = originOffsetMs;
 
   const activeSection = useMemo(
     () => (activeSectionId ? sections.find((s) => s.id === activeSectionId) ?? null : null),
@@ -488,11 +553,12 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       <div
         ref={wrapRef}
         onWheel={handleWheel}
+        onMouseDown={handlePanMouseDown}
         className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none" }}
+        style={{ scrollbarWidth: "none", cursor: panActive ? "grabbing" : undefined }}
       >
       {/* Sticky header — time ruler, sections, and markers stay pinned while lanes scroll */}
-      <div className="sticky top-0 z-20" style={{ background: "#0f0f1e", boxShadow: "0 4px 16px rgba(0,0,0,0.8)" }}>
+      <div data-sticky-header className="sticky top-0 z-20" style={{ background: "#0f0f1e", boxShadow: "0 4px 16px rgba(0,0,0,0.8)" }}>
         <TimeRuler
           viewStartMs={view.startMs}
           viewEndMs={view.endMs}

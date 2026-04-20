@@ -588,29 +588,7 @@ export default function TimelinePage() {
         </div>
       )}
 
-      {projectDirInfo && (
-        <div className="flex items-center gap-2 text-[11px] text-gray-500">
-          <span className="shrink-0">Project folder:</span>
-          <span
-            className={`font-mono truncate ${projectFound ? "text-gray-400" : "text-amber-300"}`}
-            title={projectDirInfo.path}
-          >
-            {projectDirInfo.path}
-            {projectDirInfo.isDefault && <span className="ml-1 text-gray-600">(default)</span>}
-          </span>
-          <button
-            onClick={handlePickProjectDir}
-            className="shrink-0 px-2 py-0.5 rounded border border-white/10 text-gray-400 hover:text-white hover:border-accent/40 transition-colors"
-          >
-            Change…
-          </button>
-          {!projectFound && (
-            <span className="shrink-0 text-amber-300">
-              (no recording.oscrec found here — pick a folder or Save project to create one)
-            </span>
-          )}
-        </div>
-      )}
+      {projectDirInfo && <ProjectFolderDropdown info={projectDirInfo} found={projectFound} onPick={handlePickProjectDir} />}
 
       {(() => {
         const loadedIds = new Set(audio.tracks.map((t) => t.id));
@@ -760,6 +738,69 @@ export default function TimelinePage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectFolderDropdown({
+  info,
+  found,
+  onPick,
+}: {
+  info: { path: string; isDefault: boolean };
+  found: boolean;
+  onPick: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const folderName = info.path.split(/[\\/]/).pop() || info.path;
+  const toneClass = found ? "text-gray-400 hover:text-white" : "text-amber-300 hover:text-amber-200";
+
+  return (
+    <div ref={ref} className="relative inline-flex">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded border border-white/10 text-[11px] ${toneClass} hover:border-white/20 transition-colors`}
+        title={info.path}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        <span className="font-mono truncate max-w-[160px]">{folderName}</span>
+        {!found && <span className="text-amber-300">•</span>}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-30 w-[360px] max-w-[90vw] bg-surface border border-white/10 rounded-md shadow-xl p-3 flex flex-col gap-2">
+          <div className="text-[10px] uppercase tracking-wide text-gray-500">Project folder</div>
+          <div className={`font-mono text-[11px] break-all ${found ? "text-gray-300" : "text-amber-300"}`}>
+            {info.path}
+            {info.isDefault && <span className="ml-1 text-gray-600">(default)</span>}
+          </div>
+          {!found && (
+            <div className="text-[11px] text-amber-300/90">
+              No .oscrec file found here. Pick another folder or Save project to create one.
+            </div>
+          )}
+          <button
+            onClick={() => { setOpen(false); onPick(); }}
+            className="self-start px-2 py-1 rounded border border-white/10 text-[11px] text-gray-300 hover:text-white hover:border-accent/40 transition-colors"
+          >
+            Change folder…
+          </button>
         </div>
       )}
     </div>

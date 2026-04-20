@@ -107,8 +107,45 @@ export class RecordingStore {
     return { path: picked };
   }
 
+  /**
+   * Locate the project's recording file. Prefers the canonical
+   * "recording.oscrec" (what saveProject writes) but falls back to a single
+   * .oscrec found in the folder so users who saved with a custom name via
+   * Save As still get auto-loaded.
+   */
+  private findProjectRecordingPath(): string | null {
+    if (fs.existsSync(this.projectRecordingPath)) return this.projectRecordingPath;
+    if (!fs.existsSync(this.projectDir)) return null;
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(this.projectDir);
+    } catch {
+      return null;
+    }
+    const oscrecs = entries.filter((n) => n.toLowerCase().endsWith(".oscrec"));
+    if (oscrecs.length === 0) return null;
+    if (oscrecs.length === 1) return path.join(this.projectDir, oscrecs[0]);
+    // Multiple .oscrec files and none named recording.oscrec — pick the most
+    // recently modified so "just opened" projects resume predictably.
+    let best = oscrecs[0];
+    let bestMtime = 0;
+    for (const name of oscrecs) {
+      const full = path.join(this.projectDir, name);
+      try {
+        const m = fs.statSync(full).mtimeMs;
+        if (m > bestMtime) {
+          best = name;
+          bestMtime = m;
+        }
+      } catch {
+        // ignore unreadable entries
+      }
+    }
+    return path.join(this.projectDir, best);
+  }
+
   hasProjectRecording(): boolean {
-    return fs.existsSync(this.projectRecordingPath);
+    return this.findProjectRecordingPath() !== null;
   }
 
   /**
@@ -117,7 +154,11 @@ export class RecordingStore {
    * on any machine with the repo checked out.
    */
   loadProject(): { recording: Recording; path: string } {
-    const recording = this.readFile(this.projectRecordingPath);
+    const recPath = this.findProjectRecordingPath();
+    if (!recPath) {
+      throw new Error("No .oscrec file found in the project folder");
+    }
+    const recording = this.readFile(recPath);
     if (recording.audioTracks) {
       recording.audioTracks = recording.audioTracks.map((t) => ({
         ...t,
@@ -130,7 +171,7 @@ export class RecordingStore {
         filePath: this.resolveProjectAudioPath(recording.audio.filePath),
       };
     }
-    return { recording, path: this.projectRecordingPath };
+    return { recording, path: recPath };
   }
 
   /**
