@@ -393,6 +393,16 @@ export default function TimelinePage() {
     setPlayheadDisplayMs(ms);
   }, [audio]);
 
+  const handlePlay = useCallback(() => {
+    if (focusedSection) {
+      const head = audio.playheadMsRef.current;
+      if (head < focusedSection.startMs || head >= focusedSection.endMs) {
+        handleSeek(focusedSection.startMs);
+      }
+    }
+    audio.play();
+  }, [focusedSection, audio, handleSeek]);
+
   // Keep recording.audioTracks in sync whenever track state changes.
   useEffect(() => {
     if (!recorder.recording || audio.tracks.length === 0) return;
@@ -601,7 +611,7 @@ export default function TimelinePage() {
         durationMs={durationMs}
         onRecord={startRecording}
         onStop={stopRecording}
-        onPlay={audio.play}
+        onPlay={handlePlay}
         onPause={audio.pause}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
