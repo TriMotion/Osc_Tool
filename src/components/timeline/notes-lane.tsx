@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { LaneAnalysis, LaneBadge, NoteGroupTag, NoteSpan } from "@/lib/types";
+import type { LaneAnalysis, LaneBadge, NoteGroupTag, NoteSpan, OscMapping } from "@/lib/types";
 import { findNoteTag } from "@/lib/timeline-util";
 import { ResizeHandle } from "./resize-handle";
 import { LaneBadges } from "./lane-badges";
@@ -31,6 +31,9 @@ interface NotesLaneProps {
   isFlashing?: boolean;
   onHide?: () => void;
   noteTags?: NoteGroupTag[];
+  oscMappings?: OscMapping[];
+  focusedSectionId?: string | null;
+  onOpenNoteGroupMapping?: (pitch: number, velocity: number | null) => void;
 }
 
 export function NotesLane(props: NotesLaneProps) {

@@ -23,10 +23,11 @@ interface NoteTagEditorProps {
   onSave: (tag: NoteGroupTag) => void;
   onDelete?: () => void;
   onClose: () => void;
+  onMapToOsc?: () => void;
 }
 
 export function NoteTagEditor({
-  tag, device, pitch, velocity, existingLabels, anchorRect, onSave, onDelete, onClose,
+  tag, device, pitch, velocity, existingLabels, anchorRect, onSave, onDelete, onClose, onMapToOsc,
 }: NoteTagEditorProps) {
   const [label, setLabel] = useState(tag?.label ?? "");
   const [color, setColor] = useState<string | undefined>(tag?.color);
@@ -132,6 +133,16 @@ export function NoteTagEditor({
         />
         <span className="text-[11px] text-gray-400">All velocities of this pitch</span>
       </label>
+
+      {onMapToOsc && (
+        <button
+          type="button"
+          onClick={onMapToOsc}
+          className="w-full text-left px-3 py-2 text-xs border-t border-white/10 text-accent hover:bg-white/5"
+        >
+          Map to OSC…
+        </button>
+      )}
 
       <div className="flex justify-between items-center mt-4">
         {onDelete ? (

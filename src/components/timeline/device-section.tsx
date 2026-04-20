@@ -414,6 +414,14 @@ export function DeviceSection(props: DeviceSectionProps) {
                 : undefined
             }
             onClose={() => setTagEditor(null)}
+            onMapToOsc={() => {
+              setTagEditor(null);
+              setOscEditor({
+                targetType: "noteGroup",
+                targetId: `${tagEditor.pitch}|${tagEditor.velocity}`,
+                anchorRect: tagEditor.anchorRect,
+              });
+            }}
           />
         );
       })()}
@@ -484,6 +492,15 @@ export function DeviceSection(props: DeviceSectionProps) {
                         isFlashing={flashLaneKeys?.has(keyStr) ?? false}
                         onHide={() => onHideLane(keyStr)}
                         noteTags={noteTags}
+                        oscMappings={oscMappings}
+                        focusedSectionId={focusedSectionId}
+                        onOpenNoteGroupMapping={(pitch, vel) => {
+                          setOscEditor({
+                            targetType: "noteGroup",
+                            targetId: `${pitch}|${vel ?? "any"}`,
+                            anchorRect: new DOMRect(0, 0, 0, 0),
+                          });
+                        }}
                       />
                     </div>
                     {panelOpen && allGroups.length > 0 && (
@@ -592,6 +609,35 @@ export function DeviceSection(props: DeviceSectionProps) {
                                       + tag
                                     </button>
                                   )}
+                                  {(() => {
+                                    const noteMapping = oscMappings.find((m) =>
+                                      m.targetType === "noteGroup" &&
+                                      m.targetId === `${pitch}|${velocity ?? "any"}` &&
+                                      (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)
+                                    );
+                                    return noteMapping ? (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOscEditor({
+                                            targetType: "noteGroup",
+                                            targetId: `${pitch}|${velocity ?? "any"}`,
+                                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                                            editingMapping: noteMapping,
+                                          });
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 transition-colors"
+                                        style={{
+                                          borderColor: "rgba(142,203,255,0.2)",
+                                          background: "rgba(142,203,255,0.05)",
+                                          color: "rgba(142,203,255,0.8)",
+                                        }}
+                                        title={noteMapping.address}
+                                      >
+                                        <span className="font-mono">→ {noteMapping.address}</span>
+                                      </button>
+                                    ) : null;
+                                  })()}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
