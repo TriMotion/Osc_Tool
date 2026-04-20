@@ -10,6 +10,10 @@ files:
   - web/**/*
   - package.json
   - "!node_modules"
+extraResources:
+  - from: project
+    to: project
+    filter: ["**/*"]
 asarUnpack:
   - out/_next/**/*
   - "**/node_modules/@julusian/midi/build/Release/*.node"

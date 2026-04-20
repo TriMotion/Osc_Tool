@@ -29,7 +29,11 @@ export class RecordingStore {
   constructor() {
     this.recordingsDir = path.join(app.getPath("userData"), "recordings");
     this.recentFile = path.join(app.getPath("userData"), "recent-recordings.json");
-    this.projectDir = path.join(process.cwd(), "project");
+    // In dev the project lives next to the source tree; in packaged builds
+    // electron-builder copies `project/` into Contents/Resources/ via
+    // `extraResources`, which is `process.resourcesPath` at runtime.
+    const projectBase = app.isPackaged ? process.resourcesPath : process.cwd();
+    this.projectDir = path.join(projectBase, "project");
     this.projectRecordingPath = path.join(this.projectDir, "recording.oscrec");
     this.projectAudioDir = path.join(this.projectDir, "audio");
     if (!fs.existsSync(this.recordingsDir)) {
@@ -69,6 +73,11 @@ export class RecordingStore {
    * so the whole thing is portable and git-friendly.
    */
   saveProject(rec: Recording): { path: string } {
+    if (app.isPackaged) {
+      throw new Error(
+        "Save project is only available in the development build — the packaged app's project folder is read-only. Use Save / Save As… instead.",
+      );
+    }
     if (!fs.existsSync(this.projectDir)) {
       fs.mkdirSync(this.projectDir, { recursive: true });
     }
@@ -118,7 +127,9 @@ export class RecordingStore {
   private resolveProjectAudioPath(filePath: string): string {
     if (!filePath) return filePath;
     if (this.isProjectAudioPath(filePath)) {
-      return path.resolve(process.cwd(), filePath);
+      // filePath is "project/audio/<file>" — resolve against the parent of
+      // projectDir so we land inside whichever project/ is active.
+      return path.resolve(path.dirname(this.projectDir), filePath);
     }
     return filePath;
   }
