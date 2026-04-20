@@ -12,7 +12,7 @@ import { TriggersSidebar } from "./triggers-sidebar";
 import { SectionBar } from "./section-bar";
 import { MarkerLane, MARKER_DEFAULT_COLOR } from "./marker-lane";
 
-const LEFT_GUTTER = 140;
+const LEFT_GUTTER = 220;
 const MIN_LANE_HEIGHT = 16;
 const AUDIO_LANE_KEY = "audio";
 
@@ -356,10 +356,11 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     }).length;
   }, [noteSpans, noteSelection, activeSection]);
 
-  // Per-device: set of "pitch|velocity" keys that are hidden (for NotesLane filtering).
+  // Per-device: set of "pitch|velocity" keys that are globally hidden (for NotesLane canvas).
   const hiddenKeysByDevice = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const fullKey of hiddenNoteGroups) {
+      if (fullKey.includes("@")) continue;
       const firstPipe = fullKey.indexOf("|");
       const device = fullKey.slice(0, firstPipe);
       const pvKey = fullKey.slice(firstPipe + 1);
@@ -369,6 +370,45 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
     }
     return map;
   }, [hiddenNoteGroups]);
+
+  // Per-device: effective hidden keys for the sidebar (global + active-section-scoped).
+  const sidebarHiddenKeysByDevice = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const fullKey of hiddenNoteGroups) {
+      const atIdx = fullKey.indexOf("@");
+      const baseKey = atIdx >= 0 ? fullKey.slice(0, atIdx) : fullKey;
+      const sectionId = atIdx >= 0 ? fullKey.slice(atIdx + 1) : null;
+      if (sectionId !== null && sectionId !== activeSectionId) continue;
+      const firstPipe = baseKey.indexOf("|");
+      const device = baseKey.slice(0, firstPipe);
+      const pvKey = baseKey.slice(firstPipe + 1);
+      const set = map.get(device) ?? new Set<string>();
+      set.add(pvKey);
+      map.set(device, set);
+    }
+    return map;
+  }, [hiddenNoteGroups, activeSectionId]);
+
+  // Per-device: section-scoped hidden ranges for NotesLane (time-range-aware hiding).
+  const sectionHiddenRangesByDevice = useMemo(() => {
+    const map = new Map<string, Array<{ pitch: number; velocity: number; startMs: number; endMs: number }>>();
+    for (const fullKey of hiddenNoteGroups) {
+      const atIdx = fullKey.indexOf("@");
+      if (atIdx < 0) continue;
+      const baseKey = fullKey.slice(0, atIdx);
+      const sectionId = fullKey.slice(atIdx + 1);
+      const sec = sections.find((s) => s.id === sectionId);
+      if (!sec) continue;
+      const parts = baseKey.split("|");
+      const device = parts[0];
+      const pitch = parseInt(parts[1], 10);
+      const velocity = parseInt(parts[2], 10);
+      const arr = map.get(device) ?? [];
+      arr.push({ pitch, velocity, startMs: sec.startMs, endMs: sec.endMs });
+      map.set(device, arr);
+    }
+    return map;
+  }, [hiddenNoteGroups, sections]);
 
   // Per-device: ALL unique (pitch, velocity) groups with counts, sorted by pitch then velocity.
   const allGroupsByDevice = useMemo(() => {
@@ -418,18 +458,23 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   }, []);
 
   const hideNoteGroup = useCallback((device: string, pitch: number, velocity: number) => {
-    setHiddenNoteGroups((prev) => new Set([...prev, `${device}|${pitch}|${velocity}`]));
+    const key = activeSectionId
+      ? `${device}|${pitch}|${velocity}@${activeSectionId}`
+      : `${device}|${pitch}|${velocity}`;
+    setHiddenNoteGroups((prev) => new Set([...prev, key]));
     setNoteSelection(null);
-  }, []);
+  }, [activeSectionId]);
 
   const toggleHiddenNoteGroup = useCallback((device: string, pitch: number, velocity: number) => {
-    const key = `${device}|${pitch}|${velocity}`;
+    const key = activeSectionId
+      ? `${device}|${pitch}|${velocity}@${activeSectionId}`
+      : `${device}|${pitch}|${velocity}`;
     setHiddenNoteGroups((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
-  }, []);
+  }, [activeSectionId]);
 
   const jumpLive = () => {
     tailFollowRef.current = true;
@@ -592,6 +637,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onNoteClick={(span) => handleNoteClick(device, span)}
           allGroups={displayGroupsByDevice.get(device) ?? []}
           hiddenNoteKeys={hiddenKeysByDevice.get(device) ?? new Set()}
+          sidebarHiddenNoteKeys={sidebarHiddenKeysByDevice.get(device)}
+          sectionHiddenRanges={sectionHiddenRangesByDevice.get(device)}
           onToggleNoteGroup={(pitch, velocity) => toggleHiddenNoteGroup(device, pitch, velocity)}
           onSelectGroup={(pitch, velocity) => setNoteSelection((prev) =>
             prev?.device === device && prev.pitch === pitch && prev.velocity === velocity

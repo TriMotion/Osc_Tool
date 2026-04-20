@@ -38,7 +38,8 @@ export function useAudioSync({ durationMs, onPlayheadChange }: UseAudioSyncArgs)
   const onPlayheadChangeRef = useRef(onPlayheadChange);
   onPlayheadChangeRef.current = onPlayheadChange;
 
-  // rAF playback loop — uses first track as master clock, falls back to perf.now.
+  // rAF playback loop — drives visual updates; OSC dispatch is handled separately
+  // in useOscPlayback via its own setInterval so it's unaffected by window state.
   useEffect(() => {
     if (!isPlaying) return;
     const tick = () => {

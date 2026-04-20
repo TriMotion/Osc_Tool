@@ -5,14 +5,15 @@ export function resolveDeviceName(name: string, aliases?: Record<string, string>
   return aliases?.[name] ?? name;
 }
 
-export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>): string {
+export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>, eventVelocity?: number): string {
   switch (mapping.preset) {
     case "custom":
       return mapping.address ?? "/";
     case "unreal": {
-      const [pitch, velocity] = mapping.targetId.split("|");
+      const [pitch, groupVelocity] = mapping.targetId.split("|");
       const section = mapping.sectionName ?? "default";
       const deviceName = resolveDeviceName(mapping.deviceId, aliases);
+      const velocity = eventVelocity !== undefined ? eventVelocity : groupVelocity;
       return `/unreal/${section}/${deviceName}/${pitch}/${velocity}`;
     }
     case "resolume":
@@ -50,7 +51,7 @@ export function matchesMapping(evt: RecordedEvent, mapping: OscMapping): boolean
     const velocity = parseInt(velocityStr, 10);
 
     if ((mapping.trigger === "on" || mapping.trigger === "both") && evt.midi.type === "noteon") {
-      return evt.midi.data1 === pitch && evt.midi.data2 === velocity;
+      return evt.midi.data1 === pitch;
     }
     if ((mapping.trigger === "off" || mapping.trigger === "both") && evt.midi.type === "noteoff") {
       // Note-off events don't carry the originating note-on velocity, so we match
@@ -70,8 +71,8 @@ export function matchesMapping(evt: RecordedEvent, mapping: OscMapping): boolean
 
 export function computeOscArgValue(evt: RecordedEvent, mapping: OscMapping): number {
   if (mapping.targetType === "noteGroup") {
-    const isOn = evt.midi.type === "noteon";
-    return mapping.argType === "f" ? (isOn ? 1.0 : 0.0) : (isOn ? 1 : 0);
+    if (evt.midi.type !== "noteon") return 0;
+    return mapping.argType === "f" ? evt.midi.data2 / 127 : evt.midi.data2;
   }
   return mapping.argType === "f" ? evt.midi.data2 / 127 : evt.midi.data2;
 }

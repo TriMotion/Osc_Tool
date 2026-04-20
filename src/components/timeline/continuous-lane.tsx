@@ -176,43 +176,47 @@ export function ContinuousLane({
       onMouseLeave={handleMouseLeave}
     >
       <div
-        className="group/gutter text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden relative"
+        className="group/gutter text-[10px] text-gray-500 px-3 border-r border-white/5 flex items-center gap-1.5 overflow-hidden"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
-        <span className="truncate">{label}</span>
-        {sublabel && <span className="text-gray-700 text-[9px] truncate">{sublabel}</span>}
-        <LaneBadges
-          analysis={analysis}
-          userBadges={userBadges}
-          onAddClick={() => onRequestAddBadge?.(laneKey)}
-          onBadgeClick={(b) => onEditBadge?.(b)}
-          onDeleteBadge={onDeleteBadge}
-          suppressedTypes={suppressedAnalysisTypes}
-          onSuppressBadge={onSuppressAnalysisBadge}
-        />
-        {onHide && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onHide(); }}
-            className="absolute top-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] text-gray-600 hover:text-red-400 leading-none"
-            title="Hide lane"
-          >⊘</button>
-        )}
-        {onRequestOscEditor && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRequestOscEditor(laneKey, (e.currentTarget as HTMLElement).getBoundingClientRect());
-            }}
-            className={`absolute bottom-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] px-1 py-0.5 rounded border leading-none ${
-              hasOscMapping
-                ? "text-accent border-accent/30 opacity-100"
-                : "text-gray-600 border-white/5 hover:text-gray-400"
-            }`}
-            title="OSC mapping"
-          >
-            OSC
-          </button>
-        )}
+        <div className="flex flex-col justify-center min-w-0 flex-1 overflow-hidden">
+          <span className="truncate">{label}</span>
+          {sublabel && <span className="text-gray-700 text-[9px] truncate">{sublabel}</span>}
+          <LaneBadges
+            analysis={analysis}
+            userBadges={userBadges}
+            onAddClick={() => onRequestAddBadge?.(laneKey)}
+            onBadgeClick={(b) => onEditBadge?.(b)}
+            onDeleteBadge={onDeleteBadge}
+            suppressedTypes={suppressedAnalysisTypes}
+            onSuppressBadge={onSuppressAnalysisBadge}
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/gutter:opacity-100 transition-opacity">
+          {onHide && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onHide(); }}
+              className="text-[9px] text-gray-600 hover:text-red-400 leading-none transition-colors"
+              title="Hide lane"
+            >⊘</button>
+          )}
+          {onRequestOscEditor && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestOscEditor(laneKey, (e.currentTarget as HTMLElement).getBoundingClientRect());
+              }}
+              className={`text-[9px] px-1 py-0.5 rounded border leading-none transition-colors ${
+                hasOscMapping
+                  ? "text-accent border-accent/30"
+                  : "text-gray-600 border-white/5 hover:text-gray-400 hover:border-white/15"
+              }`}
+              title="OSC mapping"
+            >
+              OSC
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex-1 relative">
         <canvas ref={canvasRef} className="w-full h-full block" />

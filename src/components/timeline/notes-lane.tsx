@@ -19,6 +19,7 @@ interface NotesLaneProps {
   selectedVelocity?: { pitch: number; velocity: number } | null;
   activeSectionRange?: { startMs: number; endMs: number } | null;
   hiddenNoteKeys?: Set<string>;
+  sectionHiddenRanges?: Array<{ pitch: number; velocity: number; startMs: number; endMs: number }>;
   onResize?: (newHeight: number) => void;
   analysis?: LaneAnalysis;
   userBadges?: LaneBadge[];
@@ -38,12 +39,20 @@ export function NotesLane(props: NotesLaneProps) {
     onHover, onNoteClick, selectedVelocity, activeSectionRange, hiddenNoteKeys,
     onResize, analysis, userBadges, onRequestAddBadge, onEditBadge, onDeleteBadge,
     suppressedAnalysisTypes, onSuppressAnalysisBadge, isFlashing, onHide,
-    noteTags,
+    noteTags, sectionHiddenRanges,
   } = props;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const isHidden = (s: NoteSpan) => hiddenNoteKeys?.has(`${s.pitch}|${s.velocity}`) ?? false;
+  const isHidden = (s: NoteSpan) => {
+    if (hiddenNoteKeys?.has(`${s.pitch}|${s.velocity}`)) return true;
+    if (sectionHiddenRanges) {
+      for (const r of sectionHiddenRanges) {
+        if (r.pitch === s.pitch && r.velocity === s.velocity && s.tStart < r.endMs && s.tEnd > r.startMs) return true;
+      }
+    }
+    return false;
+  };
 
   const device = spans[0]?.device ?? "";
   const spanColor = (s: NoteSpan): string => {
