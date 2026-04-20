@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRecorderContext } from "@/contexts/recorder-context";
 import { useLiveMonitor } from "@/hooks/use-live-monitor";
+import { useMidiControl } from "@/hooks/use-midi";
 import { DeviceStrip } from "@/components/live/device-strip";
 import { ActivityFeed } from "@/components/live/activity-feed";
 import { MappingConfigPanel } from "@/components/live/mapping-config-panel";
@@ -11,6 +12,7 @@ import type { OscMapping, SavedEndpoint } from "@/lib/types";
 export default function LivePage() {
   const recorder = useRecorderContext();
   const recording = recorder.recording;
+  const { devices: connectedLivePorts } = useMidiControl();
 
   const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
   const [showUnmapped, setShowUnmapped] = useState(true);
@@ -43,14 +45,11 @@ export default function LivePage() {
     [recorder],
   );
 
-  const handleLinkDevice = useCallback(
-    (liveName: string, recordingName: string) => {
-      const current = recording?.liveDeviceLinks ?? {};
-      recorder.patchRecording({
-        liveDeviceLinks: { ...current, [liveName]: recordingName },
-      });
+  const handleUpdateLinks = useCallback(
+    (links: Record<string, string>) => {
+      recorder.patchRecording({ liveDeviceLinks: links });
     },
-    [recorder, recording?.liveDeviceLinks],
+    [recorder],
   );
 
   if (!recording) {
@@ -69,7 +68,8 @@ export default function LivePage() {
         deviceActivity={deviceActivity}
         aliases={recording.deviceAliases}
         liveDeviceLinks={recording.liveDeviceLinks}
-        onLinkDevice={handleLinkDevice}
+        connectedLivePorts={connectedLivePorts}
+        onUpdateLinks={handleUpdateLinks}
       />
 
       {/* Zone 2 — Activity feed */}
