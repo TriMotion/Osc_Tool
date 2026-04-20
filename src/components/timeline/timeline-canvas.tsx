@@ -152,6 +152,23 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
   const [flashLaneKeys, setFlashLaneKeys] = useState<Set<string>>(new Set());
   const flashTimerRef = useRef<number | null>(null);
 
+  const rangeStart = props.focusedSection?.startMs ?? 0;
+  const rangeEnd = props.focusedSection?.endMs ?? Infinity;
+  // LaneBadge has no time field, so we pass all badges through regardless of focus range.
+  // Filtering happens implicitly via lane visibility (lanes outside the focused section are
+  // not meaningfully visible). If a time coord is added to LaneBadge in the future, update here.
+  const visibleBadges = props.badges;
+  const visibleMarkers = useMemo(
+    () => props.userMarkers.filter((m) => m.tMs >= rangeStart && m.tMs < rangeEnd),
+    [props.userMarkers, rangeStart, rangeEnd],
+  );
+  const visibleOscMappings = useMemo(
+    () => (props.focusedSection
+      ? props.oscMappings.filter((m) => m.sectionId === props.focusedSection!.id)
+      : props.oscMappings.filter((m) => !m.sectionId)),
+    [props.oscMappings, props.focusedSection],
+  );
+
   const analysisByKey = useMemo(() => {
     const m = new Map<string, LaneAnalysis>();
     for (const a of analyses ?? []) m.set(a.laneKey, a);
@@ -160,13 +177,13 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
 
   const badgesByKey = useMemo(() => {
     const m = new Map<string, LaneBadge[]>();
-    for (const b of badges ?? []) {
+    for (const b of visibleBadges ?? []) {
       const list = m.get(b.laneKey) ?? [];
       list.push(b);
       m.set(b.laneKey, list);
     }
     return m;
-  }, [badges]);
+  }, [visibleBadges]);
 
   const flashLane = useCallback((laneKey: string) => {
     setFlashLaneKeys((prev) => {
@@ -585,7 +602,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         {/* Auto-detected moments (drops/builds/peaks/silences) are computed in useTriggerAnalysis
             but not shown here — the detection needs more work before it's useful. */}
         <MarkerLane
-          markers={userMarkers}
+          markers={visibleMarkers}
           viewStartMs={view.startMs}
           viewEndMs={view.endMs}
           leftGutterPx={LEFT_GUTTER}
@@ -714,7 +731,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onSaveNoteTag={onSaveNoteTag}
           onDeleteNoteTag={onDeleteNoteTag}
           sections={sections}
-          oscMappings={oscMappings}
+          oscMappings={visibleOscMappings}
           endpoints={endpoints}
           onAddOscMapping={onAddOscMapping}
           onUpdateOscMapping={onUpdateOscMapping}
@@ -726,7 +743,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       ))}
 
       {/* Full-height marker lines — rendered as overlay so they span all lanes */}
-      {userMarkers.map((m) => {
+      {visibleMarkers.map((m) => {
         const viewSpan = Math.max(1, view.endMs - view.startMs);
         const leftFrac = (m.tMs - view.startMs) / viewSpan;
         if (leftFrac < -0.02 || leftFrac > 1.02) return null;
@@ -795,7 +812,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           moments={moments}
           ready={analysisReady}
           error={analysisError}
-          userBadges={badges}
+          userBadges={visibleBadges}
           laneLabelFor={laneLabelFor}
           onSelectLane={(k) => { flashLane(k); scrollLaneIntoView(k); }}
           onSelectPair={(a, b) => { flashLane(a); flashLane(b); scrollLaneIntoView(a); }}
