@@ -553,27 +553,31 @@ export default function TimelinePage() {
 
   return (
     <div className="flex flex-col h-full gap-3">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-xl font-semibold">Timeline</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {bridgeRunning
-                ? `Bridge running · ${midiDevices.length} device${midiDevices.length === 1 ? "" : "s"} detected`
-                : "Bridge stopped"}
-            </p>
-          </div>
-          <button
-            onClick={handleToggleBridge}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              bridgeRunning
-                ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
-                : "bg-accent/10 text-accent border-accent/30 hover:bg-accent/20"
-            }`}
-          >
-            {bridgeRunning ? "Stop bridge" : "Start bridge"}
-          </button>
-        </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-sm font-semibold">Timeline</h2>
+
+        {projectDirInfo && (
+          <ProjectFolderDropdown
+            info={projectDirInfo}
+            found={projectFound}
+            onPick={handlePickProjectDir}
+          />
+        )}
+
+        <button
+          onClick={handleToggleBridge}
+          className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+            bridgeRunning
+              ? "bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20"
+              : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
+          }`}
+          title={bridgeRunning ? `${midiDevices.length} device${midiDevices.length === 1 ? "" : "s"}` : "Bridge stopped"}
+        >
+          {bridgeRunning ? `● Bridge · ${midiDevices.length}` : "○ Bridge off"}
+        </button>
+
+        <div className="flex-1" />
+
         <RecordingInfoPanel
           recording={recorder.recording}
           recorderState={recorder.state}
@@ -614,8 +618,6 @@ export default function TimelinePage() {
           <button onClick={io.clearError} className="ml-auto text-red-300 hover:text-white">✕</button>
         </div>
       )}
-
-      {projectDirInfo && <ProjectFolderDropdown info={projectDirInfo} found={projectFound} onPick={handlePickProjectDir} />}
 
       {(() => {
         const loadedIds = new Set(audio.tracks.map((t) => t.id));
