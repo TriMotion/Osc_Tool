@@ -12,6 +12,7 @@ import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
 import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
+import { migrateOscMappings } from "@/lib/osc-mapping-migration";
 import type { LaneBadge, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording, OscMapping, SavedEndpoint } from "@/lib/types";
 
 const LEFT_GUTTER = 140;
@@ -189,16 +190,17 @@ export default function TimelinePage() {
 
   const applyLoadedRecording = useCallback(
     async (rec: Recording, loadedFromPath: string | null) => {
-      recorder.setLoaded(rec);
+      const migrated = migrateOscMappings(rec);
+      recorder.setLoaded(migrated);
       setSaveSuggestedPath(loadedFromPath);
       audio.unloadAll();
 
       // Support both old single-audio and new multi-track recordings.
       const tracksToLoad: Array<{ id: string; filePath: string; offsetMs: number }> = [];
-      if (rec.audioTracks?.length) {
-        tracksToLoad.push(...rec.audioTracks);
-      } else if (rec.audio) {
-        tracksToLoad.push({ id: crypto.randomUUID(), ...rec.audio });
+      if (migrated.audioTracks?.length) {
+        tracksToLoad.push(...migrated.audioTracks);
+      } else if (migrated.audio) {
+        tracksToLoad.push({ id: crypto.randomUUID(), ...migrated.audio });
       }
 
       for (const t of tracksToLoad) {
