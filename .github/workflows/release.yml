@@ -33,6 +33,9 @@ jobs:
 
       - run: pnpm install
 
+      - name: Rebuild native modules for Electron ABI
+        run: pnpm exec electron-rebuild -f -w @julusian/midi
+
       - run: pnpm electron:compile:prod
 
       - run: pnpm build
