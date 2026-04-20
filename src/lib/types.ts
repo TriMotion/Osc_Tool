@@ -179,6 +179,8 @@ export interface OscMapping {
   targetId: string;
   deviceId: string;
   endpointId: string;
+  /** Additional endpoints to send to, besides the primary `endpointId`. */
+  extraEndpointIds?: string[];
   preset: OscPreset;
   /** For noteGroup: when to fire. Lanes always fire on every value change. */
   trigger: OscTrigger;

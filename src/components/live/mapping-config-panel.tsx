@@ -77,8 +77,13 @@ function MappingRow({
           {mapping.preset}
         </span>
         <span className="text-accent font-mono flex-1 truncate">{address}</span>
-        <span className="text-gray-500 shrink-0 truncate max-w-[120px]">
+        <span className="text-gray-500 shrink-0 truncate max-w-[160px]">
           {endpoint ? endpoint.name : <span className="text-red-400/80">missing</span>}
+          {(mapping.extraEndpointIds?.length ?? 0) > 0 && (
+            <span className="ml-1 text-[10px] text-accent/80">
+              +{mapping.extraEndpointIds!.length}
+            </span>
+          )}
         </span>
         <button
           onClick={onToggleEdit}
@@ -106,6 +111,73 @@ function MappingRow({
               ))}
             </select>
           </div>
+
+          {(mapping.extraEndpointIds ?? []).map((epId, idx) => {
+            const ep = endpoints.find((e) => e.id === epId);
+            return (
+              <div key={`${epId}-${idx}`} className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-24 shrink-0">+ Endpoint</span>
+                <select
+                  value={epId}
+                  onChange={(e) => {
+                    const next = [...(mapping.extraEndpointIds ?? [])];
+                    next[idx] = e.target.value;
+                    onUpdate({ ...mapping, extraEndpointIds: next });
+                  }}
+                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
+                >
+                  {!ep && <option value={epId}>(missing endpoint)</option>}
+                  {endpoints.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name} — {e.host}:{e.port}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    const next = (mapping.extraEndpointIds ?? []).filter((_, i) => i !== idx);
+                    onUpdate({
+                      ...mapping,
+                      extraEndpointIds: next.length > 0 ? next : undefined,
+                    });
+                  }}
+                  className="text-xs text-gray-500 hover:text-red-400 shrink-0 px-1.5 py-0.5 rounded border border-white/5 hover:border-red-400/30 transition-colors"
+                  title="Remove endpoint"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
+
+          {(() => {
+            const used = new Set([mapping.endpointId, ...(mapping.extraEndpointIds ?? [])]);
+            const available = endpoints.filter((e) => !used.has(e.id));
+            if (available.length === 0) return null;
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-24 shrink-0" />
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    onUpdate({
+                      ...mapping,
+                      extraEndpointIds: [...(mapping.extraEndpointIds ?? []), e.target.value],
+                    });
+                  }}
+                  className="text-xs bg-surface border border-dashed border-white/10 rounded px-2 py-1 text-gray-500 flex-1"
+                >
+                  <option value="">+ Add another endpoint…</option>
+                  {available.map((ep) => (
+                    <option key={ep.id} value={ep.id}>
+                      {ep.name} — {ep.host}:{ep.port}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
 
           {/* Custom preset */}
           {mapping.preset === "custom" && (
@@ -282,13 +354,21 @@ export function MappingConfigPanel({
 
   const applyBatchEndpoint = () => {
     if (!batchEndpointId) return;
-    const next = localMappings.map((m) =>
-      selectedIds.has(m.id) ? { ...m, endpointId: batchEndpointId } : m,
-    );
+    const next = localMappings.map((m) => {
+      if (!selectedIds.has(m.id)) return m;
+      if (m.endpointId === batchEndpointId) return m;
+      const extras = m.extraEndpointIds ?? [];
+      if (extras.includes(batchEndpointId)) return m;
+      return { ...m, extraEndpointIds: [...extras, batchEndpointId] };
+    });
     setLocalMappings(next);
     onUpdateMappings(next);
     setSelectedIds(new Set());
     setBatchEndpointId("");
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(filtered.map((m) => m.id)));
   };
 
   return (
@@ -332,6 +412,22 @@ export function MappingConfigPanel({
                 </option>
               ))}
             </select>
+            <div className="flex-1" />
+            <button
+              onClick={selectAllFiltered}
+              disabled={filtered.length === 0}
+              className="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Select all ({filtered.length})
+            </button>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           {/* Mapping rows */}
@@ -364,7 +460,7 @@ export function MappingConfigPanel({
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 bg-surface-light shrink-0">
               <span className="text-xs text-gray-400">{selectedIds.size} selected</span>
-              <span className="text-xs text-gray-600">Reassign endpoint:</span>
+              <span className="text-xs text-gray-600">Add endpoint:</span>
               <select
                 value={batchEndpointId}
                 onChange={(e) => setBatchEndpointId(e.target.value)}
@@ -381,8 +477,9 @@ export function MappingConfigPanel({
                 onClick={applyBatchEndpoint}
                 disabled={!batchEndpointId}
                 className="text-xs px-3 py-1 rounded bg-accent/80 hover:bg-accent text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Add this endpoint as an extra send target on all selected mappings"
               >
-                Apply
+                Add to selected
               </button>
               <button
                 onClick={() => setSelectedIds(new Set())}

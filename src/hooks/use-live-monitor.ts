@@ -59,31 +59,34 @@ export function useLiveMonitor({ recording, endpoints }: UseLiveMonitorArgs): Us
             event.midi.type === "noteon" ? event.midi.data2 : undefined,
           );
           const value = computeOscArgValue(fakeEvt, mapping);
-          const endpoint = eps.find((e) => e.id === mapping.endpointId);
+          const allEndpointIds = [mapping.endpointId, ...(mapping.extraEndpointIds ?? [])];
 
-          if (endpoint) {
+          for (const epId of allEndpointIds) {
+            const endpoint = eps.find((e) => e.id === epId);
+            if (!endpoint) continue;
+
             window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, address, [
               { type: mapping.argType, value },
             ]);
+
+            activityUpdates[device].lastOscAt = now;
+
+            newEntries.push({
+              id: crypto.randomUUID(),
+              wallMs: now,
+              device,
+              eventType: event.midi.type,
+              data1: event.midi.data1,
+              data2: event.midi.data2,
+              mapping,
+              address,
+              endpointId: epId,
+              value,
+              argType: mapping.argType,
+            });
+
+            fired = true;
           }
-
-          activityUpdates[device].lastOscAt = now;
-
-          newEntries.push({
-            id: crypto.randomUUID(),
-            wallMs: now,
-            device,
-            eventType: event.midi.type,
-            data1: event.midi.data1,
-            data2: event.midi.data2,
-            mapping,
-            address,
-            endpointId: mapping.endpointId,
-            value,
-            argType: mapping.argType,
-          });
-
-          fired = true;
         }
       }
 
