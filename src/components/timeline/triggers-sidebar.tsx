@@ -82,6 +82,20 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
 
       <div className="px-3 py-1.5 border-b border-white/5 text-[10px] text-gray-500">
         {mappingsLabel}
+        {visible.length > 0 ? (
+          <div className="flex flex-col gap-1 mt-2">
+            {visible.map((m) => (
+              <div key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/5 text-xs">
+                <span className="font-mono text-accent truncate flex-1">
+                  {m.address ?? m.preset ?? "(no address)"}
+                </span>
+                <span className="text-gray-500 text-[10px] truncate max-w-[80px]">{m.deviceId}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-gray-600 px-2 mt-2">No mappings yet.</div>
+        )}
       </div>
 
       {error && (
