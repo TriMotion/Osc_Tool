@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMidiEvents } from "@/hooks/use-midi";
 import { matchesMapping, resolveOscAddress, computeOscArgValue } from "@/lib/osc-mapping";
 import type { ActivityEntry, MidiEvent, Recording, RecordedEvent, SavedEndpoint } from "@/lib/types";
@@ -31,7 +31,7 @@ export function useLiveMonitor({ recording, endpoints }: UseLiveMonitorArgs): Us
   useEffect(() => { recordingRef.current = recording; }, [recording]);
   useEffect(() => { endpointsRef.current = endpoints; }, [endpoints]);
 
-  useMidiEvents(useCallback((incoming: MidiEvent[]) => {
+  useMidiEvents((incoming: MidiEvent[]) => {
     const rec = recordingRef.current;
     const eps = endpointsRef.current;
     const now = Date.now();
@@ -120,7 +120,7 @@ export function useLiveMonitor({ recording, endpoints }: UseLiveMonitorArgs): Us
         return next;
       });
     }
-  }, [])); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   return { entries, deviceActivity };
 }
