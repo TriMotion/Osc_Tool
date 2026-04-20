@@ -6,3 +6,6 @@ dist/
 electron/*.js
 .superpowers/
 docs/superpowers/
+.DS_Store
+.claude/
+*.tsbuildinfo
