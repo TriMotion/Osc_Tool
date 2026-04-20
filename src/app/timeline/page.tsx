@@ -687,6 +687,7 @@ export default function TimelinePage() {
           onHiddenNoteGroupsChange={saveHiddenNoteGroups}
           deviceAliases={recorder.recording?.deviceAliases}
           onRenameDevice={saveDeviceAlias}
+          focusedSection={focusedSection}
         />
       </div>
 

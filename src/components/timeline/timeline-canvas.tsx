@@ -9,7 +9,6 @@ import { AudioLane } from "./audio-lane";
 import { DeviceSection } from "./device-section";
 import { HoverCard } from "./hover-card";
 import { TriggersSidebar } from "./triggers-sidebar";
-import { SectionBar } from "./section-bar";
 import { MarkerLane, MARKER_DEFAULT_COLOR } from "./marker-lane";
 
 const LEFT_GUTTER = 220;
@@ -116,6 +115,7 @@ interface TimelineCanvasProps {
   onDeleteOscMapping: (id: string) => void;
   onHiddenLanesChange: (lanes: string[]) => void;
   onHiddenNoteGroupsChange: (groups: string[]) => void;
+  focusedSection: import("@/lib/types").TimelineSection | null;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -245,6 +245,15 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       tailFollowRef.current = true;
     }
   }, [recording]);
+
+  const { focusedSection } = props;
+  useEffect(() => {
+    if (focusedSection) {
+      dispatch({ type: "set", startMs: focusedSection.startMs, endMs: focusedSection.endMs });
+    } else {
+      dispatch({ type: "fit", durationMs: props.recording?.durationMs ?? 1000 });
+    }
+  }, [focusedSection?.id, focusedSection?.startMs, focusedSection?.endMs, props.recording?.durationMs]);
 
   useEffect(() => {
     let raf = 0;
@@ -571,16 +580,6 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
             const span = view.endMs - view.startMs;
             dispatch({ type: "set", startMs: clamped, endMs: clamped + span, minMs: clamped });
           }}
-        />
-
-        <SectionBar
-          sections={sections}
-          activeSectionId={activeSectionId}
-          viewStartMs={view.startMs}
-          viewEndMs={view.endMs}
-          leftGutterPx={LEFT_GUTTER}
-          onActivate={setActiveSectionId}
-          onChange={onSectionsChange}
         />
 
         {/* Auto-detected moments (drops/builds/peaks/silences) are computed in useTriggerAnalysis
