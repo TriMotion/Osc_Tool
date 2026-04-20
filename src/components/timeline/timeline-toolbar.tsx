@@ -33,17 +33,15 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
   } = props;
 
   const recording = recorderState === "recording";
-  const [openMenu, setOpenMenu] = useState<"open" | null>(null);
-  const openMenuRef = useRef<HTMLDivElement | null>(null);
+  const [openFile, setOpenFile] = useState(false);
+  const fileRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!openMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (!openMenuRef.current?.contains(e.target as Node)) setOpenMenu(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [openMenu]);
+    if (!openFile) return;
+    const h = (e: MouseEvent) => { if (!fileRef.current?.contains(e.target as Node)) setOpenFile(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [openFile]);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -74,56 +72,23 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
 
       <div className="w-px h-5 bg-white/10 mx-1" />
 
-      {/* Save */}
-      <button
-        onClick={onSave}
-        disabled={!hasRecording}
-        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        Save
-      </button>
-      <button
-        onClick={onSaveAs}
-        disabled={!hasRecording}
-        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        Save As…
-      </button>
-      <button
-        onClick={onSaveProject}
-        disabled={!hasRecording}
-        title="Write recording and audio to ./project/ for committing to git"
-        className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        Save project
-      </button>
-
-      {/* Open submenu */}
-      <div ref={openMenuRef} className="relative">
+      {/* File menu */}
+      <div ref={fileRef} className="relative">
         <button
-          onClick={() => setOpenMenu((v) => (v === "open" ? null : "open"))}
-          className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-            openMenu === "open"
-              ? "bg-white/10 text-white border-white/20"
-              : "border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
-          }`}
+          onClick={() => setOpenFile((v) => !v)}
+          disabled={!hasRecording}
+          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30"
         >
-          Open ▾
+          File ▾
         </button>
-        {openMenu === "open" && (
-          <div className="absolute top-full left-0 mt-1 bg-surface border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[140px]">
-            <button
-              onClick={() => { onLoad(); setOpenMenu(null); }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              Load recording…
-            </button>
-            <button
-              onClick={() => { onImportMidi(); setOpenMenu(null); }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors border-t border-white/5"
-            >
-              Import .mid…
-            </button>
+        {openFile && (
+          <div className="absolute top-full left-0 mt-1 bg-surface border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[180px]">
+            <FileMenuItem label="Save" onClick={() => { onSave(); setOpenFile(false); }} disabled={!hasRecording} />
+            <FileMenuItem label="Save As…" onClick={() => { onSaveAs(); setOpenFile(false); }} disabled={!hasRecording} />
+            <FileMenuItem label="Save project" onClick={() => { onSaveProject(); setOpenFile(false); }} disabled={!hasRecording} />
+            <div className="h-px bg-white/5" />
+            <FileMenuItem label="Load recording…" onClick={() => { onLoad(); setOpenFile(false); }} />
+            <FileMenuItem label="Import .mid…" onClick={() => { onImportMidi(); setOpenFile(false); }} />
           </div>
         )}
       </div>
@@ -141,5 +106,17 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         Mappings
       </button>
     </div>
+  );
+}
+
+function FileMenuItem({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white disabled:opacity-40 disabled:pointer-events-none"
+    >
+      {label}
+    </button>
   );
 }
