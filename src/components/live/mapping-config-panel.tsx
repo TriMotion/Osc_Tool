@@ -232,6 +232,7 @@ interface MappingConfigPanelProps {
   aliases?: Record<string, string>;
   flashTriggers: Record<string, number>;
   onUpdateMappings: (mappings: OscMapping[]) => void;
+  recordingId?: string;
 }
 
 export function MappingConfigPanel({
@@ -240,6 +241,7 @@ export function MappingConfigPanel({
   aliases,
   flashTriggers,
   onUpdateMappings,
+  recordingId,
 }: MappingConfigPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filterPreset, setFilterPreset] = useState<OscPreset | "all">("all");
@@ -249,12 +251,14 @@ export function MappingConfigPanel({
   const [localMappings, setLocalMappings] = useState<OscMapping[]>(mappings);
   const [batchEndpointId, setBatchEndpointId] = useState<string>("");
 
-  // Sync local state when the prop changes (e.g. different recording loaded)
+  // Reset all local state when a different recording is loaded
   useEffect(() => {
     setLocalMappings(mappings);
     setSelectedIds(new Set());
     setEditingId(null);
-  }, [mappings]);
+    setFilterPreset("all");
+    setFilterEndpointId("all");
+  }, [recordingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = localMappings.filter((m) => {
     if (filterPreset !== "all" && m.preset !== filterPreset) return false;
