@@ -40,12 +40,23 @@ export function useLiveMonitor({ recording, endpoints }: UseLiveMonitorArgs): Us
     const activityUpdates: Record<string, { lastMidiAt?: number; lastOscAt?: number }> = {};
 
     for (const event of incoming) {
-      const device = event.midi.deviceName;
-      if (!activityUpdates[device]) activityUpdates[device] = {};
-      activityUpdates[device].lastMidiAt = now;
+      const liveDevice = event.midi.deviceName;
+      // Resolve live port name → recording device name via user-defined links.
+      const resolvedDevice = rec?.liveDeviceLinks?.[liveDevice] ?? liveDevice;
+      // Bump activity for both the live name (so an unlinked card lights up)
+      // and the resolved name (so its linked recording card lights up too).
+      if (!activityUpdates[liveDevice]) activityUpdates[liveDevice] = {};
+      activityUpdates[liveDevice].lastMidiAt = now;
+      if (resolvedDevice !== liveDevice) {
+        if (!activityUpdates[resolvedDevice]) activityUpdates[resolvedDevice] = {};
+        activityUpdates[resolvedDevice].lastMidiAt = now;
+      }
+      const device = resolvedDevice;
 
-      // Wrap as RecordedEvent so matchesMapping / computeOscArgValue can consume it
-      const fakeEvt: RecordedEvent = { tRel: 0, midi: event.midi, osc: event.osc };
+      // Wrap as RecordedEvent so matchesMapping / computeOscArgValue can consume it.
+      // Rewrite the device name so mappings keyed on the recording's device match.
+      const resolvedMidi = resolvedDevice === liveDevice ? event.midi : { ...event.midi, deviceName: resolvedDevice };
+      const fakeEvt: RecordedEvent = { tRel: 0, midi: resolvedMidi, osc: event.osc };
 
       let fired = false;
 

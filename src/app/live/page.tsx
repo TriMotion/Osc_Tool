@@ -43,6 +43,16 @@ export default function LivePage() {
     [recorder],
   );
 
+  const handleLinkDevice = useCallback(
+    (liveName: string, recordingName: string) => {
+      const current = recording?.liveDeviceLinks ?? {};
+      recorder.patchRecording({
+        liveDeviceLinks: { ...current, [liveName]: recordingName },
+      });
+    },
+    [recorder, recording?.liveDeviceLinks],
+  );
+
   if (!recording) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 text-sm">
@@ -58,6 +68,8 @@ export default function LivePage() {
         devices={recording.devices}
         deviceActivity={deviceActivity}
         aliases={recording.deviceAliases}
+        liveDeviceLinks={recording.liveDeviceLinks}
+        onLinkDevice={handleLinkDevice}
       />
 
       {/* Zone 2 — Activity feed */}

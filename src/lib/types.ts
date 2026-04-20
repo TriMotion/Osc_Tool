@@ -228,6 +228,9 @@ export interface Recording {
   hiddenNoteGroups?: string[];
   oscMappings?: OscMapping[];
   deviceAliases?: Record<string, string>;  // original device name → display name
+  /** Live MIDI port name → recording device name. Used to route live events
+   * to mappings when port names differ between the recording and live sessions. */
+  liveDeviceLinks?: Record<string, string>;
   suppressedAnalysis?: string[];  // "${laneKey}:rhythm" | "${laneKey}:dynamic" | "${laneKey}:melody"
 }
 
