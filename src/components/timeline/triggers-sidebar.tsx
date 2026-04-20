@@ -82,6 +82,11 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
 
       <div className="px-3 py-1.5 border-b border-white/5 text-[10px] text-gray-500">
         {mappingsLabel}
+        {!focusedSectionId && visible.length > 0 && (
+          <p className="text-xs text-amber-300/80 px-2 mb-1">
+            These mappings have no song. Extend a song&apos;s range to cover their trigger, or delete.
+          </p>
+        )}
         {visible.length > 0 ? (
           <div className="flex flex-col gap-1 mt-2">
             {visible.map((m) => (
@@ -89,6 +94,11 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
                 <span className="font-mono text-accent truncate flex-1">
                   {m.address ?? m.preset ?? "(no address)"}
                 </span>
+                {!m.sectionId && (
+                  <span className="ml-1 px-1 py-0.5 rounded text-[10px] bg-amber-400/10 text-amber-300 border border-amber-400/30">
+                    ⚠ outside sections
+                  </span>
+                )}
                 <span className="text-gray-500 text-[10px] truncate max-w-[80px]">{m.deviceId}</span>
               </div>
             ))}
