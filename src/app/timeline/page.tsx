@@ -201,6 +201,10 @@ export default function TimelinePage() {
   const applyLoadedRecording = useCallback(
     async (rec: Recording, loadedFromPath: string | null) => {
       const migrated = migrateOscMappings(rec);
+      // Strip any system-generated moments that were accidentally persisted in older saves
+      if (migrated.moments?.some((m) => m.kind !== "user")) {
+        migrated.moments = migrated.moments!.filter((m) => m.kind === "user");
+      }
       recorder.setLoaded(migrated);
       setFocusedSectionId(null);
       setSaveSuggestedPath(loadedFromPath);
