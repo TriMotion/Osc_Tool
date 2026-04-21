@@ -693,7 +693,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                       });
                                     }}
-                                    className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-300 transition-all px-1.5 py-px rounded border border-white/5 hover:border-white/15 leading-none"
+                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-accent transition-all px-2 py-0.5 rounded border border-white/5 hover:border-accent/30 leading-none"
                                   >
                                     + OSC
                                   </button>
