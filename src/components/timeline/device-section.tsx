@@ -109,7 +109,15 @@ function LaneControlsPopover({
  * Find an OSC address from a mapping rule that matches the given lane key, if any.
  * Used to show the user's named address (e.g. "/fader/master") alongside the lane label.
  */
-function oscLabelFor(key: LaneKey, rules: MidiMappingRule[]): string | undefined {
+function oscLabelFor(
+  key: LaneKey,
+  rules: MidiMappingRule[],
+  oscMappings: OscMapping[],
+  deviceAliases?: Record<string, string>,
+): string | undefined {
+  const keyStr = laneKeyString(key);
+  const om = oscMappings.find((m) => m.targetType === "lane" && m.targetId === keyStr);
+  if (om) return resolveOscAddress(om, deviceAliases);
   if (key.kind === "cc") {
     const r = rules.find((r) => r.type === "cc" && (r.channel === undefined || r.channel === key.channel) && (r.data1 === undefined || r.data1 === key.cc));
     return r?.address;
@@ -495,7 +503,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       ) : (
         <>
           {laneEntries.map((entry) => {
-            const osc = oscLabelFor(entry.key, mappingRules);
+            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases);
             const keyStr = laneKeyString(entry.key);
             if (hiddenLanes.has(keyStr)) return null;
             switch (entry.key.kind) {
