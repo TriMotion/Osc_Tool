@@ -622,7 +622,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                               onClick={handleSelect}
                             >
                               <div
-                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0 overflow-hidden"
+                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
                                 style={{
                                   width: leftGutterPx,
                                   borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
@@ -669,35 +669,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                                       + tag
                                     </button>
                                   )}
-                                  {(() => {
-                                    const noteMapping = oscMappings.find((m) =>
-                                      m.targetType === "noteGroup" &&
-                                      m.targetId === `${pitch}|${velocity ?? "any"}` &&
-                                      (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)
-                                    );
-                                    return noteMapping ? (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOscEditor({
-                                            targetType: "noteGroup",
-                                            targetId: `${pitch}|${velocity ?? "any"}`,
-                                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                                            editingMapping: noteMapping,
-                                          });
-                                        }}
-                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 transition-colors"
-                                        style={{
-                                          borderColor: "rgba(142,203,255,0.2)",
-                                          background: "rgba(142,203,255,0.05)",
-                                          color: "rgba(142,203,255,0.8)",
-                                        }}
-                                        title={resolveOscAddress(noteMapping, deviceAliases)}
-                                      >
-                                        <span className="font-mono truncate max-w-[90px]">→ {resolveOscAddress(noteMapping, deviceAliases)}</span>
-                                      </button>
-                                    ) : null;
-                                  })()}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();

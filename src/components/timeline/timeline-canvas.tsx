@@ -11,7 +11,7 @@ import { HoverCard } from "./hover-card";
 import { TriggersSidebar } from "./triggers-sidebar";
 import { MarkerLane, MARKER_DEFAULT_COLOR } from "./marker-lane";
 
-const LEFT_GUTTER = 140;
+const LEFT_GUTTER = 200;
 const MIN_LANE_HEIGHT = 16;
 const AUDIO_LANE_KEY = "audio";
 
