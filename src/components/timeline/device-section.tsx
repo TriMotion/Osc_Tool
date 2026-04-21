@@ -678,9 +678,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                                           background: "rgba(142,203,255,0.05)",
                                           color: "rgba(142,203,255,0.8)",
                                         }}
-                                        title={noteMapping.address}
+                                        title={resolveOscAddress(noteMapping, deviceAliases)}
                                       >
-                                        <span className="font-mono">→ {noteMapping.address}</span>
+                                        <span className="font-mono">→ {resolveOscAddress(noteMapping, deviceAliases)}</span>
                                       </button>
                                     ) : null;
                                   })()}
