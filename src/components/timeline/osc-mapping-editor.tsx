@@ -50,6 +50,11 @@ export function OscMappingEditor({
   const [resolumeColumn, setResolumeColumn] = useState(seed?.resolumeColumn ?? 1);
   const [resolumeLayer, setResolumeLayer] = useState(seed?.resolumeLayer ?? 1);
   const [resolumeClip, setResolumeClip] = useState(seed?.resolumeClip ?? 1);
+  const [resolumeClipMax, setResolumeClipMax] = useState(seed?.resolumeClipMax ?? 0);
+  // velocity filter
+  const [velocityFilter, setVelocityFilter] = useState<"all" | "min" | "exact">(seed?.velocityFilter ?? "all");
+  const [velocityMin, setVelocityMin] = useState(seed?.velocityMin ?? 64);
+  const [velocityExact, setVelocityExact] = useState(seed?.velocityExact ?? 100);
 
   const previewMapping: OscMapping = {
     id: "preview",
@@ -57,30 +62,40 @@ export function OscMappingEditor({
     preset, trigger, argType, address,
     sectionName,
     unrealType, unrealName,
-    resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+    resolumeMode, resolumeColumn, resolumeLayer, resolumeClip, resolumeClipMax: resolumeClipMax || undefined,
+    velocityFilter: velocityFilter !== "all" ? velocityFilter : undefined,
+    velocityMin: velocityFilter === "min" ? velocityMin : undefined,
+    velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
   };
   const preview = resolveOscAddress(previewMapping, deviceAliases);
+
+  const sharedFields = () => ({
+    preset, trigger, argType, address,
+    sectionName, unrealType, unrealName: unrealName || "param",
+    resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+    resolumeClipMax: resolumeClipMax || undefined,
+    velocityFilter: velocityFilter !== "all" ? velocityFilter : undefined,
+    velocityMin: velocityFilter === "min" ? velocityMin : undefined,
+    velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
+  });
 
   const handleAdd = () => {
     if (!endpointId) return;
     onAdd({
       id: crypto.randomUUID(),
       targetType, targetId, deviceId, endpointId,
-      preset, trigger, argType, address,
-      sectionName,
-      unrealType, unrealName: unrealName || "param",
-      resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+      ...sharedFields(),
       sectionId: sectionId ?? undefined,
     });
+    onClose();
   };
 
   const handleSave = () => {
     if (!editingMapping || !endpointId) return;
     onUpdate?.({
       ...editingMapping,
-      endpointId, preset, trigger, argType, address,
-      sectionName, unrealType, unrealName: unrealName || "param",
-      resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
+      endpointId,
+      ...sharedFields(),
       sectionId: editingMapping.sectionId ?? sectionId ?? undefined,
     });
   };
@@ -214,28 +229,46 @@ export function OscMappingEditor({
               </div>
             )}
             {resolumeMode === "clip" && (
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-[10px] text-gray-500 mb-1">Layer</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={resolumeLayer}
-                    onChange={(e) => setResolumeLayer(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-                  />
+              <>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-gray-500 mb-1">Layer</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={resolumeLayer}
+                      onChange={(e) => setResolumeLayer(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-gray-500 mb-1">Clip</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={resolumeClip}
+                      onChange={(e) => setResolumeClip(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-gray-500 mb-1">Clip max</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={resolumeClipMax}
+                      onChange={(e) => setResolumeClipMax(Math.max(0, parseInt(e.target.value) || 0))}
+                      placeholder="—"
+                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                    />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] text-gray-500 mb-1">Clip</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={resolumeClip}
-                    onChange={(e) => setResolumeClip(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-                  />
-                </div>
-              </div>
+                {resolumeClipMax > 0 && (
+                  <div className="text-[10px] text-gray-600">
+                    Random clip {resolumeClip}–{resolumeClipMax}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -257,6 +290,39 @@ export function OscMappingEditor({
             </div>
           </div>
         )}
+
+        {/* Velocity filter */}
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-1">Velocity</label>
+          <div className="flex gap-3 mb-1">
+            {(["all", "min", "exact"] as const).map((v) => (
+              <label key={v} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
+                <input type="radio" checked={velocityFilter === v} onChange={() => setVelocityFilter(v)} className="accent-accent" />
+                {v === "all" ? "All" : v === "min" ? "≥ Min" : "Exact"}
+              </label>
+            ))}
+          </div>
+          {velocityFilter === "min" && (
+            <input
+              type="number"
+              min={0}
+              max={127}
+              value={velocityMin}
+              onChange={(e) => setVelocityMin(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
+              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+            />
+          )}
+          {velocityFilter === "exact" && (
+            <input
+              type="number"
+              min={0}
+              max={127}
+              value={velocityExact}
+              onChange={(e) => setVelocityExact(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
+              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+            />
+          )}
+        </div>
 
         {/* Arg type */}
         <div>

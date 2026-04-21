@@ -11,7 +11,7 @@ import { HoverCard } from "./hover-card";
 import { TriggersSidebar } from "./triggers-sidebar";
 import { MarkerLane, MARKER_DEFAULT_COLOR } from "./marker-lane";
 
-const LEFT_GUTTER = 140;
+const LEFT_GUTTER = 200;
 const MIN_LANE_HEIGHT = 16;
 const AUDIO_LANE_KEY = "audio";
 
@@ -118,6 +118,7 @@ interface TimelineCanvasProps {
   focusedSection: import("@/lib/types").TimelineSection | null;
   focusedSectionId: string | null;
   onOpenLaneMapping: (laneKey: LaneKey) => void;
+  activityLaneKeys?: Set<string>;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -153,6 +154,13 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
 
   const [flashLaneKeys, setFlashLaneKeys] = useState<Set<string>>(new Set());
   const flashTimerRef = useRef<number | null>(null);
+
+  const mergedFlashKeys = useMemo(() => {
+    if (!props.activityLaneKeys?.size) return flashLaneKeys;
+    const merged = new Set(flashLaneKeys);
+    for (const k of props.activityLaneKeys) merged.add(k);
+    return merged;
+  }, [flashLaneKeys, props.activityLaneKeys]);
 
   const rangeStart = props.focusedSection?.startMs ?? 0;
   const rangeEnd = props.focusedSection?.endMs ?? Infinity;
@@ -708,7 +716,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onDeleteBadge={onDeleteBadge}
           suppressedAnalysis={suppressedAnalysisSet}
           onSuppressAnalysis={onSuppressAnalysis}
-          flashLaneKeys={flashLaneKeys}
+          flashLaneKeys={mergedFlashKeys}
           onDeleteDevice={onDeleteDevice}
           displayName={deviceAliases?.[device]}
           onRenameDevice={(newName) => onRenameDevice?.(device, newName)}
@@ -772,6 +780,29 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         <div
           className="absolute -top-0.5 -left-1 w-2 h-1.5 bg-orange-400"
           style={{ clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}
+        />
+        {/* Invisible drag handle — wider hit area for grabbing the playhead */}
+        <div
+          className="pointer-events-auto absolute -left-2 w-[9px] cursor-ew-resize"
+          style={{ top: 0, height: "100%" }}
+          data-no-pan
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (e.buttons !== 1) return;
+            const wrap = wrapRef.current;
+            if (!wrap) return;
+            const rect = wrap.getBoundingClientRect();
+            const trackWidth = rect.width - LEFT_GUTTER;
+            if (trackWidth <= 0) return;
+            const x = e.clientX - rect.left - LEFT_GUTTER;
+            const ms = view.startMs + (x / trackWidth) * (view.endMs - view.startMs);
+            const clamped = Math.max(focusMinMs, Math.min(focusMaxMs, ms));
+            tailFollowRef.current = false;
+            onSeek(clamped);
+          }}
         />
       </div>
 

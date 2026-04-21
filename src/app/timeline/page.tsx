@@ -63,12 +63,36 @@ export default function TimelinePage() {
     });
   }, []);
 
+  const [activityLaneKeys, setActivityLaneKeys] = useState<Set<string>>(new Set());
+  const activityPendingRef = useRef<Set<string>>(new Set());
+  const activityRafRef = useRef<number | null>(null);
+  const activityClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleActivity = useCallback((keys: string[]) => {
+    for (const k of keys) activityPendingRef.current.add(k);
+    if (activityRafRef.current !== null) return;
+    activityRafRef.current = requestAnimationFrame(() => {
+      activityRafRef.current = null;
+      const pending = activityPendingRef.current;
+      if (pending.size === 0) return;
+      setActivityLaneKeys((prev) => {
+        const next = new Set(prev);
+        for (const k of pending) next.add(k);
+        return next;
+      });
+      pending.clear();
+      if (activityClearRef.current) clearTimeout(activityClearRef.current);
+      activityClearRef.current = setTimeout(() => setActivityLaneKeys(new Set()), 300);
+    });
+  }, []);
+
   useOscPlayback({
     recording: recorder.recording ?? null,
     playheadMsRef: audio.playheadMsRef,
     isPlaying: audio.isPlaying,
     endpoints,
     deviceAliases: recorder.recording?.deviceAliases,
+    onActivity: handleActivity,
   });
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
@@ -187,20 +211,26 @@ export default function TimelinePage() {
     }
   }, [io, recorder]);
 
-  /** Persist current audio.tracks to recording. */
+  /** Persist current audio.tracks to recording, keeping unloaded (missing) tracks intact. */
   const syncAudioTracksToRecording = useCallback(() => {
+    const loadedById = new Map(audio.tracks.map((t) => [t.id, t]));
     recorder.patchRecording({
-      audioTracks: audio.tracks.map((t) => ({
-        id: t.id,
-        filePath: t.filePath,
-        offsetMs: t.offsetMs,
-      })),
+      audioTracks: (recorder.recording?.audioTracks ?? []).map((t) => {
+        const loaded = loadedById.get(t.id);
+        return loaded
+          ? { id: loaded.id, filePath: loaded.filePath, offsetMs: loaded.offsetMs }
+          : t;
+      }),
     });
   }, [audio.tracks, recorder]);
 
   const applyLoadedRecording = useCallback(
     async (rec: Recording, loadedFromPath: string | null) => {
       const migrated = migrateOscMappings(rec);
+      // Strip any system-generated moments that were accidentally persisted in older saves
+      if (migrated.moments?.some((m) => m.kind !== "user")) {
+        migrated.moments = migrated.moments!.filter((m) => m.kind === "user");
+      }
       recorder.setLoaded(migrated);
       setFocusedSectionId(null);
       setSaveSuggestedPath(loadedFromPath);
@@ -736,6 +766,7 @@ export default function TimelinePage() {
           focusedSection={focusedSection}
           focusedSectionId={focusedSectionId}
           onOpenLaneMapping={handleOpenLaneMapping}
+          activityLaneKeys={activityLaneKeys}
         />
       </div>
 

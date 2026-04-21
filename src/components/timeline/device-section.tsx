@@ -109,7 +109,21 @@ function LaneControlsPopover({
  * Find an OSC address from a mapping rule that matches the given lane key, if any.
  * Used to show the user's named address (e.g. "/fader/master") alongside the lane label.
  */
-function oscLabelFor(key: LaneKey, rules: MidiMappingRule[]): string | undefined {
+function oscLabelFor(
+  key: LaneKey,
+  rules: MidiMappingRule[],
+  oscMappings: OscMapping[],
+  deviceAliases?: Record<string, string>,
+  focusedSectionId?: string,
+): string | undefined {
+  const keyStr = laneKeyString(key);
+  const om = oscMappings.find(
+    (m) =>
+      m.targetType === "lane" &&
+      m.targetId === keyStr &&
+      (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId),
+  );
+  if (om) return resolveOscAddress(om, deviceAliases);
   if (key.kind === "cc") {
     const r = rules.find((r) => r.type === "cc" && (r.channel === undefined || r.channel === key.channel) && (r.data1 === undefined || r.data1 === key.cc));
     return r?.address;
@@ -495,7 +509,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       ) : (
         <>
           {laneEntries.map((entry) => {
-            const osc = oscLabelFor(entry.key, mappingRules);
+            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases, focusedSectionId ?? undefined);
             const keyStr = laneKeyString(entry.key);
             if (hiddenLanes.has(keyStr)) return null;
             switch (entry.key.kind) {
@@ -655,35 +669,6 @@ export function DeviceSection(props: DeviceSectionProps) {
                                       + tag
                                     </button>
                                   )}
-                                  {(() => {
-                                    const noteMapping = oscMappings.find((m) =>
-                                      m.targetType === "noteGroup" &&
-                                      m.targetId === `${pitch}|${velocity ?? "any"}` &&
-                                      (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)
-                                    );
-                                    return noteMapping ? (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOscEditor({
-                                            targetType: "noteGroup",
-                                            targetId: `${pitch}|${velocity ?? "any"}`,
-                                            anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                                            editingMapping: noteMapping,
-                                          });
-                                        }}
-                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 transition-colors"
-                                        style={{
-                                          borderColor: "rgba(142,203,255,0.2)",
-                                          background: "rgba(142,203,255,0.05)",
-                                          color: "rgba(142,203,255,0.8)",
-                                        }}
-                                        title={noteMapping.address}
-                                      >
-                                        <span className="font-mono">→ {noteMapping.address}</span>
-                                      </button>
-                                    ) : null;
-                                  })()}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -693,7 +678,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                       });
                                     }}
-                                    className="opacity-0 group-hover/row:opacity-100 text-[9px] text-gray-600 hover:text-gray-300 transition-all px-1.5 py-px rounded border border-white/5 hover:border-white/15 leading-none"
+                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-accent transition-all px-2 py-0.5 rounded border border-white/5 hover:border-accent/30 leading-none shrink-0"
                                   >
                                     + OSC
                                   </button>
@@ -801,7 +786,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
@@ -851,7 +837,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
@@ -901,7 +888,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
