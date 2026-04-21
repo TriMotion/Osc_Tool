@@ -114,9 +114,15 @@ function oscLabelFor(
   rules: MidiMappingRule[],
   oscMappings: OscMapping[],
   deviceAliases?: Record<string, string>,
+  focusedSectionId?: string,
 ): string | undefined {
   const keyStr = laneKeyString(key);
-  const om = oscMappings.find((m) => m.targetType === "lane" && m.targetId === keyStr);
+  const om = oscMappings.find(
+    (m) =>
+      m.targetType === "lane" &&
+      m.targetId === keyStr &&
+      (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId),
+  );
   if (om) return resolveOscAddress(om, deviceAliases);
   if (key.kind === "cc") {
     const r = rules.find((r) => r.type === "cc" && (r.channel === undefined || r.channel === key.channel) && (r.data1 === undefined || r.data1 === key.cc));
@@ -503,7 +509,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       ) : (
         <>
           {laneEntries.map((entry) => {
-            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases);
+            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases, focusedSectionId ?? undefined);
             const keyStr = laneKeyString(entry.key);
             if (hiddenLanes.has(keyStr)) return null;
             switch (entry.key.kind) {
