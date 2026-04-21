@@ -72,6 +72,7 @@ export function OscMappingEditor({
       resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
       sectionId: sectionId ?? undefined,
     });
+    onClose();
   };
 
   const handleSave = () => {
