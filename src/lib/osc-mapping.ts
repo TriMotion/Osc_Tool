@@ -2,7 +2,8 @@ import type { LaneKey, OscMapping, RecordedEvent } from "./types";
 import { laneKeyString } from "./types";
 
 export function resolveDeviceName(name: string, aliases?: Record<string, string>): string {
-  return aliases?.[name] ?? name;
+  const display = aliases?.[name] ?? name;
+  return display.replace(/\.(mid|midi)$/i, "");
 }
 
 export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>, eventVelocity?: number): string {
@@ -16,10 +17,18 @@ export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, 
       const velocity = eventVelocity !== undefined ? eventVelocity : groupVelocity;
       return `/unreal/${section}/${deviceName}/${pitch}/${velocity}`;
     }
-    case "resolume":
-      return mapping.resolumeMode === "column"
-        ? `/composition/columns/${mapping.resolumeColumn ?? 1}/connect`
-        : `/composition/layers/${mapping.resolumeLayer ?? 1}/clips/${mapping.resolumeClip ?? 1}/connect`;
+    case "resolume": {
+      if (mapping.resolumeMode === "column") {
+        return `/composition/columns/${mapping.resolumeColumn ?? 1}/connect`;
+      }
+      const layer = mapping.resolumeLayer ?? 1;
+      const clipMin = mapping.resolumeClip ?? 1;
+      const clipMax = mapping.resolumeClipMax;
+      const clip = clipMax && clipMax > clipMin
+        ? Math.floor(Math.random() * (clipMax - clipMin + 1)) + clipMin
+        : clipMin;
+      return `/composition/layers/${layer}/clips/${clip}/connect`;
+    }
   }
 }
 
@@ -42,20 +51,25 @@ function evtToLaneKey(evt: RecordedEvent): LaneKey | null {
   }
 }
 
+function velocityPasses(velocity: number, mapping: OscMapping): boolean {
+  const filter = mapping.velocityFilter ?? "all";
+  if (filter === "all") return true;
+  if (filter === "min") return velocity >= (mapping.velocityMin ?? 0);
+  if (filter === "exact") return velocity === (mapping.velocityExact ?? 0);
+  return true;
+}
+
 export function matchesMapping(evt: RecordedEvent, mapping: OscMapping): boolean {
   if (evt.midi.deviceName !== mapping.deviceId) return false;
 
   if (mapping.targetType === "noteGroup") {
-    const [pitchStr, velocityStr] = mapping.targetId.split("|");
+    const [pitchStr] = mapping.targetId.split("|");
     const pitch = parseInt(pitchStr, 10);
-    const velocity = parseInt(velocityStr, 10);
 
     if ((mapping.trigger === "on" || mapping.trigger === "both") && evt.midi.type === "noteon") {
-      return evt.midi.data1 === pitch;
+      return evt.midi.data1 === pitch && velocityPasses(evt.midi.data2, mapping);
     }
     if ((mapping.trigger === "off" || mapping.trigger === "both") && evt.midi.type === "noteoff") {
-      // Note-off events don't carry the originating note-on velocity, so we match
-      // on pitch only — all velocity variants of this pitch will fire on note-off.
       return evt.midi.data1 === pitch;
     }
     return false;
@@ -63,7 +77,11 @@ export function matchesMapping(evt: RecordedEvent, mapping: OscMapping): boolean
 
   if (mapping.targetType === "lane") {
     const laneKey = evtToLaneKey(evt);
-    return laneKey !== null && laneKeyString(laneKey) === mapping.targetId;
+    if (laneKey === null || laneKeyString(laneKey) !== mapping.targetId) return false;
+    if (mapping.velocityFilter && mapping.velocityFilter !== "all") {
+      return velocityPasses(evt.midi.data2, mapping);
+    }
+    return true;
   }
 
   return false;

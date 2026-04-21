@@ -786,7 +786,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
@@ -836,7 +837,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />
@@ -886,7 +888,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                       }}
                       mapping={oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId)) ?? null}
                       onOpenMapping={(e) => {
-                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect() });
+                        const existing = oscMappings.find((m) => m.targetType === "lane" && m.targetId === laneKeyString(entry.key) && (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId));
+                        setOscEditor({ targetType: "lane", targetId: laneKeyString(entry.key), anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(), editingMapping: existing });
                         onOpenLaneMapping?.(entry.key);
                       }}
                     />

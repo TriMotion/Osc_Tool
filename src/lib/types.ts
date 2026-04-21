@@ -196,6 +196,14 @@ export interface OscMapping {
   resolumeColumn?: number;
   resolumeLayer?: number;
   resolumeClip?: number;
+  /** Velocity filter: "all" = any velocity (default), "min" = only >= velocityMin,
+   * "exact" = only matching velocityExact. */
+  velocityFilter?: "all" | "min" | "exact";
+  velocityMin?: number;
+  velocityExact?: number;
+  /** Resolume clip: random range. When set, clip is chosen randomly between
+   * resolumeClip and resolumeClipMax (inclusive). */
+  resolumeClipMax?: number;
 }
 
 export interface ActivityEntry {

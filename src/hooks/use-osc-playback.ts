@@ -10,12 +10,14 @@ interface UseOscPlaybackArgs {
   isPlaying: boolean;
   endpoints: SavedEndpoint[];
   deviceAliases?: Record<string, string>;
+  onActivity?: (laneKeys: string[]) => void;
 }
 
-export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints, deviceAliases }: UseOscPlaybackArgs) {
+export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints, deviceAliases, onActivity }: UseOscPlaybackArgs) {
   const firedRef = useRef<Set<string>>(new Set());
   const lastPlayheadRef = useRef<number>(0);
   const wasPlayingRef = useRef<boolean>(false);
+  const activityCursorRef = useRef<number>(0);
 
   // Keep refs current so the interval closure never reads stale values.
   const isPlayingRef = useRef(isPlaying);
@@ -23,6 +25,12 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
 
   const endpointsRef = useRef(endpoints);
   useEffect(() => { endpointsRef.current = endpoints; }, [endpoints]);
+
+  const onActivityRef = useRef(onActivity);
+  useEffect(() => { onActivityRef.current = onActivity; }, [onActivity]);
+
+  const recordingRef = useRef(recording);
+  useEffect(() => { recordingRef.current = recording; activityCursorRef.current = 0; }, [recording?.id]);
 
   // Pre-compute annotated event queue — rebuilt when recording, mappings, or aliases change.
   const queue = useMemo(() => {
@@ -92,6 +100,36 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
         window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, item.address, [
           { type: item.argType, value: item.value },
         ]);
+      }
+
+      // Activity detection: find events the playhead just passed over and report lane keys.
+      const rec = recordingRef.current;
+      const activityCb = onActivityRef.current;
+      if (rec && activityCb) {
+        const events = rec.events;
+        if (playheadMs < lastPlayheadRef.current - 100) {
+          activityCursorRef.current = 0;
+        }
+        let cursor = activityCursorRef.current;
+        const keys = new Set<string>();
+        while (cursor < events.length && events[cursor].tRel <= playheadMs) {
+          if (events[cursor].tRel > playheadMs - 50) {
+            const evt = events[cursor];
+            const m = evt.midi;
+            let lk: string | null = null;
+            switch (m.type) {
+              case "noteon": case "noteoff": lk = `${m.deviceName}|notes`; break;
+              case "cc": lk = `${m.deviceName}|cc|${m.channel}|${m.data1}`; break;
+              case "pitch": lk = `${m.deviceName}|pitch|${m.channel}`; break;
+              case "aftertouch": lk = `${m.deviceName}|at|${m.channel}|ch`; break;
+              case "program": lk = `${m.deviceName}|prog|${m.channel}`; break;
+            }
+            if (lk) keys.add(lk);
+          }
+          cursor++;
+        }
+        activityCursorRef.current = cursor;
+        if (keys.size > 0) activityCb(Array.from(keys));
       }
     };
 
