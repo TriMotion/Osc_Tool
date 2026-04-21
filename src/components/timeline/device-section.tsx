@@ -622,7 +622,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                               onClick={handleSelect}
                             >
                               <div
-                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
+                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0 overflow-hidden"
                                 style={{
                                   width: leftGutterPx,
                                   borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
@@ -694,7 +694,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         }}
                                         title={resolveOscAddress(noteMapping, deviceAliases)}
                                       >
-                                        <span className="font-mono">→ {resolveOscAddress(noteMapping, deviceAliases)}</span>
+                                        <span className="font-mono truncate max-w-[90px]">→ {resolveOscAddress(noteMapping, deviceAliases)}</span>
                                       </button>
                                     ) : null;
                                   })()}
@@ -707,7 +707,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                       });
                                     }}
-                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-accent transition-all px-2 py-0.5 rounded border border-white/5 hover:border-accent/30 leading-none"
+                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-accent transition-all px-2 py-0.5 rounded border border-white/5 hover:border-accent/30 leading-none shrink-0"
                                   >
                                     + OSC
                                   </button>
