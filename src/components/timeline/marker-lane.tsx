@@ -41,7 +41,7 @@ export function MarkerLane({
 
   const viewSpan = Math.max(1, viewEndMs - viewStartMs);
 
-  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleTrackDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (editingId) { setEditingId(null); return; }
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -94,7 +94,7 @@ export function MarkerLane({
       <div
         ref={trackRef}
         className="relative flex-1 overflow-visible cursor-crosshair"
-        onClick={handleTrackClick}
+        onDoubleClick={handleTrackDoubleClick}
       >
         {markers.map((m) => {
           const leftPct = ((m.tMs - viewStartMs) / viewSpan) * 100;

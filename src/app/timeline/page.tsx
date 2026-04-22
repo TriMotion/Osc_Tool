@@ -6,7 +6,8 @@ import { useAudioSync } from "@/hooks/use-audio-sync";
 import { useMidiConfig, useMidiControl } from "@/hooks/use-midi";
 import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
 import { useRecorderContext } from "@/contexts/recorder-context";
-import { useOscPlayback } from "@/hooks/use-osc-playback";
+import { useOscPlayback, type NoteFlashUpdate } from "@/hooks/use-osc-playback";
+import type { NoteFlashRef } from "@/components/timeline/notes-lane";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
 import { SongsStrip } from "@/components/timeline/songs-strip";
@@ -86,6 +87,23 @@ export default function TimelinePage() {
     });
   }, []);
 
+  const noteFlashRef = useRef<NoteFlashRef>({ midi: new Set(), osc: new Set() });
+  const noteFlashClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleNoteFlash = useCallback((update: NoteFlashUpdate) => {
+    const midi = new Set<string>();
+    for (const n of update.midi) midi.add(`${n.device}|${n.pitch}|${n.velocity}`);
+    const osc = new Set<string>();
+    for (const n of update.osc) osc.add(`${n.device}|${n.pitch}|${n.velocity}`);
+    noteFlashRef.current.midi = midi;
+    noteFlashRef.current.osc = osc;
+    if (noteFlashClearRef.current) clearTimeout(noteFlashClearRef.current);
+    noteFlashClearRef.current = setTimeout(() => {
+      noteFlashRef.current.midi = new Set();
+      noteFlashRef.current.osc = new Set();
+    }, 150);
+  }, []);
+
   useOscPlayback({
     recording: recorder.recording ?? null,
     playheadMsRef: audio.playheadMsRef,
@@ -93,6 +111,7 @@ export default function TimelinePage() {
     endpoints,
     deviceAliases: recorder.recording?.deviceAliases,
     onActivity: handleActivity,
+    onNoteFlash: handleNoteFlash,
   });
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
@@ -767,6 +786,7 @@ export default function TimelinePage() {
           focusedSectionId={focusedSectionId}
           onOpenLaneMapping={handleOpenLaneMapping}
           activityLaneKeys={activityLaneKeys}
+          noteFlashRef={noteFlashRef}
         />
       </div>
 

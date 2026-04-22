@@ -5,6 +5,7 @@ import dgram from "dgram";
 
 export class OscManager extends EventEmitter {
   private listeners: Map<number, dgram.Socket> = new Map();
+  private sendSocket: dgram.Socket | null = null;
   private throughputCount = 0;
   private throughputInterval: NodeJS.Timeout | null = null;
 
@@ -84,7 +85,15 @@ export class OscManager extends EventEmitter {
     }
   }
 
-  async sendMessage(config: SenderConfig, address: string, args: OscArg[]): Promise<void> {
+  private getSendSocket(): dgram.Socket {
+    if (!this.sendSocket) {
+      this.sendSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
+      this.sendSocket.unref();
+    }
+    return this.sendSocket;
+  }
+
+  private packMessage(address: string, args: OscArg[]): Buffer {
     const oscArgs = args.map((arg) => {
       switch (arg.type) {
         case "f": return { type: "f", value: Number(arg.value) };
@@ -94,15 +103,15 @@ export class OscManager extends EventEmitter {
         case "F": return { type: "F", value: false };
       }
     });
-
     const oscMsg = new OSC.TypedMessage(address, oscArgs);
-    const binary = oscMsg.pack();
-    const buffer = Buffer.from(binary);
+    return Buffer.from(oscMsg.pack());
+  }
 
-    const socket = dgram.createSocket("udp4");
+  async sendMessage(config: SenderConfig, address: string, args: OscArg[]): Promise<void> {
+    const buffer = this.packMessage(address, args);
+    const socket = this.getSendSocket();
     return new Promise((resolve, reject) => {
       socket.send(buffer, 0, buffer.length, config.port, config.host, (err) => {
-        socket.close();
         if (err) reject(err);
         else {
           this.throughputCount++;
@@ -112,6 +121,24 @@ export class OscManager extends EventEmitter {
     });
   }
 
+  async sendBatch(messages: Array<{ config: SenderConfig; address: string; args: OscArg[] }>): Promise<void> {
+    const socket = this.getSendSocket();
+    const promises: Promise<void>[] = [];
+    for (const msg of messages) {
+      const buffer = this.packMessage(msg.address, msg.args);
+      promises.push(new Promise((resolve, reject) => {
+        socket.send(buffer, 0, buffer.length, msg.config.port, msg.config.host, (err) => {
+          if (err) reject(err);
+          else {
+            this.throughputCount++;
+            resolve();
+          }
+        });
+      }));
+    }
+    await Promise.all(promises);
+  }
+
   getActiveListeners(): number[] {
     return Array.from(this.listeners.keys());
   }
@@ -119,6 +146,10 @@ export class OscManager extends EventEmitter {
   stopAll(): void {
     for (const [port] of this.listeners) {
       this.stopListener(port);
+    }
+    if (this.sendSocket) {
+      this.sendSocket.close();
+      this.sendSocket = null;
     }
     if (this.throughputInterval) clearInterval(this.throughputInterval);
   }
