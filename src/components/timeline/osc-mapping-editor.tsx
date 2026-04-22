@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OscMapping, OscPreset, OscTrigger, SavedEndpoint, TimelineSection } from "@/lib/types";
 import { resolveOscAddress } from "@/lib/osc-mapping";
 
@@ -100,8 +100,23 @@ export function OscMappingEditor({
     });
   };
 
-  const top = Math.min(anchorRect.bottom + 4, window.innerHeight - 480);
-  const left = Math.min(anchorRect.left, window.innerWidth - 300);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      setOffset({ x: d.ox + e.clientX - d.startX, y: d.oy + e.clientY - d.startY });
+    };
+    const onUp = () => { dragRef.current = null; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
+
+  const top = Math.min(anchorRect.bottom + 4, window.innerHeight - 480) + offset.y;
+  const left = Math.min(anchorRect.left, window.innerWidth - 300) + offset.x;
 
   return (
     <div
@@ -109,9 +124,15 @@ export function OscMappingEditor({
       style={{ top, left, width: 292, background: "#0f0f1e", boxShadow: "0 8px 32px rgba(0,0,0,0.9)" }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div
+        className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          dragRef.current = { startX: e.clientX, startY: e.clientY, ox: offset.x, oy: offset.y };
+        }}
+      >
         <h3 className="text-sm font-semibold">{editingMapping ? "Edit Mapping" : "OSC Mappings"}</h3>
-        <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-xs">✕</button>
+        <button onClick={onClose} onMouseDown={(e) => e.stopPropagation()} className="text-gray-600 hover:text-gray-300 text-xs">✕</button>
       </div>
 
       {/* Existing mappings — hidden in edit mode */}

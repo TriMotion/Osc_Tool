@@ -7,7 +7,7 @@ import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
 import { resolveOscAddress } from "@/lib/osc-mapping";
 import { NoteTagEditor } from "./note-tag-editor";
 import { OscMappingEditor } from "./osc-mapping-editor";
-import { NotesLane } from "./notes-lane";
+import { NotesLane, type NoteFlashRef } from "./notes-lane";
 import { ContinuousLane } from "./continuous-lane";
 import { ProgramLane } from "./program-lane";
 
@@ -63,6 +63,7 @@ interface DeviceSectionProps {
   hiddenLanes: Set<string>;
   onHideLane: (key: string) => void;
   onShowLane: (key: string) => void;
+  noteFlashRef?: React.RefObject<NoteFlashRef>;
 }
 
 const NOTES_HEIGHT = 48;
@@ -159,7 +160,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     allGroups = [], hiddenNoteKeys, sidebarHiddenNoteKeys, sectionHiddenRanges, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
     oscMappings = [], endpoints = [], sections = [], focusedSectionId, onOpenLaneMapping, onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
-    hiddenLanes, onHideLane, onShowLane,
+    hiddenLanes, onHideLane, onShowLane, noteFlashRef,
   } = props;
 
   const laneEntries = useMemo(() => {
@@ -549,6 +550,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                             anchorRect: new DOMRect(0, 0, 0, 0),
                           });
                         }}
+                        flashRef={noteFlashRef}
                       />
                       <div className="absolute top-0.5 right-1 flex items-center" style={{ left: leftGutterPx - 24, width: 20 }}>
                         <LaneControlsPopover
@@ -610,13 +612,15 @@ export function DeviceSection(props: DeviceSectionProps) {
                           const handleToggle = () => { for (const v of velocities) onToggleNoteGroup?.(pitch, v); };
                           const handleSelect = () => { if (velocity !== null) onSelectGroup?.(pitch, velocity); };
                           const tagVelocity = velocity ?? velocities[0];
+                          const hasMidi = noteFlashRef ? velocities.some((v) => noteFlashRef.current.midi.has(`${device}|${pitch}|${v}`)) : false;
+                          const hasOsc = noteFlashRef ? velocities.some((v) => noteFlashRef.current.osc.has(`${device}|${pitch}|${v}`)) : false;
                           return (
                             <div
                               key={key}
                               className="flex items-center border-t border-white/[0.03] first:border-t-0 group/row"
                               style={{
                                 height: 24,
-                                background: isSelected ? "rgba(142,203,255,0.08)" : undefined,
+                                background: hasMidi ? (hasOsc ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)") : isSelected ? "rgba(142,203,255,0.08)" : undefined,
                                 cursor: velocity !== null ? "pointer" : "default",
                               }}
                               onClick={handleSelect}
@@ -625,7 +629,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
                                 style={{
                                   width: leftGutterPx,
-                                  borderLeft: isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
+                                  borderLeft: hasMidi ? (hasOsc ? "2px solid rgba(74,222,128,0.7)" : "2px solid rgba(248,113,113,0.7)") : isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
                                 }}
                               >
                                 <button

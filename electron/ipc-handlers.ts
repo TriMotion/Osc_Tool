@@ -118,6 +118,11 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     return { ok: true };
   });
 
+  ipcMain.handle("osc:send-batch", async (_e, messages: Array<{ config: SenderConfig; address: string; args: OscArg[] }>) => {
+    await oscManager.sendBatch(messages);
+    return { ok: true };
+  });
+
   // --- Diagnostics ---
   ipcMain.handle("diag:run-loopback", async (_e, count: number, rate: number) => {
     return diagnostics.runLoopbackTest(count, rate);

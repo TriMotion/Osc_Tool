@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, MidiMappingRule, Moment, NoteGroupTag, NoteSpan, OscMapping, RecordedEvent, Recording, RedundancyPair, SavedEndpoint, TimelineSection } from "@/lib/types";
+import type { NoteFlashRef } from "./notes-lane";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName } from "@/lib/timeline-util";
 import { TimeRuler } from "./time-ruler";
@@ -119,6 +120,7 @@ interface TimelineCanvasProps {
   focusedSectionId: string | null;
   onOpenLaneMapping: (laneKey: LaneKey) => void;
   activityLaneKeys?: Set<string>;
+  noteFlashRef?: React.RefObject<NoteFlashRef>;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -749,6 +751,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           hiddenLanes={hiddenLanes}
           onHideLane={(key) => setHiddenLanes((prev) => new Set([...prev, key]))}
           onShowLane={(key) => setHiddenLanes((prev) => { const n = new Set(prev); n.delete(key); return n; })}
+          noteFlashRef={props.noteFlashRef}
         />
       ))}
 

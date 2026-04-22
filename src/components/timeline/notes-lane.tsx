@@ -7,6 +7,11 @@ import { ResizeHandle } from "./resize-handle";
 import { LaneBadges } from "./lane-badges";
 import { PitchSparkline } from "./pitch-sparkline";
 
+export interface NoteFlashRef {
+  midi: Set<string>;
+  osc: Set<string>;
+}
+
 interface NotesLaneProps {
   laneKey: string;
   spans: NoteSpan[];
@@ -34,6 +39,7 @@ interface NotesLaneProps {
   oscMappings?: OscMapping[];
   focusedSectionId?: string | null;
   onOpenNoteGroupMapping?: (pitch: number, velocity: number | null) => void;
+  flashRef?: React.RefObject<NoteFlashRef>;
 }
 
 export function NotesLane(props: NotesLaneProps) {
@@ -175,6 +181,82 @@ export function NotesLane(props: NotesLaneProps) {
     ctx.globalAlpha = 1;
   }, [spans, viewStartMs, viewEndMs, heightPx, minPitch, maxPitch, selectedVelocity, activeSectionRange, hiddenNoteKeys, noteTags]);
 
+  // Overlay canvas for MIDI/OSC flash — runs its own rAF loop, reads from flashRef
+  // to bypass React's render cycle entirely.
+  const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const flash = props.flashRef;
+    if (!flash) return;
+    let raf = 0;
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      const overlay = overlayRef.current;
+      if (!overlay) return;
+      const midi = flash.current.midi;
+      const osc = flash.current.osc;
+      const dpr = window.devicePixelRatio || 1;
+      const width = overlay.clientWidth;
+      const height = overlay.clientHeight;
+      if (width === 0 || height === 0) return;
+
+      const needsW = Math.floor(width * dpr);
+      const needsH = Math.floor(height * dpr);
+      if (overlay.width !== needsW || overlay.height !== needsH) {
+        overlay.width = needsW;
+        overlay.height = needsH;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      if (midi.size === 0 && osc.size === 0) return;
+
+      const viewSpan = viewEndMs - viewStartMs;
+      if (viewSpan <= 0 || spans.length === 0) return;
+      const pitchSpan = Math.max(1, maxPitch - minPitch);
+      const rowH = Math.max(2, height / (pitchSpan + 1));
+
+      let hi = spans.length;
+      { let lo = 0; while (lo < hi) { const mid = (lo + hi) >>> 1; if (spans[mid].tStart < viewEndMs) lo = mid + 1; else hi = mid; } }
+
+      const drawS = (s: NoteSpan) => {
+        const xStart = ((Math.max(s.tStart, viewStartMs) - viewStartMs) / viewSpan) * width;
+        const xEnd = ((Math.min(s.tEnd, viewEndMs) - viewStartMs) / viewSpan) * width;
+        const w = Math.max(1.5, xEnd - xStart);
+        const y = (1 - (s.pitch - minPitch) / pitchSpan) * (height - rowH);
+        ctx.fillRect(Math.floor(xStart), Math.floor(y), Math.ceil(w), Math.max(2, Math.ceil(rowH) - 1));
+      };
+
+      // Red = all MIDI in
+      if (midi.size > 0) {
+        ctx.shadowColor = "#f87171";
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = "#f87171";
+        for (let i = 0; i < hi; i++) {
+          const s = spans[i];
+          if (s.tEnd < viewStartMs || isHidden(s)) continue;
+          if (midi.has(`${s.device}|${s.pitch}|${s.velocity}`)) drawS(s);
+        }
+        ctx.shadowBlur = 0;
+      }
+      // Green = OSC out (overwrites red for mapped notes)
+      if (osc.size > 0) {
+        ctx.shadowColor = "#4ade80";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#4ade80";
+        for (let i = 0; i < hi; i++) {
+          const s = spans[i];
+          if (s.tEnd < viewStartMs || isHidden(s)) continue;
+          if (osc.has(`${s.device}|${s.pitch}|${s.velocity}`)) drawS(s);
+        }
+        ctx.shadowBlur = 0;
+      }
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  });
+
   const hitTest = (e: React.MouseEvent<HTMLDivElement>): NoteSpan | null => {
     const rect = e.currentTarget.getBoundingClientRect();
     const xIn = e.clientX - rect.left;
@@ -249,6 +331,9 @@ export function NotesLane(props: NotesLaneProps) {
         onClick={(e) => { if (onNoteClick) { const s = hitTest(e); if (s) onNoteClick(s); } }}
       >
         <canvas ref={canvasRef} className="w-full h-full block" />
+        {props.flashRef && (
+          <canvas ref={overlayRef} className="absolute inset-0 w-full h-full block pointer-events-none" />
+        )}
       </div>
       {onResize && <ResizeHandle currentHeight={heightPx} onResize={onResize} />}
     </div>
