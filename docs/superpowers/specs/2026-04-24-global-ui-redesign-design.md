@@ -176,3 +176,19 @@ The existing `useLiveMonitor` hook and section filtering logic carry over direct
 - **Collapsible panels:** Existing `AnimatePresence` height animations (200ms) retained
 - **Activity flashes:** CSS `transition-colors 200ms`
 - **Hover states:** `transition-colors 150ms` on all interactive elements, color shift only (no scale)
+
+## Modals & Overlays
+
+- **No semi-transparent backdrops.** All modals and popups render on a solid `#000` or `#0a0a0a` background — no `bg-black/50` or opacity overlays.
+- Modals are full panels that slide in or appear in place, not floating dialogs over dimmed content.
+- Confirmation dialogs and editors (badge editor, OSC mapping editor, note tag editor) use solid panel backgrounds with `#ffffff06` borders.
+
+## Text Overflow & Accessibility
+
+- **All text must be fully readable.** Where content is truncated (`text-ellipsis`, `overflow-hidden`), provide one of:
+  - A `title` attribute tooltip showing the full text on hover
+  - An expand-on-click or expand-on-hover mechanism
+  - A resizable container (e.g. drag handle)
+- This applies to: OSC addresses, file paths, device names, mapping labels, log messages, and any user-generated content.
+- **All buttons must be reachable.** No button may be hidden behind overflow, clipped by a parent container, or only accessible via scroll without a visible scroll indicator. If a panel has more actions than fit, use a scrollable area with visible scrollbar or a "more" menu.
+- Minimum touch/click target: 32px height for all interactive elements.
