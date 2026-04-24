@@ -102,7 +102,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
         ))}
         <button
           onClick={addArg}
-          className="text-xs text-gray-500 hover:text-accent transition-colors self-start"
+          className="text-xs text-gray-500 hover:text-white transition-colors self-start"
         >
           + Add argument
         </button>
@@ -112,7 +112,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
         whileTap={{ scale: 0.97 }}
         onClick={handleSend}
         disabled={!address.startsWith("/")}
-        className="px-4 py-2 bg-accent text-surface font-medium rounded-lg text-sm hover:bg-accent-dim transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-start"
+        className="px-4 py-2 bg-input text-black font-medium rounded-lg text-sm hover:bg-input-dim transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-start"
       >
         Send
       </motion.button>

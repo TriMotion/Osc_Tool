@@ -91,7 +91,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
           onClick={() => setPinned(!pinned)}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             pinned
-              ? "bg-accent/20 text-accent border border-accent/30"
+              ? "bg-input/20 text-input border border-input/30"
               : "bg-elevated border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
@@ -129,7 +129,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
                 <td className="px-3 py-1.5 text-gray-400">
                   {msg.sourceIp}:{msg.sourcePort}
                 </td>
-                <td className="px-3 py-1.5 text-accent">{msg.address}</td>
+                <td className="px-3 py-1.5 text-input">{msg.address}</td>
                 <td className="px-3 py-1.5 text-gray-300">{formatArgs(msg)}</td>
                 <td className="px-3 py-1.5 whitespace-nowrap">
                   <button

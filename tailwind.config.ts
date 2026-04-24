@@ -37,17 +37,6 @@ const config: Config = {
         warning: "#f59e0b",
         error: "#ef4444",
         info: "#888888",
-
-        // Legacy aliases (remove after migration)
-        surface: {
-          DEFAULT: "#000000",
-          light: "#0a0a0a",
-          lighter: "#111111",
-        },
-        accent: {
-          DEFAULT: "#00ff8c",
-          dim: "#00cc70",
-        },
       },
     },
   },

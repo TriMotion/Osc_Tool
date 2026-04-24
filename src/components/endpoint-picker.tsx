@@ -47,7 +47,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
         <span className="text-xs text-gray-500 font-medium">Saved {type === "listener" ? "Listeners" : "Targets"}</span>
         <button
           onClick={() => setSaving(!saving)}
-          className="text-xs text-gray-500 hover:text-accent transition-colors"
+          className="text-xs text-gray-500 hover:text-white transition-colors"
         >
           {saving ? "Cancel" : "+ Save current"}
         </button>
@@ -66,7 +66,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
           />
           <button
             onClick={handleSave}
-            className="px-2 py-1 text-xs bg-accent text-surface rounded-lg font-medium"
+            className="px-2 py-1 text-xs bg-input text-black rounded-lg font-medium"
           >
             Save
           </button>
@@ -91,7 +91,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
                   }}
                   onBlur={() => handleSaveEdit(ep.id)}
                   autoFocus
-                  className="flex-1 bg-black border border-accent/30 rounded px-1 py-0.5 text-xs focus:outline-none"
+                  className="flex-1 bg-black border border-white/20 rounded px-1 py-0.5 text-xs focus:outline-none"
                 />
               ) : (
                 <button
