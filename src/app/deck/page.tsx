@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useDeck } from "@/hooks/use-deck";
 import { useEndpoints } from "@/hooks/use-osc";
 import { DeckTopbar } from "@/components/deck-topbar";
@@ -10,6 +10,13 @@ import { DeckConfigPanel } from "@/components/deck-config-panel";
 import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig } from "@/lib/types";
 import { useDmx } from "@/hooks/use-dmx";
 import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx-types";
+import { SectionSelector } from "@/components/live/section-selector";
+import { DeviceStrip } from "@/components/live/device-strip";
+import { ActivityFeed } from "@/components/live/activity-feed";
+import { useLiveMonitor } from "@/hooks/use-live-monitor";
+import { useRecorderContext } from "@/contexts/recorder-context";
+import { useMidiControl } from "@/hooks/use-midi";
+import type { SavedEndpoint } from "@/lib/types";
 
 function defaultButtonConfig(): ButtonConfig {
   return {
@@ -59,11 +66,31 @@ export default function DeckPage() {
 
   const { effects: dmxEffects, triggerEffect, setChannel, releaseChannel } = useDmx();
 
+  const [mode, setMode] = useState<"edit" | "live">("edit");
   const [editMode, setEditMode] = useState(false);
   const [placingType, setPlacingType] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const lastUsedEndpointId = useRef<string | undefined>(undefined);
+
+  // Live mode hooks
+  const recorder = useRecorderContext();
+  const { devices: connectedPorts } = useMidiControl();
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [liveEndpoints, setLiveEndpoints] = useState<SavedEndpoint[]>([]);
+  const [showUnmapped, setShowUnmapped] = useState(false);
+
+  useEffect(() => {
+    window.electronAPI?.invoke("endpoints:get-all", "sender").then((res: any) => {
+      setLiveEndpoints((res as SavedEndpoint[]) ?? []);
+    });
+  }, []);
+
+  const { entries, deviceActivity } = useLiveMonitor({
+    recording: recorder.recording,
+    endpoints: liveEndpoints,
+    activeSectionId,
+  });
 
   const selectedItem = activePage
     ? activePage.items.find((i) => i.id === selectedItemId) ??
@@ -141,37 +168,62 @@ export default function DeckPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <DeckTopbar
-        decks={decks}
-        activeDeck={activeDeck}
-        activePage={activePage}
-        editMode={editMode}
-        onSelectDeck={selectDeck}
-        onSelectPage={selectPage}
-        onCreateDeck={createDeck}
-        onDeleteDeck={deleteDeck}
-        onRenameDeck={(id, name) => updateDeck(id, { name })}
-        onCreatePage={createPage}
-        onDeletePage={deletePage}
-        onRenamePage={(id, name) => updatePage(id, { name })}
-        onToggleEdit={() => {
-          setEditMode(!editMode);
-          setPlacingType(null);
-          handleCloseConfig();
-        }}
-      />
-
-      {editMode && (
-        <DeckToolbar
-          placingType={placingType}
-          onStartPlace={(type) => setPlacingType(type)}
-          onCancelPlace={() => setPlacingType(null)}
+      <div className="flex items-center gap-2 shrink-0">
+        <DeckTopbar
+          decks={decks}
+          activeDeck={activeDeck}
+          activePage={activePage}
+          editMode={editMode}
+          onSelectDeck={selectDeck}
+          onSelectPage={selectPage}
+          onCreateDeck={createDeck}
+          onDeleteDeck={deleteDeck}
+          onRenameDeck={(id, name) => updateDeck(id, { name })}
+          onCreatePage={createPage}
+          onDeletePage={deletePage}
+          onRenamePage={(id, name) => updatePage(id, { name })}
+          onToggleEdit={() => {
+            setEditMode(!editMode);
+            setPlacingType(null);
+            handleCloseConfig();
+          }}
         />
-      )}
+        <div className="ml-auto flex bg-elevated rounded-lg p-0.5 border border-white/[0.06] mr-4">
+          <button
+            onClick={() => setMode("edit")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "edit"
+                ? "bg-deck text-white"
+                : "text-[#666] hover:text-[#aaa]"
+            }`}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => setMode("live")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "live"
+                ? "bg-deck text-white"
+                : "text-[#666] hover:text-[#aaa]"
+            }`}
+          >
+            Live
+          </button>
+        </div>
+      </div>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {activePage && activeDeck ? (
-          <DeckGrid
+      {mode === "edit" ? (
+        <>
+          {editMode && (
+            <DeckToolbar
+              placingType={placingType}
+              onStartPlace={(type) => setPlacingType(type)}
+              onCancelPlace={() => setPlacingType(null)}
+            />
+          )}
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {activePage && activeDeck ? (
+              <DeckGrid
             page={activePage}
             gridColumns={activeDeck.gridColumns}
             gridRows={activeDeck.gridRows}
@@ -279,7 +331,58 @@ export default function DeckPage() {
             onClose={handleCloseConfig}
           />
         )}
-      </div>
+        </div>
+        </>
+      ) : (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SectionSelector
+            sections={recorder.recording?.sections ?? []}
+            activeSectionId={activeSectionId}
+            onSelect={setActiveSectionId}
+          />
+          <DeviceStrip devices={connectedPorts} deviceActivity={deviceActivity} />
+          <div className="flex-1 flex overflow-hidden">
+            {activePage && activeDeck ? (
+              <div className="flex-1 overflow-auto">
+                <DeckGrid
+                  page={activePage}
+                  gridColumns={activeDeck.gridColumns}
+                  gridRows={activeDeck.gridRows}
+                  editMode={false}
+                  placingType={null}
+                  onSendOsc={sendOsc}
+                  onValueChange={setValue}
+                  itemValues={itemValues}
+                  onSelectItem={() => {}}
+                  onSelectGroup={() => {}}
+                  onPlaceItem={() => {}}
+                  onMoveItem={() => {}}
+                  onResizeItem={() => {}}
+                  onMoveGroup={() => {}}
+                  onResizeGroup={() => {}}
+                  onMoveItemToGroup={() => {}}
+                  dmxEffects={dmxEffects}
+                  onDmxTrigger={triggerEffect}
+                  onDmxSetChannel={setChannel}
+                  onDmxReleaseChannel={releaseChannel}
+                  onMoveItemOutOfGroup={() => {}}
+                  onPushItems={() => {}}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-600">
+                No deck selected.
+              </div>
+            )}
+            <ActivityFeed
+              entries={entries}
+              showUnmapped={showUnmapped}
+              onToggleUnmapped={setShowUnmapped}
+              endpoints={liveEndpoints}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
