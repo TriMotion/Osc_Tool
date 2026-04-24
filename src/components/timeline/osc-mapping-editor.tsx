@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OscMapping, OscPreset, OscTrigger, SavedEndpoint, TimelineSection } from "@/lib/types";
+import type { DmxEffect } from "@/lib/dmx-types";
 import { resolveOscAddress } from "@/lib/osc-mapping";
 
 interface OscMappingEditorProps {
@@ -16,6 +17,7 @@ interface OscMappingEditorProps {
   defaultMapping?: OscMapping;
   deviceAliases?: Record<string, string>;
   editingMapping?: OscMapping;
+  dmxEffects?: DmxEffect[];
   anchorRect: DOMRect;
   sectionId?: string | null;
   prefill?: Partial<OscMapping>;
@@ -27,7 +29,7 @@ interface OscMappingEditorProps {
 
 export function OscMappingEditor({
   targetType, targetId, deviceId, mappings, endpoints, defaultEndpointId,
-  sections, defaultSectionName, defaultMapping, deviceAliases, editingMapping, anchorRect, sectionId, prefill, onAdd, onUpdate, onDelete, onClose,
+  sections, defaultSectionName, defaultMapping, deviceAliases, dmxEffects, editingMapping, anchorRect, sectionId, prefill, onAdd, onUpdate, onDelete, onClose,
 }: OscMappingEditorProps) {
   // When adding a new mapping, seed from: last target-specific mapping → defaultMapping (last across device) → prefill → hard defaults.
   const lastMapping = !editingMapping && mappings.length > 0 ? mappings[mappings.length - 1] : undefined;
@@ -55,6 +57,8 @@ export function OscMappingEditor({
   const [velocityFilter, setVelocityFilter] = useState<"all" | "min" | "exact">(seed?.velocityFilter ?? "all");
   const [velocityMin, setVelocityMin] = useState(seed?.velocityMin ?? 64);
   const [velocityExact, setVelocityExact] = useState(seed?.velocityExact ?? 100);
+  const [outputType, setOutputType] = useState<"osc" | "dmx">(seed?.outputType ?? "osc");
+  const [dmxEffectId, setDmxEffectId] = useState(seed?.dmxEffectId ?? "");
 
   const previewMapping: OscMapping = {
     id: "preview",
@@ -77,13 +81,16 @@ export function OscMappingEditor({
     velocityFilter: velocityFilter !== "all" ? velocityFilter : undefined,
     velocityMin: velocityFilter === "min" ? velocityMin : undefined,
     velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
+    outputType,
+    dmxEffectId: outputType === "dmx" ? dmxEffectId : undefined,
   });
 
   const handleAdd = () => {
-    if (!endpointId) return;
+    if (outputType === "osc" && !endpointId) return;
     onAdd({
       id: crypto.randomUUID(),
-      targetType, targetId, deviceId, endpointId,
+      targetType, targetId, deviceId,
+      endpointId: outputType === "dmx" ? "" : endpointId,
       ...sharedFields(),
       sectionId: sectionId ?? undefined,
     });
@@ -91,10 +98,10 @@ export function OscMappingEditor({
   };
 
   const handleSave = () => {
-    if (!editingMapping || !endpointId) return;
+    if (!editingMapping || (outputType === "osc" && !endpointId)) return;
     onUpdate?.({
       ...editingMapping,
-      endpointId,
+      endpointId: outputType === "dmx" ? "" : endpointId,
       ...sharedFields(),
       sectionId: editingMapping.sectionId ?? sectionId ?? undefined,
     });
@@ -158,144 +165,177 @@ export function OscMappingEditor({
       )}
 
       <div className="border-t border-white/5 pt-3 space-y-2">
-        {/* Endpoint */}
+        {/* Output Type */}
         <div>
-          <label className="block text-[10px] text-gray-500 mb-1">Endpoint</label>
-          <select
-            value={endpointId}
-            onChange={(e) => setEndpointId(e.target.value)}
-            className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-          >
-            {endpoints.map((ep) => (
-              <option key={ep.id} value={ep.id}>{ep.name} ({ep.host}:{ep.port})</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Preset */}
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-1">Preset</label>
-          <select
-            value={preset}
-            onChange={(e) => setPreset(e.target.value as OscPreset)}
-            className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-          >
-            <option value="custom">Custom</option>
-            <option value="unreal">Unreal Engine</option>
-            <option value="resolume">Resolume</option>
-          </select>
-        </div>
-
-        {/* Preset-specific fields */}
-        {preset === "custom" && (
-          <div>
-            <label className="block text-[10px] text-gray-500 mb-1">OSC Address</label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="/my/address"
-              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
-            />
+          <label className="block text-[10px] text-gray-500 mb-1">Output Type</label>
+          <div className="flex gap-1">
+            <button
+              className={`flex-1 text-xs py-1 rounded border ${outputType === "osc" ? "bg-[#1e3a5f] border-blue-500/40 text-blue-300" : "bg-surface-lighter border-white/10 text-gray-500"}`}
+              onClick={() => setOutputType("osc")}
+            >OSC</button>
+            <button
+              className={`flex-1 text-xs py-1 rounded border ${outputType === "dmx" ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-surface-lighter border-white/10 text-gray-500"}`}
+              onClick={() => setOutputType("dmx")}
+            >DMX</button>
           </div>
-        )}
+        </div>
 
-        {/* Section — shown for all presets, only used in Unreal address */}
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-1">Section</label>
-          {sections.length > 0 ? (
+        {outputType === "dmx" ? (
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-1">DMX Effect</label>
             <select
-              value={sectionName}
-              onChange={(e) => setSectionName(e.target.value)}
+              value={dmxEffectId}
+              onChange={(e) => setDmxEffectId(e.target.value)}
               className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
             >
-              {sections.map((s) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
+              <option value="">None</option>
+              {(dmxEffects ?? []).map((eff) => (
+                <option key={eff.id} value={eff.id}>{eff.name}</option>
               ))}
             </select>
-          ) : (
-            <input
-              type="text"
-              value={sectionName}
-              onChange={(e) => setSectionName(e.target.value)}
-              placeholder="section name"
-              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
-            />
-          )}
-        </div>
-
-        {preset === "resolume" && (
+          </div>
+        ) : (
           <>
+            {/* Endpoint */}
             <div>
-              <label className="block text-[10px] text-gray-500 mb-1">Mode</label>
-              <div className="flex gap-3">
-                {(["column", "clip"] as const).map((m) => (
-                  <label key={m} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                    <input type="radio" checked={resolumeMode === m} onChange={() => setResolumeMode(m)} className="accent-accent" />
-                    {m}
-                  </label>
+              <label className="block text-[10px] text-gray-500 mb-1">Endpoint</label>
+              <select
+                value={endpointId}
+                onChange={(e) => setEndpointId(e.target.value)}
+                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              >
+                {endpoints.map((ep) => (
+                  <option key={ep.id} value={ep.id}>{ep.name} ({ep.host}:{ep.port})</option>
                 ))}
-              </div>
+              </select>
             </div>
-            {resolumeMode === "column" && (
+
+            {/* Preset */}
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-1">Preset</label>
+              <select
+                value={preset}
+                onChange={(e) => setPreset(e.target.value as OscPreset)}
+                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              >
+                <option value="custom">Custom</option>
+                <option value="unreal">Unreal Engine</option>
+                <option value="resolume">Resolume</option>
+              </select>
+            </div>
+
+            {/* Preset-specific fields */}
+            {preset === "custom" && (
               <div>
-                <label className="block text-[10px] text-gray-500 mb-1">Column</label>
+                <label className="block text-[10px] text-gray-500 mb-1">OSC Address</label>
                 <input
-                  type="number"
-                  min={1}
-                  value={resolumeColumn}
-                  onChange={(e) => setResolumeColumn(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="/my/address"
+                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
                 />
               </div>
             )}
-            {resolumeMode === "clip" && (
+
+            {/* Section — shown for all presets, only used in Unreal address */}
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-1">Section</label>
+              {sections.length > 0 ? (
+                <select
+                  value={sectionName}
+                  onChange={(e) => setSectionName(e.target.value)}
+                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                >
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={sectionName}
+                  onChange={(e) => setSectionName(e.target.value)}
+                  placeholder="section name"
+                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
+                />
+              )}
+            </div>
+
+            {preset === "resolume" && (
               <>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-gray-500 mb-1">Layer</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={resolumeLayer}
-                      onChange={(e) => setResolumeLayer(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-gray-500 mb-1">Clip</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={resolumeClip}
-                      onChange={(e) => setResolumeClip(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-gray-500 mb-1">Clip max</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={resolumeClipMax}
-                      onChange={(e) => setResolumeClipMax(Math.max(0, parseInt(e.target.value) || 0))}
-                      placeholder="—"
-                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
-                    />
+                <div>
+                  <label className="block text-[10px] text-gray-500 mb-1">Mode</label>
+                  <div className="flex gap-3">
+                    {(["column", "clip"] as const).map((m) => (
+                      <label key={m} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
+                        <input type="radio" checked={resolumeMode === m} onChange={() => setResolumeMode(m)} className="accent-accent" />
+                        {m}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                {resolumeClipMax > 0 && (
-                  <div className="text-[10px] text-gray-600">
-                    Random clip {resolumeClip}–{resolumeClipMax}
+                {resolumeMode === "column" && (
+                  <div>
+                    <label className="block text-[10px] text-gray-500 mb-1">Column</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={resolumeColumn}
+                      onChange={(e) => setResolumeColumn(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                    />
                   </div>
+                )}
+                {resolumeMode === "clip" && (
+                  <>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="block text-[10px] text-gray-500 mb-1">Layer</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={resolumeLayer}
+                          onChange={(e) => setResolumeLayer(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[10px] text-gray-500 mb-1">Clip</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={resolumeClip}
+                          onChange={(e) => setResolumeClip(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[10px] text-gray-500 mb-1">Clip max</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={resolumeClipMax}
+                          onChange={(e) => setResolumeClipMax(Math.max(0, parseInt(e.target.value) || 0))}
+                          placeholder="—"
+                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                        />
+                      </div>
+                    </div>
+                    {resolumeClipMax > 0 && (
+                      <div className="text-[10px] text-gray-600">
+                        Random clip {resolumeClip}–{resolumeClipMax}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
+
+            {/* Address preview */}
+            <div className="text-[10px] text-gray-600 font-mono truncate">{preview}</div>
           </>
         )}
-
-        {/* Address preview */}
-        <div className="text-[10px] text-gray-600 font-mono truncate">{preview}</div>
 
         {/* Trigger (note groups only) */}
         {targetType === "noteGroup" && (
@@ -362,7 +402,7 @@ export function OscMappingEditor({
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              disabled={!endpointId}
+              disabled={(outputType === "osc" && !endpointId) || (outputType === "dmx" && !dmxEffectId)}
               className="flex-1 py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Save
@@ -377,7 +417,7 @@ export function OscMappingEditor({
         ) : (
           <button
             onClick={handleAdd}
-            disabled={!endpointId || endpoints.length === 0}
+            disabled={(outputType === "osc" && (!endpointId || endpoints.length === 0)) || (outputType === "dmx" && !dmxEffectId)}
             className="w-full py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
           >
             + Add Mapping
