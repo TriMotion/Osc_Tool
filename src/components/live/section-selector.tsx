@@ -13,7 +13,7 @@ export function SectionSelector({ sections, activeSectionId, onSelect }: Section
   if (sections.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-surface-light/30 shrink-0 overflow-x-auto">
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-panel/30 shrink-0 overflow-x-auto">
       <span className="text-[10px] uppercase tracking-wider text-gray-500 mr-1 shrink-0">
         Section
       </span>
@@ -21,7 +21,7 @@ export function SectionSelector({ sections, activeSectionId, onSelect }: Section
         onClick={() => onSelect(null)}
         className={`relative text-xs px-3 py-1 rounded-md border transition-colors shrink-0 ${
           activeSectionId === null
-            ? "border-accent/50 text-accent bg-accent/10"
+            ? "border-deck/50 text-deck bg-deck/10"
             : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300"
         }`}
       >
@@ -29,7 +29,7 @@ export function SectionSelector({ sections, activeSectionId, onSelect }: Section
         {activeSectionId === null && (
           <motion.div
             layoutId="section-indicator"
-            className="absolute inset-0 rounded-md border border-accent/50"
+            className="absolute inset-0 rounded-md border border-deck/50"
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           />
         )}

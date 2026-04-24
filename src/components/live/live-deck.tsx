@@ -27,7 +27,7 @@ export function LiveDeck({ className }: LiveDeckProps) {
   return (
     <div className={`flex flex-col border-t border-white/5 ${className ?? ""}`}>
       {/* Deck header bar */}
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-surface-light/30 shrink-0">
+      <div className="flex items-center gap-2 px-4 py-1.5 bg-panel/30 shrink-0">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="text-gray-500 hover:text-gray-300 transition-colors text-xs"
@@ -42,7 +42,7 @@ export function LiveDeck({ className }: LiveDeckProps) {
         <select
           value={activeDeck?.id ?? ""}
           onChange={(e) => selectDeck(e.target.value)}
-          className="bg-surface border border-white/10 rounded text-xs text-gray-300 px-2 py-0.5 outline-none focus:border-accent/50"
+          className="bg-black border border-white/10 rounded text-xs text-gray-300 px-2 py-0.5 outline-none focus:border-deck/18"
         >
           {decks.map((d) => (
             <option key={d.id} value={d.id}>
@@ -60,7 +60,7 @@ export function LiveDeck({ className }: LiveDeckProps) {
                 onClick={() => selectPage(page.id)}
                 className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
                   activePage?.id === page.id
-                    ? "bg-accent/15 text-accent border border-accent/30"
+                    ? "bg-deck/15 text-deck border border-deck/30"
                     : "text-gray-500 hover:text-gray-300 border border-transparent"
                 }`}
               >

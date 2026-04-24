@@ -40,10 +40,10 @@ function DeviceCard({
     <div
       className={`relative flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg min-w-[160px] transition-opacity ${
         disabled
-          ? "bg-surface-light/40 border border-white/5 opacity-50"
+          ? "bg-panel/40 border border-white/5 opacity-50"
           : unlinked
           ? "bg-amber-950/20 border border-amber-400/20"
-          : "bg-surface-light border border-white/5"
+          : "bg-panel border border-white/5"
       }`}
       title={
         disabled
@@ -102,7 +102,7 @@ function DeviceCard({
             const v = e.target.value;
             onSetSource(name, v === AUTO ? null : v);
           }}
-          className="text-[10px] bg-surface border border-white/10 rounded px-1.5 py-0.5 text-gray-400 w-full"
+          className="text-[10px] bg-black border border-white/10 rounded px-1.5 py-0.5 text-gray-400 w-full"
           title="Which live MIDI port feeds this recording device"
         >
           <option value={AUTO}>Source: auto (by name)</option>
@@ -122,7 +122,7 @@ function DeviceCard({
             if (!e.target.value) return;
             onLink(name, e.target.value);
           }}
-          className="text-[10px] bg-surface border border-white/10 rounded px-1.5 py-0.5 text-gray-400 w-full"
+          className="text-[10px] bg-black border border-white/10 rounded px-1.5 py-0.5 text-gray-400 w-full"
           title="Route this live port to a recording device so its mappings fire"
         >
           <option value="">Link to…</option>

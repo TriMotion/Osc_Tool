@@ -49,14 +49,14 @@ function MappingRow({
   const address = resolveOscAddress(mapping, aliases);
 
   return (
-    <div className={`border-b border-white/5 transition-colors ${isFlashing ? "bg-accent/5" : ""}`}>
+    <div className={`border-b border-white/5 transition-colors ${isFlashing ? "bg-deck/5" : ""}`}>
       {/* Summary row */}
       <div className="flex items-center gap-2 px-4 py-1.5 text-xs">
         <input
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelect}
-          className="accent-accent shrink-0"
+          className="accent-deck shrink-0"
         />
         <div
           className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-150 ${
@@ -76,11 +76,11 @@ function MappingRow({
         >
           {mapping.preset}
         </span>
-        <span className="text-accent font-mono flex-1 truncate">{address}</span>
+        <span className="text-deck font-mono flex-1 truncate">{address}</span>
         <span className="text-gray-500 shrink-0 truncate max-w-[160px]">
           {endpoint ? endpoint.name : <span className="text-red-400/80">missing</span>}
           {(mapping.extraEndpointIds?.length ?? 0) > 0 && (
-            <span className="ml-1 text-[10px] text-accent/80">
+            <span className="ml-1 text-[10px] text-deck/80">
               +{mapping.extraEndpointIds!.length}
             </span>
           )}
@@ -95,14 +95,14 @@ function MappingRow({
 
       {/* Inline edit section */}
       {isEditing && (
-        <div className="px-4 pb-3 pt-1 bg-surface-light border-t border-white/5 flex flex-col gap-2">
+        <div className="px-4 pb-3 pt-1 bg-panel border-t border-white/5 flex flex-col gap-2">
           {/* Endpoint — always shown */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500 w-24 shrink-0">Endpoint</span>
             <select
               value={mapping.endpointId}
               onChange={(e) => onUpdate({ ...mapping, endpointId: e.target.value })}
-              className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
+              className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
             >
               {endpoints.map((ep) => (
                 <option key={ep.id} value={ep.id}>
@@ -124,7 +124,7 @@ function MappingRow({
                     next[idx] = e.target.value;
                     onUpdate({ ...mapping, extraEndpointIds: next });
                   }}
-                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
+                  className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
                 >
                   {!ep && <option value={epId}>(missing endpoint)</option>}
                   {endpoints.map((e) => (
@@ -166,7 +166,7 @@ function MappingRow({
                       extraEndpointIds: [...(mapping.extraEndpointIds ?? []), e.target.value],
                     });
                   }}
-                  className="text-xs bg-surface border border-dashed border-white/10 rounded px-2 py-1 text-gray-500 flex-1"
+                  className="text-xs bg-black border border-dashed border-white/10 rounded px-2 py-1 text-gray-500 flex-1"
                 >
                   <option value="">+ Add another endpoint…</option>
                   {available.map((ep) => (
@@ -187,7 +187,7 @@ function MappingRow({
                 type="text"
                 value={mapping.address ?? ""}
                 onChange={(e) => onUpdate({ ...mapping, address: e.target.value })}
-                className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
+                className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
                 placeholder="/osc/address"
               />
             </div>
@@ -202,7 +202,7 @@ function MappingRow({
                   type="text"
                   value={mapping.sectionName ?? ""}
                   onChange={(e) => onUpdate({ ...mapping, sectionName: e.target.value })}
-                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
+                  className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
                   placeholder="default"
                 />
               </div>
@@ -212,7 +212,7 @@ function MappingRow({
                   type="text"
                   value={mapping.unrealName ?? ""}
                   onChange={(e) => onUpdate({ ...mapping, unrealName: e.target.value })}
-                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
+                  className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 font-mono"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ function MappingRow({
                   onChange={(e) =>
                     onUpdate({ ...mapping, unrealType: e.target.value as "parameter" | "trigger" })
                   }
-                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300"
+                  className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
                 >
                   <option value="parameter">Parameter</option>
                   <option value="trigger">Trigger</option>
@@ -241,7 +241,7 @@ function MappingRow({
                   onChange={(e) =>
                     onUpdate({ ...mapping, resolumeMode: e.target.value as "column" | "clip" })
                   }
-                  className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300"
+                  className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
                 >
                   <option value="column">Column</option>
                   <option value="clip">Clip</option>
@@ -257,7 +257,7 @@ function MappingRow({
                     onChange={(e) =>
                       onUpdate({ ...mapping, resolumeColumn: parseInt(e.target.value) || 1 })
                     }
-                    className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
+                    className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
                   />
                 </div>
               ) : (
@@ -271,7 +271,7 @@ function MappingRow({
                       onChange={(e) =>
                         onUpdate({ ...mapping, resolumeLayer: parseInt(e.target.value) || 1 })
                       }
-                      className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
+                      className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ function MappingRow({
                       onChange={(e) =>
                         onUpdate({ ...mapping, resolumeClip: parseInt(e.target.value) || 1 })
                       }
-                      className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
+                      className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 w-16"
                     />
                   </div>
                 </>
@@ -388,12 +388,12 @@ export function MappingConfigPanel({
       {isOpen && (
         <div className="flex flex-col" style={{ maxHeight: "40vh" }}>
           {/* Filter bar */}
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-white/5 bg-surface-light shrink-0">
+          <div className="flex items-center gap-3 px-4 py-2 border-t border-white/5 bg-panel shrink-0">
             <span className="text-xs text-gray-500">Filter:</span>
             <select
               value={filterPreset}
               onChange={(e) => setFilterPreset(e.target.value as OscPreset | "all")}
-              className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300"
+              className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
             >
               <option value="all">All types</option>
               <option value="custom">Custom</option>
@@ -403,7 +403,7 @@ export function MappingConfigPanel({
             <select
               value={filterEndpointId}
               onChange={(e) => setFilterEndpointId(e.target.value)}
-              className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300"
+              className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
             >
               <option value="all">All endpoints</option>
               {endpoints.map((ep) => (
@@ -458,13 +458,13 @@ export function MappingConfigPanel({
 
           {/* Batch action bar — visible when ≥1 row selected */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 bg-surface-light shrink-0">
+            <div className="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 bg-panel shrink-0">
               <span className="text-xs text-gray-400">{selectedIds.size} selected</span>
               <span className="text-xs text-gray-600">Add endpoint:</span>
               <select
                 value={batchEndpointId}
                 onChange={(e) => setBatchEndpointId(e.target.value)}
-                className="text-xs bg-surface border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 max-w-[220px]"
+                className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1 max-w-[220px]"
               >
                 <option value="">Choose endpoint…</option>
                 {endpoints.map((ep) => (
@@ -476,7 +476,7 @@ export function MappingConfigPanel({
               <button
                 onClick={applyBatchEndpoint}
                 disabled={!batchEndpointId}
-                className="text-xs px-3 py-1 rounded bg-accent/80 hover:bg-accent text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="text-xs px-3 py-1 rounded bg-deck/80 hover:bg-deck text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 title="Add this endpoint as an extra send target on all selected mappings"
               >
                 Add to selected

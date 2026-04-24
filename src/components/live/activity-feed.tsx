@@ -49,7 +49,7 @@ function ActivityRow({ entry, endpoints, aliases }: ActivityRowProps) {
       {isMapped && entry.address && (
         <>
           <span className="text-white/20 shrink-0">→</span>
-          <span className="text-accent shrink-0 truncate max-w-[200px]">{entry.address}</span>
+          <span className="text-deck shrink-0 truncate max-w-[200px]">{entry.address}</span>
           {endpoint && (
             <span className="text-gray-500 shrink-0">
               {endpoint.host}:{endpoint.port}
@@ -92,7 +92,7 @@ export function ActivityFeed({
             type="checkbox"
             checked={showUnmapped}
             onChange={(e) => onToggleUnmapped(e.target.checked)}
-            className="accent-accent"
+            className="accent-deck"
           />
           Show unmapped events
         </label>
