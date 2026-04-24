@@ -26,15 +26,21 @@ export class DmxEngine extends EventEmitter {
     this.config = config;
     if (!config.enabled) return;
 
-    this.sender = new Sender({
-      universe: config.universe,
-      iface: config.networkInterface || undefined,
-      defaultPacketOptions: {
-        sourceName: "Oscilot",
-        priority: 100,
-        useRawDmxValues: true,
-      },
-    });
+    try {
+      this.sender = new Sender({
+        universe: config.universe,
+        iface: config.networkInterface || undefined,
+        defaultPacketOptions: {
+          sourceName: "Oscilot",
+          priority: 100,
+          useRawDmxValues: true,
+        },
+      });
+    } catch (err) {
+      console.error("[DMX] Failed to create sACN sender:", err);
+      this.sender = null;
+      return;
+    }
 
     this.loopInterval = setInterval(() => this.tick(), 23);
   }
