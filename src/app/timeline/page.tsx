@@ -6,6 +6,7 @@ import { useAudioSync } from "@/hooks/use-audio-sync";
 import { useMidiConfig, useMidiControl } from "@/hooks/use-midi";
 import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
 import { useRecorderContext } from "@/contexts/recorder-context";
+import { useToast } from "@/contexts/toast-context";
 import { useOscPlayback, type NoteFlashUpdate } from "@/hooks/use-osc-playback";
 import type { NoteFlashRef } from "@/components/timeline/notes-lane";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
@@ -21,6 +22,7 @@ import { laneKeyString } from "@/lib/types";
 const LEFT_GUTTER = 140;
 
 export default function TimelinePage() {
+  const { addToast } = useToast();
   const { running: bridgeRunning, devices: midiDevices, start: startBridge, stop: stopBridge, refreshDevices } = useMidiControl();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
@@ -193,7 +195,7 @@ export default function TimelinePage() {
 
   const startRecording = useCallback(() => {
     if (!bridgeRunning) {
-      alert("Start the MIDI bridge first (MIDI tab).");
+      addToast("Start the MIDI bridge first.", "warning");
       return;
     }
     if (recorder.hasUnsaved && recorder.recording) {
@@ -277,7 +279,7 @@ export default function TimelinePage() {
 
   const handleLoad = useCallback(async () => {
     if (recorder.state === "recording") {
-      alert("Stop the current recording before loading another file.");
+      addToast("Stop the current recording before loading another file.", "warning");
       return;
     }
     const applyLoad = async () => {
@@ -375,7 +377,7 @@ export default function TimelinePage() {
 
   const handleImportMidi = useCallback(async () => {
     if (recorder.state === "recording") {
-      alert("Stop the current recording before importing a MIDI file.");
+      addToast("Stop the current recording before importing a MIDI file.", "warning");
       return;
     }
     const res = await io.importMidi();
@@ -615,7 +617,7 @@ export default function TimelinePage() {
   const handleTagCurrentLane = useCallback(() => {
     const key = lastHoveredLaneRef.current;
     if (!key) {
-      alert("Hover a lane first to choose which one to tag.");
+      addToast("Hover a lane first to choose which one to tag.", "info");
       return;
     }
     setBadgeEditor({ laneKey: key, badge: null });
