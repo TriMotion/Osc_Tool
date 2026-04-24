@@ -7,6 +7,8 @@ import { useMidiControl } from "@/hooks/use-midi";
 import { DeviceStrip } from "@/components/live/device-strip";
 import { ActivityFeed } from "@/components/live/activity-feed";
 import { MappingConfigPanel } from "@/components/live/mapping-config-panel";
+import { SectionSelector } from "@/components/live/section-selector";
+import { LiveDeck } from "@/components/live/live-deck";
 import type { OscMapping, SavedEndpoint } from "@/lib/types";
 
 export default function LivePage() {
@@ -23,6 +25,7 @@ export default function LivePage() {
   const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
   const [showUnmapped, setShowUnmapped] = useState(true);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   useEffect(() => {
     window.electronAPI?.invoke("endpoints:get-all", "sender").then((res) => {
@@ -30,7 +33,7 @@ export default function LivePage() {
     });
   }, []);
 
-  const { entries, deviceActivity } = useLiveMonitor({ recording, endpoints });
+  const { entries, deviceActivity } = useLiveMonitor({ recording, endpoints, activeSectionId });
 
   // Build a map of mappingId → most recent wallMs for flash triggers in the mapping table
   const mappingFlashTriggers = useMemo(() => {
@@ -122,6 +125,13 @@ export default function LivePage() {
         )}
       </div>
 
+      {/* Section selector */}
+      <SectionSelector
+        sections={recording.sections ?? []}
+        activeSectionId={activeSectionId}
+        onSelect={setActiveSectionId}
+      />
+
       {/* Zone 1 — Device strip */}
       <DeviceStrip
         devices={recording.devices}
@@ -143,7 +153,10 @@ export default function LivePage() {
         aliases={recording.deviceAliases}
       />
 
-      {/* Zone 3 — Mapping config (collapsible) */}
+      {/* Zone 3 — Deck grid */}
+      <LiveDeck />
+
+      {/* Zone 4 — Mapping config (collapsible) */}
       <MappingConfigPanel
         mappings={recording.oscMappings ?? []}
         endpoints={endpoints}
