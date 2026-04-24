@@ -2,10 +2,13 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useOscThroughput, useWebServer } from "@/hooks/use-osc";
+import { useMidiControl } from "@/hooks/use-midi";
 
 export function StatusBar() {
   const [localIp, setLocalIp] = useState("");
   const throughput = useOscThroughput();
+  const { running: bridgeRunning, start: startBridge, stop: stopBridge } = useMidiControl();
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   useEffect(() => {
     const api = (window as any).electronAPI;
@@ -13,7 +16,8 @@ export function StatusBar() {
       api.invoke("system:get-local-ip").then((ip: string) => setLocalIp(ip));
     }
   }, []);
-  const { running, url, start, stop } = useWebServer();
+
+  const { running: webRunning, url, start: startWeb, stop: stopWeb } = useWebServer();
   const [webPort, setWebPort] = useState("4000");
   const [copied, setCopied] = useState(false);
 
@@ -24,55 +28,95 @@ export function StatusBar() {
     setTimeout(() => setCopied(false), 1500);
   }, [url]);
 
-  const handleToggle = async () => {
-    if (running) {
-      await stop();
-    } else {
-      await start(parseInt(webPort, 10));
+  const handleWebToggle = async () => {
+    if (webRunning) await stopWeb();
+    else await startWeb(parseInt(webPort, 10));
+  };
+
+  const handleBridgeToggle = async () => {
+    try {
+      setBridgeError(null);
+      if (bridgeRunning) await stopBridge();
+      else await startBridge();
+    } catch (err) {
+      setBridgeError(String(err));
     }
   };
 
   return (
-    <div className="h-8 bg-surface-light border-t border-white/5 flex items-center px-4 text-xs text-gray-500 gap-4">
+    <div className="h-8 bg-black border-t border-white/[0.04] flex items-center px-4 text-xs text-[#444] gap-4">
+      {/* MIDI Bridge */}
       <div className="flex items-center gap-2">
         <span
-          className={`w-2 h-2 rounded-full ${
-            throughput > 0 ? "bg-accent animate-pulse" : "bg-gray-600"
+          className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+            bridgeRunning ? "bg-success shadow-[0_0_6px_#22c55e]" : "bg-[#333]"
+          }`}
+        />
+        <span className="text-[#666]">Bridge</span>
+        <button
+          onClick={handleBridgeToggle}
+          className={`px-2 py-0.5 rounded text-xs transition-colors ${
+            bridgeRunning
+              ? "bg-error/10 text-error border border-error/20 hover:bg-error/20"
+              : "bg-elevated border border-white/[0.06] text-[#666] hover:text-[#aaa]"
+          }`}
+        >
+          {bridgeRunning ? "Stop" : "Start"}
+        </button>
+        {bridgeError && (
+          <span className="text-error truncate max-w-[200px]" title={bridgeError}>
+            {bridgeError}
+          </span>
+        )}
+      </div>
+
+      <span className="text-[#222]">|</span>
+
+      {/* OSC Throughput */}
+      <div className="flex items-center gap-2">
+        <span
+          className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+            throughput > 0 ? "bg-input animate-pulse" : "bg-[#333]"
           }`}
         />
         <span>{throughput} msg/s</span>
       </div>
+
       {localIp && (
-        <span className="text-gray-600">{localIp}</span>
+        <>
+          <span className="text-[#222]">|</span>
+          <span className="text-[#666]">{localIp}</span>
+        </>
       )}
 
+      {/* Web UI */}
       <div className="ml-auto flex items-center gap-2">
-        {!running && (
+        {!webRunning && (
           <input
             type="text"
             value={webPort}
             onChange={(e) => setWebPort(e.target.value)}
-            className="bg-surface border border-white/10 rounded px-2 py-0.5 w-16 text-xs"
+            className="bg-elevated border border-white/[0.06] rounded px-2 py-0.5 w-16 text-xs focus:border-input/18 focus:outline-none"
             placeholder="Port"
           />
         )}
-        {running && (
+        {webRunning && (
           <button
             onClick={handleCopyUrl}
-            className="px-2 py-0.5 rounded text-xs text-accent hover:text-accent-dim transition-colors"
+            className="px-2 py-0.5 rounded text-xs text-input hover:text-input-dim transition-colors"
           >
             {copied ? "Copied!" : url}
           </button>
         )}
         <button
-          onClick={handleToggle}
+          onClick={handleWebToggle}
           className={`px-2 py-0.5 rounded text-xs transition-colors ${
-            running
-              ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
-              : "bg-surface border border-white/10 text-gray-400 hover:text-gray-200"
+            webRunning
+              ? "bg-error/10 text-error border border-error/20 hover:bg-error/20"
+              : "bg-elevated border border-white/[0.06] text-[#666] hover:text-[#aaa]"
           }`}
         >
-          {running ? "Stop" : "Start Web UI"}
+          {webRunning ? "Stop" : "Start Web UI"}
         </button>
       </div>
     </div>
