@@ -21,7 +21,7 @@ export function HoverCard({ payload, clientX, clientY, aliases }: HoverCardProps
 
   return (
     <div
-      className="fixed z-50 text-[10px] font-mono border border-accent/30 rounded px-2 py-1.5 pointer-events-none"
+      className="fixed z-50 text-[10px] font-mono border border-timeline/30 rounded px-2 py-1.5 pointer-events-none"
       style={{ left, top, minWidth: 200, background: "#0f0f1e", boxShadow: "0 8px 24px rgba(0,0,0,0.85)" }}
     >
       {payload.kind === "event" && <EventBody evt={payload.event} aliases={aliases} />}

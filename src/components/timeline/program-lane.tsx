@@ -62,7 +62,7 @@ export function ProgramLane(props: ProgramLaneProps) {
 
   return (
     <div
-      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
+      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
       style={{ height: heightPx }}
     >
       <div
@@ -95,7 +95,7 @@ export function ProgramLane(props: ProgramLaneProps) {
             }}
             className={`absolute bottom-0.5 right-0.5 opacity-0 group-hover/gutter:opacity-100 transition-opacity text-[9px] px-1 py-0.5 rounded border leading-none ${
               hasOscMapping
-                ? "text-accent border-accent/30 opacity-100"
+                ? "text-timeline border-timeline/30 opacity-100"
                 : "text-gray-600 border-white/5 hover:text-gray-400"
             }`}
             title="OSC mapping"

@@ -107,8 +107,8 @@ export function AudioLane({
         {audioLoaded ? (
           <>
             <div className="flex items-center gap-1 min-w-0">
-              <span className="text-accent text-[10px] shrink-0">♪</span>
-              <span className="text-accent text-[10px] font-mono truncate flex-1">{label ?? "audio"}</span>
+              <span className="text-timeline text-[10px] shrink-0">♪</span>
+              <span className="text-timeline text-[10px] font-mono truncate flex-1">{label ?? "audio"}</span>
               <button
                 onClick={() => setLocked((v) => !v)}
                 className={`shrink-0 text-[10px] leading-none transition-colors ${locked ? "text-amber-400" : "text-gray-600 hover:text-gray-300"}`}
@@ -139,7 +139,7 @@ export function AudioLane({
                     if (!Number.isNaN(s)) onOffsetChange(Math.round(s * 1000));
                   }}
                   disabled={locked}
-                  className="flex-1 min-w-0 text-[10px] px-1 py-0.5 bg-black/20 border border-white/10 rounded focus:outline-none focus:border-accent/50 font-mono disabled:opacity-40"
+                  className="flex-1 min-w-0 text-[10px] px-1 py-0.5 bg-black/20 border border-white/10 rounded focus:outline-none focus:border-timeline/18 font-mono disabled:opacity-40"
                 />
                 <span className="text-[9px] text-gray-600 shrink-0">s</span>
               </div>

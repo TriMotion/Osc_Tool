@@ -102,7 +102,7 @@ export function TimeRuler({ viewStartMs, viewEndMs, leftGutterPx, onSeek, origin
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onOriginChange(0); }}
-            className="text-[9px] text-gray-600 hover:text-accent transition-colors leading-none"
+            className="text-[9px] text-gray-600 hover:text-timeline transition-colors leading-none"
             title="Reset origin to start"
           >
             ↺

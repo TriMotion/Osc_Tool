@@ -61,7 +61,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
       <button
         onClick={isPlaying ? onPause : onPlay}
         disabled={!hasRecording || recording}
-        className="px-3 py-1.5 rounded-lg text-sm bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="px-3 py-1.5 rounded-lg text-sm bg-timeline/10 text-timeline border border-timeline/30 hover:bg-timeline/20 disabled:opacity-30 disabled:cursor-not-allowed"
       >
         {isPlaying ? "⏸ Pause" : "▶ Play"}
       </button>
@@ -77,12 +77,12 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         <button
           onClick={() => setOpenFile((v) => !v)}
           disabled={!hasRecording}
-          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 disabled:opacity-30"
+          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-timeline/40 disabled:opacity-30"
         >
           File ▾
         </button>
         {openFile && (
-          <div className="absolute top-full left-0 mt-1 bg-surface border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[180px]">
+          <div className="absolute top-full left-0 mt-1 bg-black border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[180px]">
             <FileMenuItem label="Save" onClick={() => { onSave(); setOpenFile(false); }} disabled={!hasRecording} />
             <FileMenuItem label="Save As…" onClick={() => { onSaveAs(); setOpenFile(false); }} disabled={!hasRecording} />
             <FileMenuItem label="Save project" onClick={() => { onSaveProject(); setOpenFile(false); }} disabled={!hasRecording} />
@@ -99,8 +99,8 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
         onClick={onToggleTriggersSidebar}
         className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
           triggersSidebarOpen
-            ? "bg-accent/20 text-accent border-accent/40"
-            : "border-white/10 text-gray-300 hover:text-white hover:border-accent/40"
+            ? "bg-timeline/20 text-timeline border-timeline/40"
+            : "border-white/10 text-gray-300 hover:text-white hover:border-timeline/40"
         }`}
       >
         Mappings

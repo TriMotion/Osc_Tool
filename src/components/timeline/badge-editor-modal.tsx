@@ -65,7 +65,7 @@ export function BadgeEditorModal({ badge, laneKey, existingLabels, onSave, onDel
             if (e.key === "Escape") onClose();
           }}
           placeholder="kick, main fader, etc."
-          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-timeline/50"
+          className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-timeline/18"
         />
 
         {suggestions.length > 0 && (

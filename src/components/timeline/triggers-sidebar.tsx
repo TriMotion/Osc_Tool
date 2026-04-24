@@ -74,7 +74,7 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
   const toggle = (k: SectionKey) => setOpen((prev) => ({ ...prev, [k]: !prev[k] }));
 
   return (
-    <div className="w-72 flex-shrink-0 bg-surface-light border-l border-white/10 overflow-y-auto text-xs">
+    <div className="w-72 flex-shrink-0 bg-panel border-l border-white/10 overflow-y-auto text-xs">
       <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
         <span className="font-semibold text-sm">Mappings</span>
         {!ready && <span className="text-[10px] text-gray-500 italic">Analyzing…</span>}
@@ -91,7 +91,7 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
           <div className="flex flex-col gap-1 mt-2">
             {visible.map((m) => (
               <div key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/5 text-xs">
-                <span className="font-mono text-accent truncate flex-1">
+                <span className="font-mono text-timeline truncate flex-1">
                   {m.address ?? m.preset ?? "(no address)"}
                 </span>
                 {!m.sectionId && (
@@ -175,7 +175,7 @@ export function TriggersSidebar(props: TriggersSidebarProps) {
           <div className="p-3 border-t border-white/10">
             <button
               onClick={onTagCurrentLane}
-              className="w-full text-[10px] px-2 py-1.5 border border-white/10 text-gray-300 hover:text-white hover:border-accent/40 rounded"
+              className="w-full text-[10px] px-2 py-1.5 border border-white/10 text-gray-300 hover:text-white hover:border-timeline/40 rounded"
             >
               + Tag current lane
             </button>
@@ -207,7 +207,7 @@ function Row({ onClick, label, prefix, indent }: { onClick: () => void; label: s
       onClick={onClick}
       className={`w-full flex items-center gap-2 px-3 py-1 text-left hover:bg-white/5 ${indent ? "pl-8" : ""}`}
     >
-      {prefix && <span className="text-accent text-[10px] font-mono shrink-0">{prefix}</span>}
+      {prefix && <span className="text-timeline text-[10px] font-mono shrink-0">{prefix}</span>}
       <span className="truncate text-gray-300 text-[10px]">{label}</span>
     </button>
   );

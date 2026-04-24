@@ -92,7 +92,7 @@ function LaneControlsPopover({
         title="Lane options"
       >⋯</button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-30 w-[180px] bg-surface border border-white/10 rounded shadow-xl">
+        <div className="absolute right-0 top-full mt-1 z-30 w-[180px] bg-black border border-white/10 rounded shadow-xl">
           {actions.map((a) => (
             <button
               key={a.label}
@@ -330,7 +330,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       {/* Device header row */}
       <div
         onClick={onToggleCollapsed}
-        className="group flex items-center gap-2 px-3 py-1.5 bg-black/20 text-accent text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
+        className="group flex items-center gap-2 px-3 py-1.5 bg-black/20 text-timeline text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
       >
         <span>{collapsed ? "▸" : "▾"}</span>
         {isEditingName ? (
@@ -345,7 +345,7 @@ export function DeviceSection(props: DeviceSectionProps) {
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-surface-lighter border border-accent/40 rounded px-1 text-xs text-accent font-semibold focus:outline-none min-w-[60px]"
+            className="bg-elevated border border-timeline/40 rounded px-1 text-xs text-timeline font-semibold focus:outline-none min-w-[60px]"
             style={{ width: Math.max(60, editValue.length * 7) }}
           />
         ) : (
@@ -370,7 +370,7 @@ export function DeviceSection(props: DeviceSectionProps) {
             onClick={(e) => { e.stopPropagation(); setPanelOpen((v) => !v); }}
             className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               panelOpen
-                ? "bg-accent/20 text-accent border-accent/30"
+                ? "bg-timeline/20 text-timeline border-timeline/30"
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
             title="Note groups"
@@ -396,7 +396,7 @@ export function DeviceSection(props: DeviceSectionProps) {
             onClick={(e) => { e.stopPropagation(); setLanesOpen((v) => !v); }}
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               lanesOpen
-                ? "bg-accent/20 text-accent border-accent/30"
+                ? "bg-timeline/20 text-timeline border-timeline/30"
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
             title="Toggle lanes"
@@ -420,7 +420,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                     onClick={() => hidden ? onShowLane(key) : onHideLane(key)}
                     className="w-full flex items-center gap-2 px-3 py-1 text-[10px] hover:bg-white/5 transition-colors text-left"
                   >
-                    <span className={hidden ? "text-gray-600" : "text-accent"}>
+                    <span className={hidden ? "text-gray-600" : "text-timeline"}>
                       {hidden ? "○" : "●"}
                     </span>
                     <span className={hidden ? "text-gray-600" : "text-gray-300"}>
@@ -572,7 +572,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                             onClick={() => setFilterTagged((v) => !v)}
                             className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                               filterTagged
-                                ? "bg-accent/20 text-accent border-accent/30"
+                                ? "bg-timeline/20 text-timeline border-timeline/30"
                                 : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
                             }`}
                           >
@@ -582,7 +582,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                             onClick={() => setCombineVelocity((v) => !v)}
                             className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                               combineVelocity
-                                ? "bg-accent/20 text-accent border-accent/30"
+                                ? "bg-timeline/20 text-timeline border-timeline/30"
                                 : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
                             }`}
                           >
@@ -635,7 +635,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleToggle(); }}
                                   className={`text-[11px] leading-none transition-colors ${
-                                    hidden ? "text-gray-600 hover:text-gray-300" : "text-accent hover:text-white"
+                                    hidden ? "text-gray-600 hover:text-gray-300" : "text-timeline hover:text-white"
                                   }`}
                                   title={hidden ? "Show" : "Hide"}
                                 >
@@ -682,7 +682,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                       });
                                     }}
-                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-accent transition-all px-2 py-0.5 rounded border border-white/5 hover:border-accent/30 leading-none shrink-0"
+                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-timeline transition-all px-2 py-0.5 rounded border border-white/5 hover:border-timeline/30 leading-none shrink-0"
                                   >
                                     + OSC
                                   </button>

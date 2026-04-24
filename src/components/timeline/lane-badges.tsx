@@ -25,7 +25,7 @@ export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick, onD
   }
   if (analysis && !analysis.isDead && analysis.rhythmScore >= 0.5 && !suppressedTypes?.has("rhythm")) {
     items.push(
-      <AnalysisBadgePill key="rhythm" label={`♻ ${analysis.rhythmScore.toFixed(2)}`} title={`Rhythm ${analysis.rhythmScore.toFixed(2)}`} className="bg-accent/20 text-accent border-accent/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("rhythm") : undefined} />
+      <AnalysisBadgePill key="rhythm" label={`♻ ${analysis.rhythmScore.toFixed(2)}`} title={`Rhythm ${analysis.rhythmScore.toFixed(2)}`} className="bg-timeline/20 text-timeline border-timeline/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("rhythm") : undefined} />
     );
   }
   if (analysis && !analysis.isDead && analysis.dynamicScore >= 0.5 && !suppressedTypes?.has("dynamic")) {
@@ -35,7 +35,7 @@ export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick, onD
   }
   if (analysis && analysis.melodyScore !== undefined && analysis.melodyScore >= 0.5 && !suppressedTypes?.has("melody")) {
     items.push(
-      <AnalysisBadgePill key="mel" label={`🎵 ${analysis.melodyScore!.toFixed(2)}`} title={`Melody ${analysis.melodyScore!.toFixed(2)}`} className="bg-pink-500/20 text-pink-300 border-pink-500/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("melody") : undefined} />
+      <AnalysisBadgePill key="mel" label={`🎵 ${analysis.melodyScore!.toFixed(2)}`} title={`Melody ${analysis.melodyScore!.toFixed(2)}`} className="bg-timeline/20 text-timeline border-timeline/30" onSuppress={onSuppressBadge ? () => onSuppressBadge("melody") : undefined} />
     );
   }
 
@@ -48,7 +48,7 @@ export function LaneBadges({ analysis, userBadges, onAddClick, onBadgeClick, onD
       key="add"
       onClick={(e) => { e.stopPropagation(); onAddClick(); }}
       onPointerDown={(e) => e.stopPropagation()}
-      className="inline-block text-[9px] w-4 h-4 rounded-full border border-white/10 text-gray-500 hover:text-white hover:border-accent/40 leading-none"
+      className="inline-block text-[9px] w-4 h-4 rounded-full border border-white/10 text-gray-500 hover:text-white hover:border-timeline/40 leading-none"
       title="Tag this lane"
     >
       +

@@ -835,7 +835,7 @@ export default function TimelinePage() {
                   setSaveSuggestedPath(null);
                   setPendingMidiMerge(null);
                 }}
-                className="px-3 py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded"
+                className="px-3 py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded"
               >
                 Merge into timeline
               </button>
@@ -910,7 +910,7 @@ function ProjectFolderDropdown({
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-30 w-[360px] max-w-[90vw] bg-surface border border-white/10 rounded-md shadow-xl p-3 flex flex-col gap-2">
+        <div className="absolute top-full left-0 mt-1 z-30 w-[360px] max-w-[90vw] bg-black border border-white/10 rounded-md shadow-xl p-3 flex flex-col gap-2">
           <div className="text-[10px] uppercase tracking-wide text-gray-500">Project folder</div>
           <div className={`font-mono text-[11px] break-all ${found ? "text-gray-300" : "text-amber-300"}`}>
             {info.path}
@@ -923,7 +923,7 @@ function ProjectFolderDropdown({
           )}
           <button
             onClick={() => { setOpen(false); onPick(); }}
-            className="self-start px-2 py-1 rounded border border-white/10 text-[11px] text-gray-300 hover:text-white hover:border-accent/40 transition-colors"
+            className="self-start px-2 py-1 rounded border border-white/10 text-[11px] text-gray-300 hover:text-white hover:border-timeline/40 transition-colors"
           >
             Change folder…
           </button>

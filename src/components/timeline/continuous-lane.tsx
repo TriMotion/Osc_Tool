@@ -172,7 +172,7 @@ export function ContinuousLane({
   return (
     <div
       ref={wrapRef}
-      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
+      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
       style={{ height: heightPx }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -206,7 +206,7 @@ export function ContinuousLane({
             <button
               onClick={(e) => onOpenMapping?.(e)}
               title={`Edit OSC mapping → ${mapping.address ?? "(preset)"}`}
-              className="ml-1 max-w-[140px] truncate px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent/15 text-accent border border-accent/40 hover:bg-accent/25"
+              className="ml-1 max-w-[140px] truncate px-1.5 py-0.5 rounded text-[10px] font-mono bg-timeline/15 text-timeline border border-timeline/40 hover:bg-timeline/25"
             >
               → {mapping.address ?? mapping.preset}
             </button>
@@ -214,7 +214,7 @@ export function ContinuousLane({
             <button
               onClick={(e) => onOpenMapping?.(e)}
               title="Map this CC to OSC"
-              className="ml-1 px-1.5 py-0.5 rounded text-[10px] border border-white/10 text-gray-500 hover:text-white hover:border-accent/40"
+              className="ml-1 px-1.5 py-0.5 rounded text-[10px] border border-white/10 text-gray-500 hover:text-white hover:border-timeline/40"
             >
               ＋ Map
             </button>

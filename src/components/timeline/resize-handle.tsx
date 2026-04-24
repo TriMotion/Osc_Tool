@@ -35,7 +35,7 @@ export function ResizeHandle({ currentHeight, minHeight = 16, onResize }: Resize
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      className="absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize z-[3] hover:bg-accent/40 transition-colors"
+      className="absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize z-[3] hover:bg-timeline/40 transition-colors"
     />
   );
 }

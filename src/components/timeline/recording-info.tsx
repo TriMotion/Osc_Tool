@@ -19,7 +19,7 @@ export function RecordingInfoPanel({ recording, recorderState, hasUnsaved, onRen
         disabled={!recording}
         onChange={(e) => onRename(e.target.value)}
         placeholder={recording ? "" : "(no recording)"}
-        className="bg-transparent border-b border-white/10 focus:border-accent/50 focus:outline-none text-sm text-gray-200 px-1 py-0.5 w-48 disabled:opacity-50"
+        className="bg-transparent border-b border-white/10 focus:border-timeline/18 focus:outline-none text-sm text-gray-200 px-1 py-0.5 w-48 disabled:opacity-50"
       />
       <span>·</span>
       <span>

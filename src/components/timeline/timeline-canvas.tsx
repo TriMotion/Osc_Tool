@@ -590,7 +590,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         ref={wrapRef}
         onWheel={handleWheel}
         onMouseDown={handlePanMouseDown}
-        className="relative flex-1 min-h-0 bg-surface rounded-lg border border-white/5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+        className="relative flex-1 min-h-0 bg-black rounded-lg border border-white/5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none", cursor: panActive ? "grabbing" : undefined }}
       >
       {/* Sticky header — time ruler, sections, and markers stay pinned while lanes scroll */}
@@ -812,7 +812,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
       {!tailFollowRef.current && isRecording && (
         <button
           onClick={jumpLive}
-          className="absolute top-2 right-3 z-20 text-[10px] px-2 py-1 bg-accent/20 text-accent border border-accent/30 rounded"
+          className="absolute top-2 right-3 z-20 text-[10px] px-2 py-1 bg-timeline/20 text-timeline border border-timeline/30 rounded"
         >
           Jump to live ↴
         </button>
@@ -826,7 +826,7 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           </span>
           <button
             onClick={() => hideNoteGroup(noteSelection.device, noteSelection.pitch, noteSelection.velocity)}
-            className="px-2 py-1 text-xs bg-surface-lighter border border-white/10 text-gray-300 rounded hover:text-white transition-colors"
+            className="px-2 py-1 text-xs bg-elevated border border-white/10 text-gray-300 rounded hover:text-white transition-colors"
           >
             Hide
           </button>

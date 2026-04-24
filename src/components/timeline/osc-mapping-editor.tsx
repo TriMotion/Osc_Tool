@@ -149,7 +149,7 @@ export function OscMappingEditor({
             const ep = endpoints.find((e) => e.id === m.endpointId);
             return (
               <div key={m.id} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded text-[10px]">
-                <span className="font-mono text-accent flex-1 truncate">{resolveOscAddress(m, deviceAliases)}</span>
+                <span className="font-mono text-timeline flex-1 truncate">{resolveOscAddress(m, deviceAliases)}</span>
                 {targetType === "noteGroup" && (
                   <span className="text-gray-500">[{m.trigger}]</span>
                 )}
@@ -170,11 +170,11 @@ export function OscMappingEditor({
           <label className="block text-[10px] text-gray-500 mb-1">Output Type</label>
           <div className="flex gap-1">
             <button
-              className={`flex-1 text-xs py-1 rounded border ${outputType === "osc" ? "bg-[#1e3a5f] border-blue-500/40 text-blue-300" : "bg-surface-lighter border-white/10 text-gray-500"}`}
+              className={`flex-1 text-xs py-1 rounded border ${outputType === "osc" ? "bg-timeline/20 border-timeline/40 text-timeline" : "bg-elevated border-white/10 text-gray-500"}`}
               onClick={() => setOutputType("osc")}
             >OSC</button>
             <button
-              className={`flex-1 text-xs py-1 rounded border ${outputType === "dmx" ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-surface-lighter border-white/10 text-gray-500"}`}
+              className={`flex-1 text-xs py-1 rounded border ${outputType === "dmx" ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-elevated border-white/10 text-gray-500"}`}
               onClick={() => setOutputType("dmx")}
             >DMX</button>
           </div>
@@ -186,7 +186,7 @@ export function OscMappingEditor({
             <select
               value={dmxEffectId}
               onChange={(e) => setDmxEffectId(e.target.value)}
-              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
             >
               <option value="">None</option>
               {(dmxEffects ?? []).map((eff) => (
@@ -202,7 +202,7 @@ export function OscMappingEditor({
               <select
                 value={endpointId}
                 onChange={(e) => setEndpointId(e.target.value)}
-                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
               >
                 {endpoints.map((ep) => (
                   <option key={ep.id} value={ep.id}>{ep.name} ({ep.host}:{ep.port})</option>
@@ -216,7 +216,7 @@ export function OscMappingEditor({
               <select
                 value={preset}
                 onChange={(e) => setPreset(e.target.value as OscPreset)}
-                className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
               >
                 <option value="custom">Custom</option>
                 <option value="unreal">Unreal Engine</option>
@@ -233,7 +233,7 @@ export function OscMappingEditor({
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="/my/address"
-                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-timeline/18"
                 />
               </div>
             )}
@@ -245,7 +245,7 @@ export function OscMappingEditor({
                 <select
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
-                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
                 >
                   {sections.map((s) => (
                     <option key={s.id} value={s.name}>{s.name}</option>
@@ -257,7 +257,7 @@ export function OscMappingEditor({
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
                   placeholder="section name"
-                  className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-accent/50"
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-timeline/18"
                 />
               )}
             </div>
@@ -269,7 +269,7 @@ export function OscMappingEditor({
                   <div className="flex gap-3">
                     {(["column", "clip"] as const).map((m) => (
                       <label key={m} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                        <input type="radio" checked={resolumeMode === m} onChange={() => setResolumeMode(m)} className="accent-accent" />
+                        <input type="radio" checked={resolumeMode === m} onChange={() => setResolumeMode(m)} className="accent-timeline" />
                         {m}
                       </label>
                     ))}
@@ -283,7 +283,7 @@ export function OscMappingEditor({
                       min={1}
                       value={resolumeColumn}
                       onChange={(e) => setResolumeColumn(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                      className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
                     />
                   </div>
                 )}
@@ -297,7 +297,7 @@ export function OscMappingEditor({
                           min={1}
                           value={resolumeLayer}
                           onChange={(e) => setResolumeLayer(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                          className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
                         />
                       </div>
                       <div className="flex-1">
@@ -307,7 +307,7 @@ export function OscMappingEditor({
                           min={1}
                           value={resolumeClip}
                           onChange={(e) => setResolumeClip(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                          className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
                         />
                       </div>
                       <div className="flex-1">
@@ -318,7 +318,7 @@ export function OscMappingEditor({
                           value={resolumeClipMax}
                           onChange={(e) => setResolumeClipMax(Math.max(0, parseInt(e.target.value) || 0))}
                           placeholder="—"
-                          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                          className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
                         />
                       </div>
                     </div>
@@ -344,7 +344,7 @@ export function OscMappingEditor({
             <div className="flex gap-3">
               {(["on", "off", "both"] as const).map((t) => (
                 <label key={t} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                  <input type="radio" checked={trigger === t} onChange={() => setTrigger(t)} className="accent-accent" />
+                  <input type="radio" checked={trigger === t} onChange={() => setTrigger(t)} className="accent-timeline" />
                   {t}
                 </label>
               ))}
@@ -358,7 +358,7 @@ export function OscMappingEditor({
           <div className="flex gap-3 mb-1">
             {(["all", "min", "exact"] as const).map((v) => (
               <label key={v} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                <input type="radio" checked={velocityFilter === v} onChange={() => setVelocityFilter(v)} className="accent-accent" />
+                <input type="radio" checked={velocityFilter === v} onChange={() => setVelocityFilter(v)} className="accent-timeline" />
                 {v === "all" ? "All" : v === "min" ? "≥ Min" : "Exact"}
               </label>
             ))}
@@ -370,7 +370,7 @@ export function OscMappingEditor({
               max={127}
               value={velocityMin}
               onChange={(e) => setVelocityMin(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
-              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
             />
           )}
           {velocityFilter === "exact" && (
@@ -380,7 +380,7 @@ export function OscMappingEditor({
               max={127}
               value={velocityExact}
               onChange={(e) => setVelocityExact(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
-              className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+              className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
             />
           )}
         </div>
@@ -391,7 +391,7 @@ export function OscMappingEditor({
           <div className="flex gap-3">
             {(["f", "i"] as const).map((t) => (
               <label key={t} className="flex items-center gap-1 text-[11px] text-gray-400 cursor-pointer">
-                <input type="radio" checked={argType === t} onChange={() => setArgType(t)} className="accent-accent" />
+                <input type="radio" checked={argType === t} onChange={() => setArgType(t)} className="accent-timeline" />
                 {t === "f" ? "Float" : "Int"}
               </label>
             ))}
@@ -403,7 +403,7 @@ export function OscMappingEditor({
             <button
               onClick={handleSave}
               disabled={(outputType === "osc" && !endpointId) || (outputType === "dmx" && !dmxEffectId)}
-              className="flex-1 py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex-1 py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Save
             </button>
@@ -418,7 +418,7 @@ export function OscMappingEditor({
           <button
             onClick={handleAdd}
             disabled={(outputType === "osc" && (!endpointId || endpoints.length === 0)) || (outputType === "dmx" && !dmxEffectId)}
-            className="w-full py-1.5 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
           >
             + Add Mapping
           </button>

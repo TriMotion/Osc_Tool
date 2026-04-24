@@ -73,7 +73,7 @@ export function NoteTagEditor({
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 bg-surface-light border border-white/10 rounded-lg p-4 shadow-xl"
+      className="fixed z-50 bg-panel border border-white/10 rounded-lg p-4 shadow-xl"
       style={{ top, left, width: 272 }}
     >
       <h3 className="text-sm font-semibold mb-3">{tag ? "Edit tag" : "Tag this note group"}</h3>
@@ -90,7 +90,7 @@ export function NoteTagEditor({
           if (e.key === "Escape") onClose();
         }}
         placeholder="Kick, Snare, Hi-hat…"
-        className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-accent/50"
+        className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-timeline/18"
       />
 
       {suggestions.length > 0 && (
@@ -129,7 +129,7 @@ export function NoteTagEditor({
           type="checkbox"
           checked={allVelocities}
           onChange={(e) => setAllVelocities(e.target.checked)}
-          className="accent-accent"
+          className="accent-timeline"
         />
         <span className="text-[11px] text-gray-400">All velocities of this pitch</span>
       </label>
@@ -138,7 +138,7 @@ export function NoteTagEditor({
         <button
           type="button"
           onClick={onMapToOsc}
-          className="w-full text-left px-3 py-2 text-xs border-t border-white/10 text-accent hover:bg-white/5"
+          className="w-full text-left px-3 py-2 text-xs border-t border-white/10 text-timeline hover:bg-white/5"
         >
           Map to OSC…
         </button>
@@ -162,7 +162,7 @@ export function NoteTagEditor({
           <button
             onClick={handleSave}
             disabled={!label.trim()}
-            className="px-3 py-1 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Save
           </button>
