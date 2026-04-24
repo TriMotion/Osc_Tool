@@ -4,6 +4,7 @@ dist/
 .next/
 *.js.map
 electron/*.js
+src/lib/dmx-curves.js
 .superpowers/
 .DS_Store
 .claude/

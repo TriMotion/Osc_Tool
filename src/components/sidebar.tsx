@@ -8,6 +8,7 @@ const navItems = [
   { href: "/listener", label: "Listener", icon: "📡" },
   { href: "/sender", label: "Sender", icon: "📤" },
   { href: "/deck", label: "Deck", icon: "🎛" },
+  { href: "/dmx", label: "DMX", icon: "💡" },
   { href: "/midi", label: "MIDI", icon: "🎹" },
   { href: "/timeline", label: "Timeline", icon: "📼" },
   { href: "/live", label: "Live", icon: "🎙" },
