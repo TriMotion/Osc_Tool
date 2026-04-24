@@ -3,6 +3,11 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig, OscArg } from "@/lib/types";
+import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx-types";
+import type { DmxEffect } from "@/lib/dmx-types";
+import { DmxTriggerTile } from "./dmx/dmx-trigger-tile";
+import { DmxFaderTile } from "./dmx/dmx-fader-tile";
+import { DmxFlashTile } from "./dmx/dmx-flash-tile";
 
 interface DeckItemProps {
   item: DeckItem;
@@ -12,6 +17,10 @@ interface DeckItemProps {
   onValueChange?: (itemId: string, value: unknown) => void;
   onSelect?: () => void;
   onDragStart?: (e: React.MouseEvent) => void;
+  dmxEffects?: DmxEffect[];
+  onDmxTrigger?: (effectId: string) => void;
+  onDmxSetChannel?: (channel: number, value: number) => void;
+  onDmxReleaseChannel?: (channel: number) => void;
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string; fill: string }> = {
@@ -24,7 +33,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string; fill:
   gray:   { bg: "#222244", border: "rgba(255,255,255,0.08)", text: "#9ca3af", fill: "#6b7280" },
 };
 
-export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, onSelect, onDragStart }: DeckItemProps) {
+export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, onSelect, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel }: DeckItemProps) {
   const extVal = value as Record<string, unknown> | undefined;
   const toggled = !!(extVal?.toggled);
   const sliderValue = typeof extVal?.slider === "number" ? extVal.slider : 0.5;
@@ -251,6 +260,57 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
           <div className="text-[8px] text-gray-600 truncate">{config.yAddress}</div>
         </div>
       </div>
+    );
+  }
+
+  if (item.type === "dmx-trigger") {
+    return (
+      <DmxTriggerTile
+        name={item.name}
+        config={item.config as DmxTriggerConfig}
+        effects={dmxEffects ?? []}
+        color={colors}
+        onTrigger={(id) => onDmxTrigger?.(id)}
+        editMode={editMode}
+        onSelect={onSelect}
+      />
+    );
+  }
+
+  if (item.type === "dmx-fader") {
+    const faderConfig = item.config as DmxFaderConfig;
+    const faderValue = typeof (extVal as any)?.dmxValue === "number" ? (extVal as any).dmxValue : faderConfig.min;
+    return (
+      <DmxFaderTile
+        name={item.name}
+        config={faderConfig}
+        value={faderValue}
+        color={colors}
+        onValueChange={(ch, val) => {
+          onDmxSetChannel?.(ch, val);
+          onValueChange?.(item.id, { dmxValue: val });
+        }}
+        editMode={editMode}
+        onSelect={onSelect}
+      />
+    );
+  }
+
+  if (item.type === "dmx-flash") {
+    return (
+      <DmxFlashTile
+        name={item.name}
+        config={item.config as DmxFlashConfig}
+        color={colors}
+        onFlash={(channels, value) => {
+          for (const ch of channels) onDmxSetChannel?.(ch, value);
+        }}
+        onRelease={(channels) => {
+          for (const ch of channels) onDmxReleaseChannel?.(ch);
+        }}
+        editMode={editMode}
+        onSelect={onSelect}
+      />
     );
   }
 
