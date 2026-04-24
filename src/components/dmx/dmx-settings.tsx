@@ -36,7 +36,7 @@ export function DmxSettings({ config, onSave }: DmxSettingsProps) {
           type="checkbox"
           checked={enabled}
           onChange={(e) => { setEnabled(e.target.checked); }}
-          className="accent-amber-500"
+          className="accent-output"
         />
         <span className="text-sm text-gray-300">Enable sACN Output</span>
       </label>
@@ -63,7 +63,7 @@ export function DmxSettings({ config, onSave }: DmxSettingsProps) {
       </div>
 
       <button
-        className="px-4 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-sm"
+        className="px-4 py-1.5 rounded bg-output hover:bg-output-dim text-white text-sm"
         onClick={handleSave}
       >
         Save & Apply

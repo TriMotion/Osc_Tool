@@ -168,7 +168,7 @@ export function CurveEditor({ curve, onChange }: CurveEditorProps) {
               bezier({bezier.x1.toFixed(2)}, {bezier.y1.toFixed(2)}, {bezier.x2.toFixed(2)}, {bezier.y2.toFixed(2)})
             </span>
             <button
-              className="text-[10px] text-amber-500 hover:text-amber-400"
+              className="text-[10px] text-output hover:text-output-dim"
               onClick={() => onChange({ type: "bezier", x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 })}
             >
               Reset

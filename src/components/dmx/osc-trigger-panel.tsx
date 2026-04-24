@@ -136,7 +136,7 @@ export function OscTriggerPanel({ triggers, effects, onSave, onDelete }: OscTrig
         )}
 
         <div className="flex gap-2">
-          <button className="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs" onClick={handleSave}>Save</button>
+          <button className="px-3 py-1 rounded bg-output hover:bg-output-dim text-white text-xs" onClick={handleSave}>Save</button>
           <button className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-xs" onClick={() => setEditing(null)}>Cancel</button>
         </div>
       </div>
@@ -147,7 +147,7 @@ export function OscTriggerPanel({ triggers, effects, onSave, onDelete }: OscTrig
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">OSC → DMX Triggers</h3>
-        <button className="text-xs text-amber-500 hover:text-amber-400" onClick={() => startEdit()}>+ Add</button>
+        <button className="text-xs text-output hover:text-output-dim" onClick={() => startEdit()}>+ Add</button>
       </div>
       {triggers.length === 0 && <p className="text-xs text-gray-600">No triggers configured</p>}
       {triggers.map((t) => (
