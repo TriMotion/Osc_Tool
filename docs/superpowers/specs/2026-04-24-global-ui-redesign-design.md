@@ -49,9 +49,26 @@ Glow effects use `box-shadow: 0 0 Npx {accent}` at ~25% opacity for active indic
 | `#666666` | Labels, secondary text |
 | `#333333` | Disabled text |
 
+### Semantic Status Colors
+
+| Role | Hex | Usage |
+|------|-----|-------|
+| Error | `#ef4444` (red-500) | Inline errors, destructive actions |
+| Warning | `#f59e0b` (amber-500) | Warnings, caution states, missing resources |
+| Success | `#22c55e` (green-500) | Confirmations, connected states |
+| Info | `#888888` | Non-critical notices, hints |
+
+These are independent of domain accents. Amber overlaps with Output domain — context disambiguates (Output accent is used on Output page UI elements; amber-as-warning appears in inline error text and status messages anywhere).
+
 ### Replaces
 
 All existing `bg-surface`, `bg-surface-light`, `bg-surface-lighter` Tailwind tokens are replaced. The single `accent` / `accent-dim` colors are replaced by per-domain tokens.
+
+All existing hardcoded color associations are replaced:
+- `text-indigo-400` for MIDI → domain accent of the containing page
+- `text-blue-300` / `bg-[#1e3a5f]` for OSC output type → Output domain amber
+- `text-amber-300` for DMX output type → Output domain amber
+- `text-pink-300` for analysis badges → Timeline domain blue
 
 ## Icons
 
@@ -59,6 +76,20 @@ All existing `bg-surface`, `bg-surface-light`, `bg-surface-lighter` Tailwind tok
 - Sidebar nav icons, toolbar buttons, status indicators, and all other icon usage must use flat SVG icons.
 - Icon style: outline/line style, 1.5px stroke weight, consistent sizing (20px sidebar, 16px inline).
 - Icon color inherits from parent text color (domain accent when active, muted when inactive).
+
+## Route Structure
+
+The app consolidates from 8 routes to 5. Next.js file-based routing requires new page files.
+
+| New Route | Merges | Page File |
+|-----------|--------|-----------|
+| `/input` | `/listener` + `/midi` | `src/app/input/page.tsx` |
+| `/output` | `/sender` + `/dmx` | `src/app/output/page.tsx` |
+| `/deck` | `/deck` + `/live` | `src/app/deck/page.tsx` (reuse) |
+| `/timeline` | `/timeline` (unchanged) | `src/app/timeline/page.tsx` (reuse) |
+| `/diagnostics` | `/diagnostics` (unchanged) | `src/app/diagnostics/page.tsx` (reuse) |
+
+Old routes (`/listener`, `/sender`, `/midi`, `/dmx`, `/live`) are removed. The home page redirect changes from `/listener` to `/input`.
 
 ## Navigation
 
@@ -106,7 +137,7 @@ Strips editor chrome, adds live components:
 - SectionSelector for timeline sections
 - DeviceStrip with activity indicators
 - ActivityFeed for mapped/unmapped events
-- MIDI bridge bar visible in both modes
+- MIDI bridge is controlled via the global status bar (no per-page bridge bar)
 
 ### Toggle UI
 
@@ -151,12 +182,22 @@ The existing `useLiveMonitor` hook and section filtering logic carry over direct
 - Pulse animation on activity
 - 200ms `transition-colors` for state changes
 
-### Status Bar
+### Status Bar & MIDI Bridge
+
+The status bar is a global element at the bottom of the app, always visible. It absorbs the MIDI bridge control that currently appears on 3 separate pages (MIDI, Timeline, Live) with inconsistent UI.
 
 - Background: `#000` (same as canvas)
 - Top border: `#ffffff06`
-- Content: activity dots, local IP, throughput counter
+- Layout (left to right):
+  - MIDI bridge status dot (green glow when running, `#333` when stopped) + "Bridge" label
+  - Bridge Start/Stop toggle button (compact, ghost style)
+  - Bridge error text (if any, in `#ef4444`, truncated with title tooltip)
+  - Separator
+  - OSC throughput counter
+  - Local IP address
+  - Web UI toggle
 - Text: `#444`
+- The per-page bridge bars in Timeline and Live pages are removed. All bridge control goes through the status bar.
 
 ### Scrollbars
 
@@ -199,3 +240,27 @@ The existing `useLiveMonitor` hook and section filtering logic carry over direct
 - This applies to: OSC addresses, file paths, device names, mapping labels, log messages, and any user-generated content.
 - **All buttons must be reachable.** No button may be hidden behind overflow, clipped by a parent container, or only accessible via scroll without a visible scroll indicator. If a panel has more actions than fit, use a scrollable area with visible scrollbar or a "more" menu.
 - Minimum touch/click target: 32px height for all interactive elements.
+
+## Error & Warning UI
+
+### Inline Errors
+
+- Displayed below the relevant control, styled as `text-sm` in error red (`#ef4444`).
+- Existing pattern (`{error && <p className="text-red-400 ...">}`) is retained but updated to use the semantic error color.
+
+### Toast Notifications
+
+- Add a toast system for transient feedback (action confirmations, non-critical errors, copy-to-clipboard).
+- Position: bottom-right, stacked.
+- Styling: `#0a0a0a` background, `#ffffff06` border, `rounded-lg`. Left accent border in semantic color (green for success, red for error, amber for warning).
+- Auto-dismiss: 4 seconds. Manual dismiss via close button.
+- No more than 3 visible toasts at once.
+
+### Replace Browser Alerts
+
+All `alert()` calls are replaced with either:
+- An inline warning message within the relevant panel (for blocking states like "stop recording first")
+- A toast notification (for transient feedback)
+- A confirmation panel with solid background (for destructive actions like "discard recording")
+
+No browser-native dialogs anywhere in the app.
