@@ -8,6 +8,8 @@ import { DeckToolbar } from "@/components/deck-toolbar";
 import { DeckGrid } from "@/components/deck-grid";
 import { DeckConfigPanel } from "@/components/deck-config-panel";
 import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig } from "@/lib/types";
+import { useDmx } from "@/hooks/use-dmx";
+import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx-types";
 
 function defaultButtonConfig(): ButtonConfig {
   return {
@@ -29,6 +31,16 @@ function defaultXYPadConfig(): XYPadConfig {
   };
 }
 
+function defaultDmxTriggerConfig(): DmxTriggerConfig {
+  return { dmxEffectId: "" };
+}
+function defaultDmxFaderConfig(): DmxFaderConfig {
+  return { channel: 1, min: 0, max: 255 };
+}
+function defaultDmxFlashConfig(): DmxFlashConfig {
+  return { channels: [1], value: 255 };
+}
+
 export default function DeckPage() {
   const {
     decks, activeDeck, activePage,
@@ -44,6 +56,8 @@ export default function DeckPage() {
   const { endpoints: senderEndpoints } = useEndpoints("sender");
   const { endpoints: listenerEndpoints } = useEndpoints("listener");
   const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
+
+  const { effects: dmxEffects, triggerEffect, setChannel, releaseChannel } = useDmx();
 
   const [editMode, setEditMode] = useState(false);
   const [placingType, setPlacingType] = useState<string | null>(null);
@@ -72,15 +86,21 @@ export default function DeckPage() {
         col, row, colSpan: 3, rowSpan: 3,
       });
     } else {
-      const configs: Record<string, ButtonConfig | SliderConfig | XYPadConfig> = {
+      const configs: Record<string, any> = {
         button: defaultButtonConfig(),
         slider: defaultSliderConfig(),
         "xy-pad": defaultXYPadConfig(),
+        "dmx-trigger": defaultDmxTriggerConfig(),
+        "dmx-fader": defaultDmxFaderConfig(),
+        "dmx-flash": defaultDmxFlashConfig(),
       };
       const spans: Record<string, { colSpan: number; rowSpan: number }> = {
         button: { colSpan: 2, rowSpan: 1 },
         slider: { colSpan: 1, rowSpan: 3 },
         "xy-pad": { colSpan: 3, rowSpan: 3 },
+        "dmx-trigger": { colSpan: 2, rowSpan: 1 },
+        "dmx-fader": { colSpan: 1, rowSpan: 3 },
+        "dmx-flash": { colSpan: 2, rowSpan: 1 },
       };
       const s = spans[placingType] ?? { colSpan: 1, rowSpan: 1 };
       const lastEp = lastUsedEndpointId.current
@@ -90,11 +110,11 @@ export default function DeckPage() {
         name: placingType.charAt(0).toUpperCase() + placingType.slice(1),
         type: placingType as DeckItem["type"],
         col, row, ...s,
-        oscAddress: "/address",
-        oscTarget: lastEp
-          ? { host: lastEp.host, port: lastEp.port }
-          : { host: "127.0.0.1", port: 8000 },
-        oscTargetEndpointId: lastEp?.id,
+        oscAddress: placingType.startsWith("dmx-") ? "" : "/address",
+        oscTarget: placingType.startsWith("dmx-")
+          ? { host: "", port: 0 }
+          : lastEp ? { host: lastEp.host, port: lastEp.port } : { host: "127.0.0.1", port: 8000 },
+        oscTargetEndpointId: placingType.startsWith("dmx-") ? undefined : lastEp?.id,
         color: "gray",
         config: configs[placingType],
       });
@@ -168,6 +188,10 @@ export default function DeckPage() {
             onMoveGroup={(groupId, col, row) => updateGroup(groupId, { col, row })}
             onResizeGroup={(groupId, colSpan, rowSpan) => updateGroup(groupId, { colSpan, rowSpan })}
             onMoveItemToGroup={(itemId, groupId, absCol, absRow) => moveItemToGroup(itemId, groupId, absCol, absRow)}
+            dmxEffects={dmxEffects}
+            onDmxTrigger={triggerEffect}
+            onDmxSetChannel={setChannel}
+            onDmxReleaseChannel={releaseChannel}
             onMoveItemOutOfGroup={(itemId, groupId, absCol, absRow) => moveItemOutOfGroup(itemId, groupId, absCol, absRow)}
             onPushItems={(draggedId, dropCol, dropRow, dropColSpan, dropRowSpan) => {
               if (!activePage || !activeDeck) return;
@@ -234,6 +258,7 @@ export default function DeckPage() {
           <DeckConfigPanel
             item={selectedItem}
             group={selectedGroup}
+            dmxEffects={dmxEffects}
             onUpdateItem={selectedItemId ? (updates) => {
               if (updates.oscTargetEndpointId) {
                 lastUsedEndpointId.current = updates.oscTargetEndpointId;

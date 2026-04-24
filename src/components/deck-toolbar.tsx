@@ -2,7 +2,7 @@
 
 interface DeckToolbarProps {
   placingType: string | null;
-  onStartPlace: (type: "button" | "slider" | "xy-pad" | "group") => void;
+  onStartPlace: (type: "button" | "slider" | "xy-pad" | "group" | "dmx-trigger" | "dmx-fader" | "dmx-flash") => void;
   onCancelPlace: () => void;
 }
 
@@ -12,6 +12,9 @@ export function DeckToolbar({ placingType, onStartPlace, onCancelPlace }: DeckTo
     { type: "slider" as const, label: "+ Slider" },
     { type: "xy-pad" as const, label: "+ XY Pad" },
     { type: "group" as const, label: "+ Group" },
+    { type: "dmx-trigger" as const, label: "+ DMX Trigger" },
+    { type: "dmx-fader" as const, label: "+ DMX Fader" },
+    { type: "dmx-flash" as const, label: "+ DMX Flash" },
   ];
 
   return (

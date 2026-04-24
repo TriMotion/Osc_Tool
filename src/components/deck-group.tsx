@@ -1,6 +1,7 @@
 "use client";
 
 import type { DeckGroup, OscArg } from "@/lib/types";
+import type { DmxEffect } from "@/lib/dmx-types";
 import { DeckItemView } from "./deck-item";
 
 interface DeckGroupProps {
@@ -12,6 +13,10 @@ interface DeckGroupProps {
   onSelectItem?: (itemId: string) => void;
   onSelectGroup?: () => void;
   onDragStart?: (e: React.MouseEvent) => void;
+  dmxEffects?: DmxEffect[];
+  onDmxTrigger?: (effectId: string) => void;
+  onDmxSetChannel?: (channel: number, value: number) => void;
+  onDmxReleaseChannel?: (channel: number) => void;
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string }> = {
@@ -24,7 +29,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string }> = {
   gray:   { bg: "rgba(255,255,255,0.02)", border: "rgba(255,255,255,0.08)", text: "#9ca3af" },
 };
 
-export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onDragStart }: DeckGroupProps) {
+export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel }: DeckGroupProps) {
   const colors = colorMap[group.color] ?? colorMap.gray;
 
   return (
@@ -64,6 +69,10 @@ export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemV
               onSendOsc={onSendOsc}
               onValueChange={onValueChange}
               onSelect={() => onSelectItem?.(item.id)}
+              dmxEffects={dmxEffects}
+              onDmxTrigger={onDmxTrigger}
+              onDmxSetChannel={onDmxSetChannel}
+              onDmxReleaseChannel={onDmxReleaseChannel}
             />
           </div>
         ))}

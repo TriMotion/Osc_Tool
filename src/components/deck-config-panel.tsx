@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg, SavedEndpoint } from "@/lib/types";
+import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig, DmxEffect } from "@/lib/dmx-types";
 import { useEndpoints } from "@/hooks/use-osc";
 
 function SavedEndpointRow({ endpoint, onSelect, onUpdate }: {
@@ -59,6 +60,7 @@ interface ConfigPanelProps {
   onRemoveFromGroup?: () => void;
   inGroup?: boolean;
   onClose: () => void;
+  dmxEffects?: DmxEffect[];
 }
 
 const colorSwatches = ["blue", "green", "purple", "red", "orange", "yellow", "gray"];
@@ -67,7 +69,7 @@ const swatchColors: Record<string, string> = {
   red: "#ef4444", orange: "#f59e0b", yellow: "#eab308", gray: "#6b7280",
 };
 
-export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onRemoveFromGroup, inGroup, onClose }: ConfigPanelProps) {
+export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onRemoveFromGroup, inGroup, onClose, dmxEffects }: ConfigPanelProps) {
   const { endpoints: senderEndpoints, update: updateSenderEndpoint } = useEndpoints("sender");
   const { endpoints: listenerEndpoints, update: updateListenerEndpoint } = useEndpoints("listener");
   const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
@@ -239,12 +241,15 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
 
         {!isGroup && (
           <>
+            {!item?.type.startsWith("dmx-") && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">OSC Address</label>
               <input type="text" value={oscAddress} onChange={(e) => setOscAddress(e.target.value)} placeholder="/address"
                 className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent/50" />
             </div>
+            )}
 
+            {!item?.type.startsWith("dmx-") && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">Target</label>
               <div className="flex gap-2">
@@ -278,6 +283,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 </div>
               )}
             </div>
+            )}
 
             {item?.type === "button" && (
               <div className="flex flex-col gap-3">
@@ -397,6 +403,78 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                     <input type="number" value={yMax} onChange={(e) => setYMax(e.target.value)}
                       className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
+                </div>
+              </div>
+            )}
+
+            {item?.type === "dmx-trigger" && (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Effect</label>
+                <select
+                  className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  value={(item.config as DmxTriggerConfig).dmxEffectId ?? ""}
+                  onChange={(e) => onUpdateItem?.({ config: { dmxEffectId: e.target.value } as DmxTriggerConfig })}
+                >
+                  <option value="">None</option>
+                  {(dmxEffects ?? []).map((eff) => (
+                    <option key={eff.id} value={eff.id}>{eff.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {item?.type === "dmx-fader" && (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">DMX Channel</label>
+                  <input
+                    type="number" min={1} max={512}
+                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    value={(item.config as DmxFaderConfig).channel}
+                    onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), channel: parseInt(e.target.value) || 1 } as DmxFaderConfig })}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Min</label>
+                    <input type="number" min={0} max={255}
+                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      value={(item.config as DmxFaderConfig).min}
+                      onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), min: parseInt(e.target.value) || 0 } as DmxFaderConfig })}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Max</label>
+                    <input type="number" min={0} max={255}
+                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      value={(item.config as DmxFaderConfig).max}
+                      onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), max: parseInt(e.target.value) || 255 } as DmxFaderConfig })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {item?.type === "dmx-flash" && (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">DMX Channels (comma-separated)</label>
+                  <input
+                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    value={(item.config as DmxFlashConfig).channels.join(", ")}
+                    onChange={(e) => {
+                      const channels = e.target.value.split(",").map((s) => parseInt(s.trim())).filter((n) => n >= 1 && n <= 512);
+                      onUpdateItem?.({ config: { ...(item.config as DmxFlashConfig), channels } as DmxFlashConfig });
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Flash Value</label>
+                  <input type="number" min={0} max={255}
+                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    value={(item.config as DmxFlashConfig).value}
+                    onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFlashConfig), value: parseInt(e.target.value) || 255 } as DmxFlashConfig })}
+                  />
                 </div>
               </div>
             )}

@@ -2,6 +2,7 @@
 
 import { useRef, useCallback, useState } from "react";
 import type { DeckPage, DeckItem, DeckGroup, OscArg } from "@/lib/types";
+import type { DmxEffect } from "@/lib/dmx-types";
 import { DeckItemView } from "./deck-item";
 import { DeckGroupView } from "./deck-group";
 
@@ -24,6 +25,10 @@ interface DeckGridProps {
   onMoveItemToGroup: (itemId: string, groupId: string, absCol: number, absRow: number) => void;
   onMoveItemOutOfGroup: (itemId: string, groupId: string, absCol?: number, absRow?: number) => void;
   onPushItems: (draggedId: string, col: number, row: number, colSpan: number, rowSpan: number) => void;
+  dmxEffects?: DmxEffect[];
+  onDmxTrigger?: (effectId: string) => void;
+  onDmxSetChannel?: (channel: number, value: number) => void;
+  onDmxReleaseChannel?: (channel: number) => void;
 }
 
 export function DeckGrid({
@@ -31,6 +36,7 @@ export function DeckGrid({
   onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup,
   onPlaceItem, onMoveItem, onResizeItem, onMoveGroup, onResizeGroup,
   onMoveItemToGroup, onMoveItemOutOfGroup, onPushItems,
+  dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel,
 }: DeckGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragPreview, setDragPreview] = useState<{ col: number; row: number; colSpan: number; rowSpan: number } | null>(null);
@@ -260,6 +266,10 @@ export function DeckGrid({
             onSelectItem={(itemId) => onSelectItem(itemId)}
             onSelectGroup={() => onSelectGroup(group.id)}
             onDragStart={(e) => handleDragStart(e, group.id, true, group.col, group.row, group.colSpan, group.rowSpan)}
+            dmxEffects={dmxEffects}
+            onDmxTrigger={onDmxTrigger}
+            onDmxSetChannel={onDmxSetChannel}
+            onDmxReleaseChannel={onDmxReleaseChannel}
           />
           {editMode && (
             <div
@@ -288,6 +298,10 @@ export function DeckGrid({
             onValueChange={onValueChange}
             onSelect={() => onSelectItem(item.id)}
             onDragStart={(e) => handleDragStart(e, item.id, false, item.col, item.row, item.colSpan, item.rowSpan)}
+            dmxEffects={dmxEffects}
+            onDmxTrigger={onDmxTrigger}
+            onDmxSetChannel={onDmxSetChannel}
+            onDmxReleaseChannel={onDmxReleaseChannel}
           />
           {editMode && (
             <div

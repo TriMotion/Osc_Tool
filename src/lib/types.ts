@@ -1,3 +1,7 @@
+import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "./dmx-types";
+
+export type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig };
+
 export interface OscMessage {
   address: string;
   args: OscArg[];
@@ -70,7 +74,7 @@ export interface DeckGroup {
 export interface DeckItem {
   id: string;
   name: string;
-  type: "button" | "slider" | "xy-pad";
+  type: "button" | "slider" | "xy-pad" | "dmx-trigger" | "dmx-fader" | "dmx-flash";
   col: number;
   row: number;
   colSpan: number;
@@ -79,7 +83,7 @@ export interface DeckItem {
   oscTarget: { host: string; port: number };
   oscTargetEndpointId?: string;
   color: string;
-  config: ButtonConfig | SliderConfig | XYPadConfig;
+  config: ButtonConfig | SliderConfig | XYPadConfig | DmxTriggerConfig | DmxFaderConfig | DmxFlashConfig;
 }
 
 export interface ButtonConfig {
@@ -204,6 +208,8 @@ export interface OscMapping {
   /** Resolume clip: random range. When set, clip is chosen randomly between
    * resolumeClip and resolumeClipMax (inclusive). */
   resolumeClipMax?: number;
+  outputType?: "osc" | "dmx";
+  dmxEffectId?: string;
 }
 
 export interface ActivityEntry {

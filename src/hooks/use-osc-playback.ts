@@ -50,7 +50,7 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
   // Pre-compute annotated event queue — rebuilt when recording, mappings, or aliases change.
   const queue = useMemo(() => {
     if (!recording?.oscMappings?.length) return [];
-    const result: Array<{ tRel: number; eventIdx: number; mappingId: string; address: string; value: number; argType: "f" | "i"; endpointId: string; device: string; pitch: number; velocity: number }> = [];
+    const result: Array<{ tRel: number; eventIdx: number; mappingId: string; address: string; value: number; argType: "f" | "i"; endpointId: string; device: string; pitch: number; velocity: number; outputType: "osc" | "dmx"; dmxEffectId?: string }> = [];
 
     recording.events.forEach((evt, idx) => {
       for (const mapping of recording.oscMappings!) {
@@ -70,6 +70,8 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
             device: evt.midi.deviceName,
             pitch: evt.midi.data1,
             velocity: evt.midi.data2,
+            outputType: mapping.outputType ?? "osc",
+            dmxEffectId: mapping.dmxEffectId,
           });
         }
       }
@@ -123,6 +125,7 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
         const seenOsc = new Set<string>();
         for (const item of q) {
           if (item.tRel > playheadMs) break;
+          if (item.outputType === "dmx") continue;
           const key = `${item.eventIdx}-${item.mappingId}-${item.endpointId}`;
           if (firedRef.current.has(key)) continue;
           firedRef.current.add(key);
@@ -145,6 +148,18 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
       }
       if (batch.length > 0) {
         window.electronAPI?.invoke("osc:send-batch", batch);
+      }
+
+      // --- DMX dispatch ---
+      if (q.length > 0) {
+        for (const item of q) {
+          if (item.tRel > playheadMs) break;
+          if (item.outputType !== "dmx" || !item.dmxEffectId) continue;
+          const key = `${item.eventIdx}-${item.mappingId}-dmx`;
+          if (firedRef.current.has(key)) continue;
+          firedRef.current.add(key);
+          window.electronAPI?.invoke("dmx:trigger-effect", item.dmxEffectId, item.velocity / 127);
+        }
       }
 
       // --- Activity detection (lane keys + note-level MIDI) ---

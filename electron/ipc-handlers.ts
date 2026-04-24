@@ -7,6 +7,9 @@ import { DeckStore } from "./deck-store";
 import { MidiManager } from "./midi-manager";
 import { MidiStore } from "./midi-store";
 import { RecordingStore } from "./recording-store";
+import { DmxEngine } from "./dmx-engine";
+import { DmxStore } from "./dmx-store";
+import { OscDmxBridge } from "./osc-dmx-bridge";
 import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule, Recording } from "../src/lib/types";
 
 export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
@@ -18,6 +21,15 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const midiStore = new MidiStore();
   const midiManager = new MidiManager(oscManager);
   const recordingStore = new RecordingStore();
+
+  const dmxStore = new DmxStore();
+  const dmxEngine = new DmxEngine();
+  const oscDmxBridge = new OscDmxBridge(oscManager, dmxEngine);
+
+  dmxEngine.loadEffects(dmxStore.getEffects());
+  oscDmxBridge.loadTriggers(dmxStore.getTriggers());
+  const dmxConfig = dmxStore.getConfig();
+  if (dmxConfig.enabled) dmxEngine.start(dmxConfig);
 
   // --- Endpoints ---
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
@@ -276,6 +288,46 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     }
   });
 
+  // --- DMX ---
+  ipcMain.handle("dmx:get-config", () => dmxStore.getConfig());
+  ipcMain.handle("dmx:set-config", (_e, config) => {
+    dmxStore.setConfig(config);
+    dmxEngine.setConfig(config);
+  });
+  ipcMain.handle("dmx:get-effects", () => dmxStore.getEffects());
+  ipcMain.handle("dmx:save-effect", (_e, effect) => {
+    const saved = dmxStore.saveEffect(effect);
+    dmxEngine.loadEffects(dmxStore.getEffects());
+    return saved;
+  });
+  ipcMain.handle("dmx:delete-effect", (_e, id: string) => {
+    dmxStore.deleteEffect(id);
+    dmxEngine.loadEffects(dmxStore.getEffects());
+  });
+  ipcMain.handle("dmx:trigger-effect", (_e, effectId: string, velocityScale?: number) => {
+    dmxEngine.triggerEffect(effectId, velocityScale);
+  });
+  ipcMain.handle("dmx:stop-effect", (_e, effectId: string) => {
+    dmxEngine.stopEffect(effectId);
+  });
+  ipcMain.handle("dmx:set-channel", (_e, channel: number, value: number) => {
+    dmxEngine.setChannel(channel, value);
+  });
+  ipcMain.handle("dmx:release-channel", (_e, channel: number) => {
+    dmxEngine.releaseChannel(channel);
+  });
+  ipcMain.handle("dmx:get-buffer", () => dmxEngine.getBuffer());
+  ipcMain.handle("dmx:get-triggers", () => dmxStore.getTriggers());
+  ipcMain.handle("dmx:save-trigger", (_e, trigger) => {
+    const saved = dmxStore.saveTrigger(trigger);
+    oscDmxBridge.loadTriggers(dmxStore.getTriggers());
+    return saved;
+  });
+  ipcMain.handle("dmx:delete-trigger", (_e, id: string) => {
+    dmxStore.deleteTrigger(id);
+    oscDmxBridge.loadTriggers(dmxStore.getTriggers());
+  });
+
   // --- Forward OSC messages to renderer (batched) ---
   let messageBatch: unknown[] = [];
   const flushMessages = () => {
@@ -326,6 +378,7 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     clearInterval(midiBatchInterval);
     oscManager.stopAll();
     midiManager.stop();
+    dmxEngine.stop();
     webServer.stop();
   };
 }
