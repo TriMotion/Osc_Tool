@@ -44,7 +44,7 @@ export default function DiagnosticsPage() {
       bad: "text-red-400",
     };
     return (
-      <div className="bg-surface-lighter border border-white/5 rounded-xl p-4">
+      <div className="bg-elevated border border-white/5 rounded-lg p-4">
         <div className="text-xs text-gray-500 mb-1">{label}</div>
         <div className={`text-2xl font-semibold ${status ? statusColors[status] : "text-gray-200"}`}>
           {value}
@@ -70,7 +70,7 @@ export default function DiagnosticsPage() {
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold">Diagnostics</h2>
 
-      <div className="bg-surface-light rounded-xl border border-white/5 p-6">
+      <div className="bg-panel rounded-lg border border-white/5 p-6">
         <h3 className="text-sm font-medium text-gray-400 mb-1">Loopback Self-Test</h3>
         <p className="text-xs text-gray-600 mb-4">
           Sends messages from port 57120 to port 57121 on localhost. Measures throughput, latency, and drop rate to verify the tool is not a bottleneck.
@@ -83,7 +83,7 @@ export default function DiagnosticsPage() {
               type="number"
               value={count}
               onChange={(e) => setCount(e.target.value)}
-              className="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-accent/50"
+              className="bg-elevated border border-white/10 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-diag/18"
             />
           </div>
           <div>
@@ -92,14 +92,14 @@ export default function DiagnosticsPage() {
               type="number"
               value={rate}
               onChange={(e) => setRate(e.target.value)}
-              className="bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-accent/50"
+              className="bg-elevated border border-white/10 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-diag/18"
             />
           </div>
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={handleRun}
             disabled={running}
-            className="px-4 py-2 bg-accent text-surface font-medium rounded-lg text-sm hover:bg-accent-dim transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-diag text-white font-medium rounded-lg text-sm hover:bg-diag-dim transition-colors disabled:opacity-50"
           >
             {running ? "Running..." : "Run Test"}
           </motion.button>
@@ -113,9 +113,9 @@ export default function DiagnosticsPage() {
                 {progress.received} / {progress.total}
               </span>
             </div>
-            <div className="w-full bg-surface-lighter rounded-full h-2">
+            <div className="w-full bg-elevated rounded-full h-2">
               <motion.div
-                className="bg-accent h-2 rounded-full"
+                className="bg-diag h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{
                   width: `${(progress.received / progress.total) * 100}%`,
