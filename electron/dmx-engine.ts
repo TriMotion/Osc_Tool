@@ -36,6 +36,10 @@ export class DmxEngine extends EventEmitter {
           useRawDmxValues: true,
         },
       });
+      this.sender.socket.on("error", (err: Error) => {
+        console.error("[DMX] sACN socket error:", err.message);
+        this.stop();
+      });
     } catch (err) {
       console.error("[DMX] Failed to create sACN sender:", err);
       this.sender = null;
