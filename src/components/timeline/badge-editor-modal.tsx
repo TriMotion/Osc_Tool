@@ -46,9 +46,9 @@ export function BadgeEditorModal({ badge, laneKey, existingLabels, onSave, onDel
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-surface-light border border-white/10 rounded-lg p-4 w-72 shadow-xl"
+        className="bg-panel border border-white/[0.06] rounded-lg p-4 w-72 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-sm font-semibold mb-3">{badge ? "Edit badge" : "Tag this lane"}</h3>
@@ -65,7 +65,7 @@ export function BadgeEditorModal({ badge, laneKey, existingLabels, onSave, onDel
             if (e.key === "Escape") onClose();
           }}
           placeholder="kick, main fader, etc."
-          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-accent/50"
+          className="w-full bg-surface-lighter border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:border-timeline/50"
         />
 
         {suggestions.length > 0 && (
@@ -118,7 +118,7 @@ export function BadgeEditorModal({ badge, laneKey, existingLabels, onSave, onDel
             <button
               onClick={handleSave}
               disabled={!label.trim()}
-              className="px-3 py-1 text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Save
             </button>

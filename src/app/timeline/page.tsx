@@ -804,8 +804,8 @@ export default function TimelinePage() {
       )}
 
       {pendingMidiMerge && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-light border border-white/10 rounded-lg p-5 max-w-sm">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+          <div className="bg-panel border border-white/[0.06] rounded-lg p-5 max-w-sm">
             <h3 className="text-sm font-semibold mb-2">Add to timeline?</h3>
             <p className="text-xs text-gray-500 mb-4">
               A recording is already loaded. You can merge the new MIDI file into the current
@@ -845,8 +845,8 @@ export default function TimelinePage() {
       )}
 
       {confirmDiscard && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-light border border-white/10 rounded-lg p-5 max-w-sm">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+          <div className="bg-panel border border-white/[0.06] rounded-lg p-5 max-w-sm">
             <h3 className="text-sm font-semibold mb-2">Discard current take?</h3>
             <p className="text-xs text-gray-500 mb-4">You have unsaved MIDI captured in the current take. Continuing will replace it.</p>
             <div className="flex gap-2 justify-end">
