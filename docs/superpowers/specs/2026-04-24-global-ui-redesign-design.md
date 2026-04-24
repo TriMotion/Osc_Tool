@@ -53,6 +53,13 @@ Glow effects use `box-shadow: 0 0 Npx {accent}` at ~25% opacity for active indic
 
 All existing `bg-surface`, `bg-surface-light`, `bg-surface-lighter` Tailwind tokens are replaced. The single `accent` / `accent-dim` colors are replaced by per-domain tokens.
 
+## Icons
+
+- **No emojis anywhere in the UI.** Replace all emoji icons with flat SVG icons from a consistent icon set (e.g. Lucide, Phosphor, or Heroicons).
+- Sidebar nav icons, toolbar buttons, status indicators, and all other icon usage must use flat SVG icons.
+- Icon style: outline/line style, 1.5px stroke weight, consistent sizing (20px sidebar, 16px inline).
+- Icon color inherits from parent text color (domain accent when active, muted when inactive).
+
 ## Navigation
 
 ### Structure
