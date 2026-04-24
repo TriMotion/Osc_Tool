@@ -227,7 +227,7 @@ export function DeckGrid({
           onClick={() => handleCellClick(col, row)}
           className={`rounded-lg transition-colors ${
             placingType
-              ? "border border-dashed border-accent/30 hover:bg-accent/5 cursor-pointer"
+              ? "border border-dashed border-deck/30 hover:bg-deck/5 cursor-pointer"
               : "border border-dashed border-white/5"
           }`}
           style={{
@@ -239,7 +239,7 @@ export function DeckGrid({
 
       {dragPreview && (
         <div
-          className="rounded-xl border-2 border-dashed border-accent/50 bg-accent/5 pointer-events-none"
+          className="rounded-lg border-2 border-dashed border-deck/50 bg-deck/5 pointer-events-none"
           style={{
             gridColumn: `${dragPreview.col + 1} / span ${dragPreview.colSpan}`,
             gridRow: `${dragPreview.row + 1} / span ${dragPreview.rowSpan}`,

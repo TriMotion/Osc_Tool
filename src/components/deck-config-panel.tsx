@@ -23,21 +23,21 @@ function SavedEndpointRow({ endpoint, onSelect, onUpdate }: {
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1 bg-surface border border-accent/20 rounded-lg px-2 py-1">
+      <div className="flex items-center gap-1 bg-black border border-deck/20 rounded-lg px-2 py-1">
         <span className="text-[10px] text-gray-400 min-w-[40px]">{endpoint.name}</span>
         <input type="text" value={host} onChange={(e) => setHost(e.target.value)}
-          className="flex-1 bg-surface-lighter border border-white/10 rounded px-1 py-0.5 text-[10px] w-20 focus:outline-none" />
+          className="flex-1 bg-elevated border border-white/10 rounded px-1 py-0.5 text-[10px] w-20 focus:outline-none" />
         <span className="text-gray-600 text-[10px]">:</span>
         <input type="text" value={port} onChange={(e) => setPort(e.target.value)}
-          className="bg-surface-lighter border border-white/10 rounded px-1 py-0.5 text-[10px] w-12 focus:outline-none" />
-        <button onClick={handleSave} className="text-[10px] text-accent hover:text-accent-dim">ok</button>
+          className="bg-elevated border border-white/10 rounded px-1 py-0.5 text-[10px] w-12 focus:outline-none" />
+        <button onClick={handleSave} className="text-[10px] text-deck hover:text-deck-dim">ok</button>
         <button onClick={() => setEditing(false)} className="text-[10px] text-gray-500 hover:text-gray-300">x</button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1 bg-surface rounded-lg px-2 py-1 group hover:bg-surface-lighter transition-colors">
+    <div className="flex items-center gap-1 bg-black rounded-lg px-2 py-1 group hover:bg-elevated transition-colors">
       <button onClick={onSelect} className="flex-1 text-left text-[10px]">
         <span className="text-gray-400">{endpoint.name}</span>
         <span className="text-gray-600 ml-1">{endpoint.host}:{endpoint.port}</span>
@@ -213,7 +213,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
   const isGroup = !!group;
 
   return (
-    <div className="w-72 bg-surface-light border-l border-white/5 flex flex-col h-full overflow-auto">
+    <div className="w-72 bg-panel border-l border-white/5 flex flex-col h-full overflow-auto">
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <span className="text-sm font-medium">
           {isGroup ? "Group Settings" : `${item?.type} Settings`}
@@ -225,7 +225,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
         <div>
           <label className="block text-xs text-gray-500 mb-1">Name</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50" />
+            className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-deck/18" />
         </div>
 
         <div>
@@ -245,7 +245,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
             <div>
               <label className="block text-xs text-gray-500 mb-1">OSC Address</label>
               <input type="text" value={oscAddress} onChange={(e) => setOscAddress(e.target.value)} placeholder="/address"
-                className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent/50" />
+                className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-deck/18" />
             </div>
             )}
 
@@ -254,13 +254,13 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
               <label className="block text-xs text-gray-500 mb-1">Target</label>
               <div className="flex gap-2">
                 <input type="text" value={targetHost} onChange={(e) => { setTargetHost(e.target.value); setLinkedEndpointId(undefined); }}
-                  className="flex-1 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-accent/50" />
+                  className="flex-1 bg-black border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-deck/18" />
                 <input type="text" value={targetPort} onChange={(e) => { setTargetPort(e.target.value); setLinkedEndpointId(undefined); }}
-                  className="w-20 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-accent/50" />
+                  className="w-20 bg-black border border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-deck/18" />
               </div>
               {linkedEndpointId && (
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="text-[10px] text-accent">Linked to: {allEndpoints.find(e => e.id === linkedEndpointId)?.name ?? "unknown"}</span>
+                  <span className="text-[10px] text-deck">Linked to: {allEndpoints.find(e => e.id === linkedEndpointId)?.name ?? "unknown"}</span>
                   <button onClick={() => setLinkedEndpointId(undefined)} className="text-[10px] text-gray-500 hover:text-gray-300">unlink</button>
                 </div>
               )}
@@ -292,7 +292,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex gap-2">
                     {(["trigger", "toggle"] as const).map((m) => (
                       <button key={m} onClick={() => setButtonMode(m)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${buttonMode === m ? "bg-accent/20 text-accent" : "bg-surface text-gray-400"}`}>
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${buttonMode === m ? "bg-deck/20 text-deck" : "bg-black text-gray-400"}`}>
                         {m.charAt(0).toUpperCase() + m.slice(1)}
                       </button>
                     ))}
@@ -301,7 +301,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Value Type</label>
                   <select value={triggerType} onChange={(e) => setTriggerType(e.target.value as OscArg["type"])}
-                    className="w-full bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm">
+                    className="w-full bg-black border border-white/10 rounded-lg px-2 py-2 text-sm">
                     <option value="f">Float</option><option value="i">Int</option><option value="s">String</option>
                     <option value="T">True</option><option value="F">False</option>
                   </select>
@@ -310,19 +310,19 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Send Value</label>
                     <input type="text" value={triggerValue} onChange={(e) => setTriggerValue(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                 ) : (
                   <>
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">ON Value</label>
                       <input type="text" value={toggleOnValue} onChange={(e) => setToggleOnValue(e.target.value)}
-                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                     </div>
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">OFF Value</label>
                       <input type="text" value={toggleOffValue} onChange={(e) => setToggleOffValue(e.target.value)}
-                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                     </div>
                   </>
                 )}
@@ -336,7 +336,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex gap-2">
                     {(["vertical", "horizontal"] as const).map((o) => (
                       <button key={o} onClick={() => setSliderOrientation(o)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sliderOrientation === o ? "bg-accent/20 text-accent" : "bg-surface text-gray-400"}`}>
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sliderOrientation === o ? "bg-deck/20 text-deck" : "bg-black text-gray-400"}`}>
                         {o.charAt(0).toUpperCase() + o.slice(1)}
                       </button>
                     ))}
@@ -346,12 +346,12 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Min</label>
                     <input type="number" value={sliderMin} onChange={(e) => setSliderMin(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Max</label>
                     <input type="number" value={sliderMax} onChange={(e) => setSliderMax(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                 </div>
                 <div>
@@ -359,7 +359,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex gap-2">
                     {(["f", "i"] as const).map((t) => (
                       <button key={t} onClick={() => setSliderValueType(t)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sliderValueType === t ? "bg-accent/20 text-accent" : "bg-surface text-gray-400"}`}>
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sliderValueType === t ? "bg-deck/20 text-deck" : "bg-black text-gray-400"}`}>
                         {t === "f" ? "Float" : "Int"}
                       </button>
                     ))}
@@ -373,35 +373,35 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">X Address</label>
                   <input type="text" value={xAddress} onChange={(e) => setXAddress(e.target.value)}
-                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Y Address</label>
                   <input type="text" value={yAddress} onChange={(e) => setYAddress(e.target.value)}
-                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">X Min</label>
                     <input type="number" value={xMin} onChange={(e) => setXMin(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">X Max</label>
                     <input type="number" value={xMax} onChange={(e) => setXMax(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Y Min</label>
                     <input type="number" value={yMin} onChange={(e) => setYMin(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Y Max</label>
                     <input type="number" value={yMax} onChange={(e) => setYMax(e.target.value)}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
                   </div>
                 </div>
               </div>
@@ -411,7 +411,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Effect</label>
                 <select
-                  className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                   value={(item.config as DmxTriggerConfig).dmxEffectId ?? ""}
                   onChange={(e) => onUpdateItem?.({ config: { dmxEffectId: e.target.value } as DmxTriggerConfig })}
                 >
@@ -429,7 +429,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <label className="block text-xs text-gray-500 mb-1">DMX Channel</label>
                   <input
                     type="number" min={1} max={512}
-                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                     value={(item.config as DmxFaderConfig).channel}
                     onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), channel: parseInt(e.target.value) || 1 } as DmxFaderConfig })}
                   />
@@ -438,7 +438,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Min</label>
                     <input type="number" min={0} max={255}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                       value={(item.config as DmxFaderConfig).min}
                       onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), min: parseInt(e.target.value) || 0 } as DmxFaderConfig })}
                     />
@@ -446,7 +446,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                   <div className="flex-1">
                     <label className="block text-xs text-gray-500 mb-1">Max</label>
                     <input type="number" min={0} max={255}
-                      className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                       value={(item.config as DmxFaderConfig).max}
                       onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFaderConfig), max: parseInt(e.target.value) || 255 } as DmxFaderConfig })}
                     />
@@ -460,7 +460,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">DMX Channels (comma-separated)</label>
                   <input
-                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                     value={(item.config as DmxFlashConfig).channels.join(", ")}
                     onChange={(e) => {
                       const channels = e.target.value.split(",").map((s) => parseInt(s.trim())).filter((n) => n >= 1 && n <= 512);
@@ -471,7 +471,7 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Flash Value</label>
                   <input type="number" min={0} max={255}
-                    className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm"
                     value={(item.config as DmxFlashConfig).value}
                     onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFlashConfig), value: parseInt(e.target.value) || 255 } as DmxFlashConfig })}
                   />
@@ -485,13 +485,13 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
       <div className="mt-auto p-4 border-t border-white/5 flex flex-col gap-2">
         {inGroup && onRemoveFromGroup && (
           <button onClick={onRemoveFromGroup}
-            className="w-full py-2 bg-surface border border-white/10 text-gray-400 hover:text-accent rounded-lg text-sm font-medium transition-colors">
+            className="w-full py-2 bg-black border border-white/10 text-gray-400 hover:text-deck rounded-lg text-sm font-medium transition-colors">
             Remove from group
           </button>
         )}
         <div className="flex gap-2">
           <button onClick={handleReset}
-            className="flex-1 py-2 bg-surface border border-white/10 text-gray-400 hover:text-gray-200 rounded-lg text-sm font-medium transition-colors">
+            className="flex-1 py-2 bg-black border border-white/10 text-gray-400 hover:text-gray-200 rounded-lg text-sm font-medium transition-colors">
             Reset
           </button>
           <button onClick={onDelete}

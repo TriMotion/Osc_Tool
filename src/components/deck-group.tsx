@@ -34,7 +34,7 @@ export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemV
 
   return (
     <div
-      className="h-full rounded-xl relative overflow-hidden"
+      className="h-full rounded-lg relative overflow-hidden"
       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
       onClick={editMode ? onSelectGroup : undefined}
       onMouseDown={editMode ? onDragStart : undefined}

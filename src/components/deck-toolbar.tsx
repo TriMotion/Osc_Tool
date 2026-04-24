@@ -18,9 +18,9 @@ export function DeckToolbar({ placingType, onStartPlace, onCancelPlace }: DeckTo
   ];
 
   return (
-    <div className="px-5 py-2 border-b border-white/5 flex items-center gap-2 bg-surface-light/50">
+    <div className="px-5 py-2 border-b border-white/5 flex items-center gap-2 bg-panel/50">
       {placingType && (
-        <span className="text-xs text-accent mr-2">
+        <span className="text-xs text-deck mr-2">
           Click an empty cell to place {placingType}
         </span>
       )}
@@ -32,8 +32,8 @@ export function DeckToolbar({ placingType, onStartPlace, onCancelPlace }: DeckTo
           }
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             placingType === item.type
-              ? "bg-accent text-surface"
-              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+              ? "bg-deck text-white"
+              : "bg-elevated border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
           {item.label}

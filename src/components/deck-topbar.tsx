@@ -93,9 +93,9 @@ export function DeckTopbar({
             }}
             placeholder="Deck name..."
             autoFocus
-            className="bg-surface border border-accent/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
+            className="bg-black border border-deck/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
           />
-          <button onClick={handleCreateDeck} className="text-xs text-accent">ok</button>
+          <button onClick={handleCreateDeck} className="text-xs text-deck">ok</button>
           <button onClick={() => setCreatingDeck(false)} className="text-xs text-gray-500">x</button>
         </div>
       ) : renamingDeck ? (
@@ -109,9 +109,9 @@ export function DeckTopbar({
               if (e.key === "Escape") setRenamingDeck(false);
             }}
             autoFocus
-            className="bg-surface border border-accent/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
+            className="bg-black border border-deck/30 rounded-lg px-2 py-1 text-xs w-32 focus:outline-none"
           />
-          <button onClick={handleRenameDeck} className="text-xs text-accent">ok</button>
+          <button onClick={handleRenameDeck} className="text-xs text-deck">ok</button>
           <button onClick={() => setRenamingDeck(false)} className="text-xs text-gray-500">x</button>
         </div>
       ) : (
@@ -125,7 +125,7 @@ export function DeckTopbar({
               onSelectDeck(e.target.value);
             }
           }}
-          className="bg-surface-lighter border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-accent/50"
+          className="bg-elevated border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-deck/18"
         >
           {decks.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
@@ -177,7 +177,7 @@ export function DeckTopbar({
                   onDoubleClick={() => handlePageDoubleClick(page)}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     activePage?.id === page.id
-                      ? "bg-accent/10 text-accent border border-accent/20"
+                      ? "bg-deck/10 text-deck border border-deck/20"
                       : "bg-white/3 text-gray-500 border border-white/5 hover:text-gray-300"
                   }`}
                 >
@@ -223,9 +223,9 @@ export function DeckTopbar({
               }}
               placeholder="Page name..."
               autoFocus
-              className="bg-surface border border-accent/30 rounded px-2 py-0.5 text-xs w-20 focus:outline-none"
+              className="bg-black border border-deck/30 rounded px-2 py-0.5 text-xs w-20 focus:outline-none"
             />
-            <button onClick={handleCreatePage} className="text-xs text-accent">ok</button>
+            <button onClick={handleCreatePage} className="text-xs text-deck">ok</button>
             <button onClick={() => setCreatingPage(false)} className="text-xs text-gray-500">x</button>
           </div>
         ) : (
@@ -244,7 +244,7 @@ export function DeckTopbar({
         onClick={onToggleEdit}
         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
           editMode
-            ? "bg-accent/20 text-accent border border-accent/30"
+            ? "bg-deck/20 text-deck border border-deck/30"
             : "bg-white/3 border border-white/10 text-gray-400 hover:text-gray-200"
         }`}
       >

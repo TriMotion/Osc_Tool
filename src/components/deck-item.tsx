@@ -129,7 +129,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
         whileTap={editMode ? undefined : { scale: 0.95 }}
         onClick={handleButtonClick}
         onMouseDown={editMode ? onDragStart : undefined}
-        className="h-full rounded-xl flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden relative p-3"
+        className="h-full rounded-lg flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden relative p-3"
         style={{
           background: isToggleOff ? "rgba(255,255,255,0.02)" : colors.bg,
           border: `1px solid ${isToggleOff ? "rgba(255,255,255,0.06)" : colors.border}`,
@@ -180,7 +180,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
     if (config.orientation === "vertical") {
       return (
         <div
-          className="h-full rounded-xl flex flex-col items-center p-2 gap-1 select-none overflow-hidden"
+          className="h-full rounded-lg flex flex-col items-center p-2 gap-1 select-none overflow-hidden"
           style={{ background: "#222244", border: "1px solid rgba(255,255,255,0.08)" }}
           onClick={editMode ? onSelect : undefined}
           onMouseDown={editMode ? onDragStart : undefined}
@@ -188,7 +188,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
           <div className="text-[10px] font-medium" style={{ color: colors.text }}>{item.name}</div>
           <div
             data-slider-track
-            className="flex-1 w-7 bg-surface rounded-md relative overflow-hidden cursor-ns-resize"
+            className="flex-1 w-7 bg-black rounded-md relative overflow-hidden cursor-ns-resize"
             onMouseDown={handleSliderDrag}
           >
             <div
@@ -204,7 +204,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
 
     return (
       <div
-        className="h-full rounded-xl flex items-center px-3 gap-2 select-none overflow-hidden"
+        className="h-full rounded-lg flex items-center px-3 gap-2 select-none overflow-hidden"
         style={{ background: "#222244", border: "1px solid rgba(255,255,255,0.08)" }}
         onClick={editMode ? onSelect : undefined}
         onMouseDown={editMode ? onDragStart : undefined}
@@ -212,7 +212,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
         <div className="text-[10px] font-medium min-w-[40px]" style={{ color: colors.text }}>{item.name}</div>
         <div
           data-slider-track
-          className="flex-1 h-6 bg-surface rounded-md relative overflow-hidden cursor-ew-resize"
+          className="flex-1 h-6 bg-black rounded-md relative overflow-hidden cursor-ew-resize"
           onMouseDown={handleSliderDrag}
         >
           <div
@@ -229,7 +229,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
     const config = item.config as XYPadConfig;
     return (
       <div
-        className="h-full rounded-xl flex flex-col p-2 select-none overflow-hidden"
+        className="h-full rounded-lg flex flex-col p-2 select-none overflow-hidden"
         style={{ background: "#222244", border: "1px solid rgba(255,255,255,0.08)" }}
         onClick={editMode ? onSelect : undefined}
         onMouseDown={editMode ? onDragStart : undefined}
@@ -237,7 +237,7 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
         <div className="text-[10px] font-medium mb-1" style={{ color: colors.text }}>{item.name}</div>
         <div
           data-xy-pad
-          className="flex-1 bg-surface rounded-lg relative cursor-crosshair border border-white/5"
+          className="flex-1 bg-black rounded-lg relative cursor-crosshair border border-white/5"
           onMouseDown={handleXYDrag}
         >
           <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/5" />
