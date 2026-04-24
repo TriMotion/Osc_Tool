@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@theme {
+  /* Surface system */
+  --color-panel: #0a0a0a;
+  --color-elevated: #111111;
+
+  /* Domain accents */
+  --color-input: #00ff8c;
+  --color-input-dim: #00cc70;
+  --color-output: #f59e0b;
+  --color-output-dim: #d97706;
+  --color-deck: #b91c1c;
+  --color-deck-dim: #991b1b;
+  --color-timeline: #4488ff;
+  --color-timeline-dim: #3366cc;
+  --color-diag: #555555;
+  --color-diag-dim: #444444;
+
+  /* Semantic status */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #888888;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
