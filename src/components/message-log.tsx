@@ -65,14 +65,14 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
           placeholder="Filter by address or IP..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent/50"
+          className="flex-1 bg-elevated border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-white/20"
         />
         <button
           onClick={() => setUniqueOnly(!uniqueOnly)}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             uniqueOnly
               ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+              : "bg-elevated border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
           Unique
@@ -82,7 +82,7 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             paused
               ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+              : "bg-elevated border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
           {paused ? "Resume" : "Pause"}
@@ -92,14 +92,14 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             pinned
               ? "bg-accent/20 text-accent border border-accent/30"
-              : "bg-surface-lighter border border-white/10 text-gray-400 hover:text-gray-200"
+              : "bg-elevated border border-white/10 text-gray-400 hover:text-gray-200"
           }`}
         >
           Auto-scroll
         </button>
         <button
           onClick={onClear}
-          className="px-3 py-2 rounded-lg text-sm font-medium bg-surface-lighter border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+          className="px-3 py-2 rounded-lg text-sm font-medium bg-elevated border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
         >
           Clear
         </button>
@@ -107,10 +107,10 @@ export function MessageLog({ messages, onClear, paused, onTogglePaused }: Messag
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-auto rounded-lg bg-surface-lighter border border-white/5 font-mono text-xs"
+        className="flex-1 overflow-auto rounded-lg bg-elevated border border-white/5 font-mono text-xs"
       >
         <table className="w-full">
-          <thead className="sticky top-0 bg-surface-light">
+          <thead className="sticky top-0 bg-panel">
             <tr className="text-gray-500 text-left">
               <th className="px-3 py-2 w-28">Time</th>
               <th className="px-3 py-2 w-40">Source</th>

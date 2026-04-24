@@ -62,7 +62,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             placeholder="Name this endpoint..."
             autoFocus
-            className="flex-1 bg-surface border border-white/10 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+            className="flex-1 bg-black border border-white/10 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-white/20"
           />
           <button
             onClick={handleSave}
@@ -78,7 +78,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
           {endpoints.map((ep) => (
             <div
               key={ep.id}
-              className="flex items-center gap-2 bg-surface-lighter border border-white/5 rounded-lg px-3 py-1.5 group hover:border-white/10 transition-colors"
+              className="flex items-center gap-2 bg-elevated border border-white/5 rounded-lg px-3 py-1.5 group hover:border-white/10 transition-colors"
             >
               {editingId === ep.id ? (
                 <input
@@ -91,7 +91,7 @@ export function EndpointPicker({ type, currentHost, currentPort, onSelect }: End
                   }}
                   onBlur={() => handleSaveEdit(ep.id)}
                   autoFocus
-                  className="flex-1 bg-surface border border-accent/30 rounded px-1 py-0.5 text-xs focus:outline-none"
+                  className="flex-1 bg-black border border-accent/30 rounded px-1 py-0.5 text-xs focus:outline-none"
                 />
               ) : (
                 <button

@@ -58,7 +58,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="/example/address"
-          className="w-full bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent/50"
+          className="w-full bg-elevated border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20"
         />
       </div>
 
@@ -69,7 +69,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
             <select
               value={arg.type}
               onChange={(e) => updateArg(i, { type: e.target.value as OscArg["type"] })}
-              className="bg-surface-lighter border border-white/10 rounded-lg px-2 py-2 text-sm w-24 focus:outline-none focus:border-accent/50"
+              className="bg-elevated border border-white/10 rounded-lg px-2 py-2 text-sm w-24 focus:outline-none focus:border-white/20"
             >
               {Object.entries(typeLabels).map(([val, label]) => (
                 <option key={val} value={val}>
@@ -87,7 +87,7 @@ export function OscInput({ onSend, initialAddress = "", initialArgs }: OscInputP
                   })
                 }
                 step={arg.type === "f" ? "0.01" : "1"}
-                className="flex-1 bg-surface-lighter border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent/50"
+                className="flex-1 bg-elevated border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20"
               />
             )}
             {args.length > 1 && (
