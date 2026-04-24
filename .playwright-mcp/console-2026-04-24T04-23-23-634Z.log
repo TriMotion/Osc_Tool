@@ -1,0 +1,21 @@
+[      63ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[      72ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  173483ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  173909ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/dmx?_rsc=1lbf5:0
+[  174006ms] [LOG] [Fast Refresh] done in 88ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  174071ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  174083ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  491851ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  491879ms] [LOG] [Fast Refresh] done in 20ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  497640ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  497670ms] [LOG] [Fast Refresh] done in 18ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  524950ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  524978ms] [LOG] [Fast Refresh] done in 17ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  529711ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  529740ms] [LOG] [Fast Refresh] done in 18ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  534177ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  534205ms] [LOG] [Fast Refresh] done in 18ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  539768ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  539825ms] [LOG] [Fast Refresh] done in 32ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  544185ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431
+[  544229ms] [LOG] [Fast Refresh] done in 40ms @ http://localhost:3000/_next/static/chunks/0tk4_next_dist_0m.cgud._.js:2431

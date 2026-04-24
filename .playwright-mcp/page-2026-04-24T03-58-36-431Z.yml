@@ -1,0 +1,46 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - heading "Oscilot" [level=1] [ref=e5]
+      - link "📡 Listener" [ref=e6] [cursor=pointer]:
+        - /url: /listener
+        - generic [ref=e7]: 📡
+        - generic [ref=e8]: Listener
+      - link "📤 Sender" [ref=e9] [cursor=pointer]:
+        - /url: /sender
+        - generic [ref=e10]: 📤
+        - generic [ref=e11]: Sender
+      - link "🎛 Deck" [ref=e12] [cursor=pointer]:
+        - /url: /deck
+        - generic [ref=e14]: 🎛
+        - generic [ref=e15]: Deck
+      - link "🎹 MIDI" [ref=e16] [cursor=pointer]:
+        - /url: /midi
+        - generic [ref=e17]: 🎹
+        - generic [ref=e18]: MIDI
+      - link "📼 Timeline" [ref=e19] [cursor=pointer]:
+        - /url: /timeline
+        - generic [ref=e20]: 📼
+        - generic [ref=e21]: Timeline
+      - link "🎙 Live" [ref=e22] [cursor=pointer]:
+        - /url: /live
+        - generic [ref=e23]: 🎙
+        - generic [ref=e24]: Live
+      - link "🔬 Diagnostics" [ref=e25] [cursor=pointer]:
+        - /url: /diagnostics
+        - generic [ref=e26]: 🔬
+        - generic [ref=e27]: Diagnostics
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - combobox [ref=e33]:
+            - option "+ New Deck" [selected]
+          - button "+" [ref=e36]
+          - button "Edit Mode" [ref=e37]
+        - generic [ref=e39]: No deck selected. Create one to get started.
+  - generic [ref=e40]:
+    - generic [ref=e43]: 0 msg/s
+    - generic [ref=e44]:
+      - textbox "Port" [ref=e45]: "4000"
+      - button "Start Web UI" [ref=e46]
+  - alert [ref=e47]

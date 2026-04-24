@@ -1,0 +1,85 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - heading "Oscilot" [level=1] [ref=e5]
+      - link "📡 Listener" [ref=e6] [cursor=pointer]:
+        - /url: /listener
+        - generic [ref=e7]: 📡
+        - generic [ref=e8]: Listener
+      - link "📤 Sender" [ref=e9] [cursor=pointer]:
+        - /url: /sender
+        - generic [ref=e10]: 📤
+        - generic [ref=e11]: Sender
+      - link "🎛 Deck" [ref=e12] [cursor=pointer]:
+        - /url: /deck
+        - generic [ref=e13]: 🎛
+        - generic [ref=e14]: Deck
+      - link "💡 DMX" [ref=e15] [cursor=pointer]:
+        - /url: /dmx
+        - generic [ref=e17]: 💡
+        - generic [ref=e18]: DMX
+      - link "🎹 MIDI" [ref=e19] [cursor=pointer]:
+        - /url: /midi
+        - generic [ref=e20]: 🎹
+        - generic [ref=e21]: MIDI
+      - link "📼 Timeline" [ref=e22] [cursor=pointer]:
+        - /url: /timeline
+        - generic [ref=e23]: 📼
+        - generic [ref=e24]: Timeline
+      - link "🎙 Live" [ref=e25] [cursor=pointer]:
+        - /url: /live
+        - generic [ref=e26]: 🎙
+        - generic [ref=e27]: Live
+      - link "🔬 Diagnostics" [ref=e28] [cursor=pointer]:
+        - /url: /diagnostics
+        - generic [ref=e29]: 🔬
+        - generic [ref=e30]: Diagnostics
+    - main [ref=e33]:
+      - generic [ref=e34]:
+        - heading "DMX / sACN" [level=2] [ref=e35]
+        - generic [ref=e36]:
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - heading "Effects" [level=3] [ref=e40]
+              - button "+ New Effect" [ref=e41]
+            - paragraph [ref=e42]: No effects yet. Create one to get started.
+          - generic [ref=e43]:
+            - generic [ref=e45]:
+              - heading "sACN / DMX Settings" [level=3] [ref=e46]
+              - generic [ref=e47] [cursor=pointer]:
+                - checkbox "Enable sACN Output" [ref=e48]
+                - generic [ref=e49]: Enable sACN Output
+              - generic [ref=e50]:
+                - generic [ref=e51]: Universe
+                - spinbutton [ref=e52]: "7"
+              - generic [ref=e53]:
+                - generic [ref=e54]: Network Interface (optional)
+                - textbox "e.g. 10.0.0.2" [ref=e55]
+                - paragraph [ref=e56]: Leave empty for default interface
+              - button "Save & Apply" [ref=e57]
+            - generic [ref=e58]:
+              - heading "Test Output" [level=3] [ref=e59]
+              - generic [ref=e60]:
+                - generic [ref=e61]:
+                  - generic [ref=e62]: Channel
+                  - spinbutton [ref=e63]: "1"
+                - generic [ref=e64]:
+                  - generic [ref=e65]: Value
+                  - spinbutton [ref=e66]: "255"
+              - generic [ref=e67]:
+                - button "Flash (500ms)" [ref=e68]
+                - button "Hold" [ref=e69]
+              - paragraph [ref=e70]: sACN output is disabled — enable it above to send signals
+            - generic [ref=e72]:
+              - generic [ref=e73]:
+                - heading "OSC → DMX Triggers" [level=3] [ref=e74]
+                - button "+ Add" [ref=e75]
+              - paragraph [ref=e76]: No triggers configured
+  - generic [ref=e77]:
+    - generic [ref=e80]: 0 msg/s
+    - generic [ref=e81]:
+      - textbox "Port" [ref=e82]: "4000"
+      - button "Start Web UI" [ref=e83]
+  - button "Open Next.js Dev Tools" [ref=e89] [cursor=pointer]:
+    - img [ref=e90]
+  - alert [ref=e93]

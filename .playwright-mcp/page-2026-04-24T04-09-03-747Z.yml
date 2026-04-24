@@ -1,0 +1,136 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - heading "Oscilot" [level=1] [ref=e5]
+      - link "📡 Listener" [ref=e6] [cursor=pointer]:
+        - /url: /listener
+        - generic [ref=e7]: 📡
+        - generic [ref=e8]: Listener
+      - link "📤 Sender" [ref=e9] [cursor=pointer]:
+        - /url: /sender
+        - generic [ref=e10]: 📤
+        - generic [ref=e11]: Sender
+      - link "🎛 Deck" [ref=e12] [cursor=pointer]:
+        - /url: /deck
+        - generic [ref=e13]: 🎛
+        - generic [ref=e14]: Deck
+      - link "💡 DMX" [ref=e15] [cursor=pointer]:
+        - /url: /dmx
+        - generic [ref=e17]: 💡
+        - generic [ref=e18]: DMX
+      - link "🎹 MIDI" [ref=e19] [cursor=pointer]:
+        - /url: /midi
+        - generic [ref=e20]: 🎹
+        - generic [ref=e21]: MIDI
+      - link "📼 Timeline" [ref=e22] [cursor=pointer]:
+        - /url: /timeline
+        - generic [ref=e23]: 📼
+        - generic [ref=e24]: Timeline
+      - link "🎙 Live" [ref=e25] [cursor=pointer]:
+        - /url: /live
+        - generic [ref=e26]: 🎙
+        - generic [ref=e27]: Live
+      - link "🔬 Diagnostics" [ref=e28] [cursor=pointer]:
+        - /url: /diagnostics
+        - generic [ref=e29]: 🔬
+        - generic [ref=e30]: Diagnostics
+    - main [ref=e33]:
+      - generic [ref=e34]:
+        - heading "DMX / sACN" [level=2] [ref=e35]
+        - generic [ref=e36]:
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - button "← Back" [ref=e83]
+              - heading "New Effect" [level=3] [ref=e84]
+            - generic [ref=e85]:
+              - generic [ref=e86]: Name
+              - textbox [ref=e87]: New Effect
+            - generic [ref=e88]:
+              - generic [ref=e89] [cursor=pointer]:
+                - checkbox "Loop" [ref=e90]
+                - generic [ref=e91]: Loop
+              - generic [ref=e92] [cursor=pointer]:
+                - checkbox "Velocity Sensitive" [ref=e93]
+                - generic [ref=e94]: Velocity Sensitive
+            - generic [ref=e95]:
+              - generic [ref=e96]: Segments
+              - generic [ref=e97]:
+                - button "Linear 0→255 500ms" [ref=e98]:
+                  - generic [ref=e99]: Linear 0→255
+                  - generic [ref=e100]: 500ms
+                - button "+" [ref=e101]:
+                  - generic [ref=e102]: +
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - generic [ref=e105]: Channels (comma-separated)
+                - textbox [ref=e106]: "1"
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]: Start Value
+                  - spinbutton [ref=e110]: "0"
+                - generic [ref=e111]:
+                  - generic [ref=e112]: End Value
+                  - spinbutton [ref=e113]: "255"
+              - generic [ref=e114]:
+                - generic [ref=e115]: Duration (ms)
+                - spinbutton [ref=e116]: "500"
+              - generic [ref=e117]:
+                - generic [ref=e118]: Hold (ms)
+                - spinbutton [ref=e119]: "0"
+              - generic [ref=e120]:
+                - generic [ref=e121]: Curve
+                - generic [ref=e123]:
+                  - button "Snap" [ref=e124]:
+                    - img [ref=e125]
+                    - generic [ref=e127]: Snap
+                  - button "Linear" [ref=e128]:
+                    - img [ref=e129]
+                    - generic [ref=e131]: Linear
+                  - button "Ease In" [ref=e132]:
+                    - img [ref=e133]
+                    - generic [ref=e135]: Ease In
+                  - button "Ease Out" [ref=e136]:
+                    - img [ref=e137]
+                    - generic [ref=e139]: Ease Out
+                  - button "Ease InOut" [ref=e140]:
+                    - img [ref=e141]
+                    - generic [ref=e143]: Ease InOut
+                  - button "Sine" [ref=e144]:
+                    - img [ref=e145]
+                    - generic [ref=e147]: Sine
+                  - button "Strobe" [ref=e148]:
+                    - img [ref=e149]
+                    - generic [ref=e151]: Strobe
+                  - button "Custom" [ref=e152]:
+                    - img [ref=e153]
+                    - generic [ref=e155]: Custom
+            - generic [ref=e156]:
+              - button "Save Effect" [ref=e157]
+              - button "Cancel" [ref=e158]
+          - generic [ref=e43]:
+            - generic [ref=e45]:
+              - heading "sACN / DMX Settings" [level=3] [ref=e46]
+              - generic [ref=e47] [cursor=pointer]:
+                - checkbox "Enable sACN Output" [ref=e48]
+                - generic [ref=e49]: Enable sACN Output
+              - generic [ref=e50]:
+                - generic [ref=e51]: Universe
+                - spinbutton [ref=e52]: "7"
+              - generic [ref=e53]:
+                - generic [ref=e54]: Network Interface (optional)
+                - textbox "e.g. 10.0.0.2" [ref=e55]
+                - paragraph [ref=e56]: Leave empty for default interface
+              - button "Save & Apply" [ref=e57]
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - heading "OSC → DMX Triggers" [level=3] [ref=e61]
+                - button "+ Add" [ref=e62]
+              - paragraph [ref=e63]: No triggers configured
+  - generic [ref=e64]:
+    - generic [ref=e67]: 0 msg/s
+    - generic [ref=e68]:
+      - textbox "Port" [ref=e69]: "4000"
+      - button "Start Web UI" [ref=e70]
+  - button "Open Next.js Dev Tools" [ref=e76] [cursor=pointer]:
+    - img [ref=e77]
+  - alert [ref=e80]
