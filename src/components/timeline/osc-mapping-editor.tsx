@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { OscMapping, OscPreset, OscTrigger, SavedEndpoint, TimelineSection } from "@/lib/types";
 import type { DmxEffect } from "@/lib/dmx-types";
 import { resolveOscAddress } from "@/lib/osc-mapping";
+import { useOscEffects } from "@/hooks/use-osc-effects";
 
 interface OscMappingEditorProps {
   targetType: "noteGroup" | "lane";
@@ -59,6 +60,8 @@ export function OscMappingEditor({
   const [velocityExact, setVelocityExact] = useState(seed?.velocityExact ?? 100);
   const [outputType, setOutputType] = useState<"osc" | "dmx">(seed?.outputType ?? "osc");
   const [dmxEffectId, setDmxEffectId] = useState(seed?.dmxEffectId ?? "");
+  const [oscEffectId, setOscEffectId] = useState(seed?.oscEffectId ?? "");
+  const { effects: oscEffects } = useOscEffects();
 
   const previewMapping: OscMapping = {
     id: "preview",
@@ -83,6 +86,7 @@ export function OscMappingEditor({
     velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
     outputType,
     dmxEffectId: outputType === "dmx" ? dmxEffectId : undefined,
+    oscEffectId: outputType === "osc" ? (oscEffectId || undefined) : undefined,
   });
 
   const handleAdd = () => {
@@ -331,6 +335,21 @@ export function OscMappingEditor({
                 )}
               </>
             )}
+
+            {/* OSC Effect */}
+            <div>
+              <label className="block text-[10px] uppercase text-gray-500 mb-1">OSC Effect</label>
+              <select
+                className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none"
+                value={oscEffectId}
+                onChange={(e) => setOscEffectId(e.target.value)}
+              >
+                <option value="">None (single value)</option>
+                {oscEffects.map((eff) => (
+                  <option key={eff.id} value={eff.id}>{eff.name}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Address preview */}
             <div className="text-[10px] text-gray-600 font-mono truncate">{preview}</div>
