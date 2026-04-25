@@ -10,6 +10,8 @@ import { RecordingStore } from "./recording-store";
 import { DmxEngine } from "./dmx-engine";
 import { DmxStore } from "./dmx-store";
 import { OscDmxBridge } from "./osc-dmx-bridge";
+import { OscEffectStore } from "./osc-effect-store";
+import { OscEffectEngine } from "./osc-effect-engine";
 import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule, Recording } from "../src/lib/types";
 
 export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
@@ -28,6 +30,10 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
 
   dmxEngine.loadEffects(dmxStore.getEffects());
   oscDmxBridge.loadTriggers(dmxStore.getTriggers());
+
+  const oscEffectStore = new OscEffectStore();
+  const oscEffectEngine = new OscEffectEngine(oscManager);
+  oscEffectEngine.loadEffects(oscEffectStore.getAll());
   const dmxConfig = dmxStore.getConfig();
   if (dmxConfig.enabled) dmxEngine.start(dmxConfig);
 
@@ -201,9 +207,9 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     }
   });
 
-  ipcMain.handle("recording:save-as", async (_e, rec: Recording) => {
+  ipcMain.handle("recording:save-as", async (_e, rec: Recording, suggestedPath?: string) => {
     try {
-      return await recordingStore.saveDialog(getMainWindow(), rec);
+      return await recordingStore.saveDialog(getMainWindow(), rec, suggestedPath);
     } catch (err) {
       return { error: (err as Error).message };
     }
@@ -326,6 +332,27 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle("dmx:delete-trigger", (_e, id: string) => {
     dmxStore.deleteTrigger(id);
     oscDmxBridge.loadTriggers(dmxStore.getTriggers());
+  });
+
+  // --- OSC Effects ---
+  ipcMain.handle("osc-effect:get-all", () => oscEffectStore.getAll());
+  ipcMain.handle("osc-effect:save", (_e, effect) => {
+    const saved = oscEffectStore.saveEffect(effect);
+    oscEffectEngine.loadEffects(oscEffectStore.getAll());
+    return saved;
+  });
+  ipcMain.handle("osc-effect:delete", (_e, id: string) => {
+    oscEffectStore.deleteEffect(id);
+    oscEffectEngine.loadEffects(oscEffectStore.getAll());
+  });
+  ipcMain.handle("osc-effect:trigger", (_e, effectId: string, target, velocityScale?: number) => {
+    return oscEffectEngine.triggerEffect(effectId, target, velocityScale);
+  });
+  ipcMain.handle("osc-effect:release", (_e, instanceId: string) => {
+    oscEffectEngine.releaseEffect(instanceId);
+  });
+  ipcMain.handle("osc-effect:stop", (_e, instanceId: string) => {
+    oscEffectEngine.stopEffect(instanceId);
   });
 
   // --- Forward OSC messages to renderer (batched) ---
