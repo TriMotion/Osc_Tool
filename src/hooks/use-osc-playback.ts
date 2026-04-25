@@ -50,7 +50,7 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
   // Pre-compute annotated event queue — rebuilt when recording, mappings, or aliases change.
   const queue = useMemo(() => {
     if (!recording?.oscMappings?.length) return [];
-    const result: Array<{ tRel: number; eventIdx: number; mappingId: string; address: string; value: number; argType: "f" | "i"; endpointId: string; device: string; pitch: number; velocity: number; outputType: "osc" | "dmx"; dmxEffectId?: string }> = [];
+    const result: Array<{ tRel: number; eventIdx: number; mappingId: string; address: string; value: number; argType: "f" | "i"; endpointId: string; device: string; pitch: number; velocity: number; outputType: "osc" | "dmx"; dmxEffectId?: string; oscEffectId?: string; midiType: string }> = [];
 
     recording.events.forEach((evt, idx) => {
       for (const mapping of recording.oscMappings!) {
@@ -72,6 +72,8 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
             velocity: evt.midi.data2,
             outputType: mapping.outputType ?? "osc",
             dmxEffectId: mapping.dmxEffectId,
+            oscEffectId: mapping.oscEffectId,
+            midiType: evt.midi.type,
           });
         }
       }
@@ -139,11 +141,23 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
           const endpoint = endpointsRef.current.find((e) => e.id === item.endpointId);
           if (!endpoint) continue;
 
-          batch.push({
-            config: { host: endpoint.host, port: endpoint.port },
-            address: item.address,
-            args: [{ type: item.argType, value: item.value }],
-          });
+          if (item.oscEffectId && item.midiType === "noteon") {
+            const velocityScale = item.velocity / 127;
+            window.electronAPI?.invoke("osc-effect:trigger", item.oscEffectId, {
+              host: endpoint.host,
+              port: endpoint.port,
+              address: item.address,
+              argType: item.argType,
+            }, velocityScale);
+          } else if (item.oscEffectId && item.midiType === "noteoff") {
+            // noteoff release is handled per-instance; for playback we just skip
+          } else if (!item.oscEffectId) {
+            batch.push({
+              config: { host: endpoint.host, port: endpoint.port },
+              address: item.address,
+              args: [{ type: item.argType, value: item.value }],
+            });
+          }
         }
       }
       if (batch.length > 0) {
