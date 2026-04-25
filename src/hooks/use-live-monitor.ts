@@ -34,6 +34,8 @@ export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiv
   useEffect(() => { endpointsRef.current = endpoints; }, [endpoints]);
   useEffect(() => { activeSectionIdRef.current = activeSectionId; }, [activeSectionId]);
 
+  const oscEffectInstances = useRef<Map<string, string>>(new Map());
+
   useMidiEvents((incoming: MidiEvent[]) => {
     const rec = recordingRef.current;
     const eps = endpointsRef.current;
@@ -85,11 +87,36 @@ export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiv
             const endpoint = eps.find((e) => e.id === epId);
             if (!endpoint) continue;
 
-            window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, address, [
-              { type: mapping.argType, value },
-            ]);
+            if (mapping.oscEffectId && event.midi.type === "noteon") {
+              const instanceKey = `${mapping.id}|${event.midi.data1}`;
+              const velocityScale = event.midi.data2 / 127;
+              window.electronAPI?.invoke("osc-effect:trigger", mapping.oscEffectId, {
+                host: endpoint.host,
+                port: endpoint.port,
+                address,
+                argType: mapping.argType,
+              }, velocityScale).then((instanceId: unknown) => {
+                if (typeof instanceId === "string" && instanceId) {
+                  oscEffectInstances.current.set(instanceKey, instanceId);
+                }
+              });
+            } else if (mapping.oscEffectId && event.midi.type === "noteoff") {
+              const instanceKey = `${mapping.id}|${event.midi.data1}`;
+              const instanceId = oscEffectInstances.current.get(instanceKey);
+              if (instanceId) {
+                window.electronAPI?.invoke("osc-effect:release", instanceId);
+                oscEffectInstances.current.delete(instanceKey);
+              }
+            } else if (!mapping.oscEffectId) {
+              window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, address, [
+                { type: mapping.argType, value },
+              ]);
+            }
 
             activityUpdates[device].lastOscAt = now;
+            if (liveDevice !== device) {
+              activityUpdates[liveDevice].lastOscAt = now;
+            }
 
             newEntries.push({
               id: crypto.randomUUID(),
