@@ -58,6 +58,7 @@ export class OscEffectEngine {
     });
 
     this.ensureLoop();
+    console.log(`[OSC-FX] triggerEffect ${effectId} → instance ${instanceId}, segments=${effect.segments.length}, tickRate=${effect.tickRateHz}Hz`);
     return instanceId;
   }
 
@@ -165,7 +166,10 @@ export class OscEffectEngine {
         },
       ];
 
-      this.oscManager.sendMessage(config, running.target.address, args).catch(() => {});
+      this.oscManager.sendMessage(config, running.target.address, args).catch((err) => {
+        console.error(`[OSC-FX] sendMessage failed:`, err);
+      });
+      console.log(`[OSC-FX] tick ${running.instanceId} seg=${running.segmentIndex} value=${value.toFixed(3)} → ${running.target.address}`);
     }
 
     for (const id of completed) {

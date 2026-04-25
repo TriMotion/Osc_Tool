@@ -332,11 +332,6 @@ function DmxPanel() {
   const [editingEffect, setEditingEffect] = useState<DmxEffect | null>(null);
   const [selectedSegmentIdx, setSelectedSegmentIdx] = useState(0);
 
-  const { effects: oscEffects, saveEffect: saveOscEffect, deleteEffect: deleteOscEffect } = useOscEffects();
-  const [editingOscEffect, setEditingOscEffect] = useState<OscEffect | null>(null);
-  const [selectedOscSegIdx, setSelectedOscSegIdx] = useState(0);
-  const [editingOscReleaseSegment, setEditingOscReleaseSegment] = useState(false);
-
   const [testChannel, setTestChannel] = useState(1);
   const [testValue, setTestValue] = useState(255);
   const [testHeld, setTestHeld] = useState(false);
@@ -402,58 +397,13 @@ function DmxPanel() {
     setEditingEffect(null);
   };
 
-  const startEditOscEffect = (effect?: OscEffect) => {
-    setEditingOscEffect(effect ? structuredClone(effect) : emptyOscEffect());
-    setSelectedOscSegIdx(0);
-    setEditingOscReleaseSegment(false);
-  };
-
-  const updateOscSegment = (idx: number, patch: Partial<OscEffectSegment>) => {
-    setEditingOscEffect((prev) => {
-      if (!prev) return prev;
-      const segs = [...prev.segments];
-      segs[idx] = { ...segs[idx], ...patch };
-      return { ...prev, segments: segs };
-    });
-  };
-
-  const addOscSegment = () => {
-    setEditingOscEffect((prev) => {
-      if (!prev) return prev;
-      const segments = [...prev.segments, emptyOscSegment()];
-      setSelectedOscSegIdx(segments.length - 1);
-      return { ...prev, segments };
-    });
-  };
-
-  const deleteOscSegment = (idx: number) => {
-    setEditingOscEffect((prev) => {
-      if (!prev || prev.segments.length <= 1) return prev;
-      const segs = prev.segments.filter((_, i) => i !== idx);
-      setSelectedOscSegIdx((sel) => Math.min(sel, segs.length - 1));
-      return { ...prev, segments: segs };
-    });
-  };
-
-  const handleSaveOscEffect = async () => {
-    if (!editingOscEffect) return;
-    await saveOscEffect(editingOscEffect);
-    setEditingOscEffect(null);
-  };
-
-  const selectedOscSeg = editingOscEffect
-    ? (editingOscReleaseSegment
-        ? (editingOscEffect.releaseSegment ?? null)
-        : (editingOscEffect.segments[selectedOscSegIdx] ?? null))
-    : null;
-
   return (
     <div className="flex flex-col h-full gap-6">
       <div className="flex gap-6 flex-1 min-h-0 overflow-auto">
         {/* Left column: effects + editor */}
         <div className="flex-1 flex flex-col gap-5 min-w-0">
           {/* Effect list */}
-          {!editingEffect && !editingOscEffect && (
+          {!editingEffect && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-white">Effects</h3>
@@ -510,315 +460,6 @@ function DmxPanel() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </section>
-          )}
-
-          {/* OSC Effect list */}
-          {!editingEffect && !editingOscEffect && (
-            <section className="mt-2">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white">OSC Effects</h3>
-                <button className="text-xs text-blue-400 hover:text-blue-300" onClick={() => startEditOscEffect()}>
-                  + New OSC Effect
-                </button>
-              </div>
-              {oscEffects.length === 0 && (
-                <p className="text-xs text-gray-600">No OSC effects yet. Create one to get started.</p>
-              )}
-              <div className="flex flex-col gap-1.5">
-                {oscEffects.map((eff) => (
-                  <div key={eff.id} className="flex items-center justify-between bg-elevated rounded-lg px-4 py-2.5 border border-white/5">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-white font-medium truncate" title={eff.name}>{eff.name}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">{eff.mode}</span>
-                        {eff.loop && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">loop</span>}
-                        {eff.velocitySensitive && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/80">velocity</span>}
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                        {eff.segments.map((seg, i) => (
-                          <span key={i} className="text-[10px] text-gray-500 font-mono">
-                            {seg.startValue}→{seg.endValue}
-                            {" "}{seg.durationMs}ms
-                            {seg.holdMs > 0 && <span> +{seg.holdMs}ms</span>}
-                            {" "}<span className="text-gray-600">{seg.curve.type}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button className="text-[10px] text-gray-400 hover:text-white" onClick={() => startEditOscEffect(eff)}>Edit</button>
-                      <button
-                        className="text-[10px] text-gray-400 hover:text-white"
-                        onClick={() => {
-                          const clone: OscEffect = {
-                            ...structuredClone(eff),
-                            id: crypto.randomUUID(),
-                            name: `${eff.name} (copy)`,
-                          };
-                          saveOscEffect(clone);
-                        }}
-                      >
-                        Duplicate
-                      </button>
-                      <button className="text-[10px] text-red-400/60 hover:text-red-400" onClick={() => deleteOscEffect(eff.id)}>Delete</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* OSC Effect editor */}
-          {editingOscEffect && (
-            <section className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <button className="text-xs text-gray-500 hover:text-gray-300" onClick={() => setEditingOscEffect(null)}>← Back</button>
-                <h3 className="text-sm font-semibold text-white">{editingOscEffect.id ? "Edit OSC Effect" : "New OSC Effect"}</h3>
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase text-gray-500 mb-1">Name</label>
-                <input
-                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                  value={editingOscEffect.name}
-                  onChange={(e) => setEditingOscEffect({ ...editingOscEffect, name: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-4 flex-wrap">
-                <div>
-                  <label className="block text-[10px] uppercase text-gray-500 mb-1">Mode</label>
-                  <select
-                    className="bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                    value={editingOscEffect.mode}
-                    onChange={(e) => setEditingOscEffect({ ...editingOscEffect, mode: e.target.value as "one-shot" | "sustained" })}
-                  >
-                    <option value="one-shot">One-shot</option>
-                    <option value="sustained">Sustained</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-gray-500 mb-1">Tick Rate (Hz)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={120}
-                    className="w-24 bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                    value={editingOscEffect.tickRateHz}
-                    onChange={(e) => setEditingOscEffect({ ...editingOscEffect, tickRateHz: Math.max(1, Math.min(120, parseInt(e.target.value) || 40)) })}
-                  />
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer self-end pb-1.5">
-                  <input
-                    type="checkbox"
-                    checked={editingOscEffect.loop}
-                    onChange={(e) => setEditingOscEffect({ ...editingOscEffect, loop: e.target.checked })}
-                    className="accent-blue-500"
-                  />
-                  <span className="text-xs text-gray-300">Loop</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer self-end pb-1.5">
-                  <input
-                    type="checkbox"
-                    checked={editingOscEffect.velocitySensitive}
-                    onChange={(e) => setEditingOscEffect({ ...editingOscEffect, velocitySensitive: e.target.checked })}
-                    className="accent-blue-500"
-                  />
-                  <span className="text-xs text-gray-300">Velocity Sensitive</span>
-                </label>
-              </div>
-
-              {/* Segment selector tabs */}
-              <div>
-                <div className="flex gap-1 mb-2">
-                  <button
-                    className={`text-[10px] px-2.5 py-1 rounded transition-colors ${!editingOscReleaseSegment ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-gray-500 hover:text-gray-300"}`}
-                    onClick={() => setEditingOscReleaseSegment(false)}
-                  >
-                    Attack Segments
-                  </button>
-                  {editingOscEffect.mode === "sustained" && (
-                    <button
-                      className={`text-[10px] px-2.5 py-1 rounded transition-colors ${editingOscReleaseSegment ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-gray-500 hover:text-gray-300"}`}
-                      onClick={() => {
-                        if (!editingOscEffect.releaseSegment) {
-                          setEditingOscEffect({ ...editingOscEffect, releaseSegment: emptyOscSegment() });
-                        }
-                        setEditingOscReleaseSegment(true);
-                      }}
-                    >
-                      Release Segment
-                    </button>
-                  )}
-                </div>
-
-                {!editingOscReleaseSegment && (
-                  <div>
-                    <div className="text-[10px] uppercase text-gray-500 mb-1">Segments</div>
-                    <div className="flex gap-0.5 bg-[#0a0a1a] rounded p-1 border border-white/5">
-                      {editingOscEffect.segments.map((seg, i) => {
-                        const total = editingOscEffect.segments.reduce((s, s2) => s + Math.max(1, s2.durationMs + s2.holdMs), 0);
-                        const flex = Math.max(1, seg.durationMs + seg.holdMs) / Math.max(1, total);
-                        const selected = i === selectedOscSegIdx;
-                        return (
-                          <button
-                            key={i}
-                            className="rounded px-2 py-1.5 text-left border min-w-0"
-                            style={{
-                              flex,
-                              background: selected ? "rgba(59,130,246,0.12)" : "rgba(255,255,255,0.02)",
-                              borderColor: selected ? "rgba(59,130,246,0.4)" : "rgba(255,255,255,0.05)",
-                            }}
-                            onClick={() => setSelectedOscSegIdx(i)}
-                          >
-                            <div className="text-[10px] font-bold truncate" style={{ color: selected ? "#93c5fd" : "#9ca3af" }}>
-                              {seg.startValue}→{seg.endValue}
-                            </div>
-                            <div className="text-[9px] text-gray-600 truncate">
-                              {seg.durationMs}ms{seg.holdMs > 0 ? ` + ${seg.holdMs}ms` : ""}
-                            </div>
-                          </button>
-                        );
-                      })}
-                      <button
-                        className="flex items-center justify-center rounded border border-dashed border-white/10 px-2 shrink-0"
-                        onClick={addOscSegment}
-                      >
-                        <span className="text-gray-500 text-sm">+</span>
-                      </button>
-                    </div>
-                    {editingOscEffect.segments.length > 1 && (
-                      <button
-                        className="text-[9px] text-red-400/60 hover:text-red-400 mt-1"
-                        onClick={() => deleteOscSegment(selectedOscSegIdx)}
-                      >
-                        Delete segment {selectedOscSegIdx + 1}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {editingOscReleaseSegment && editingOscEffect.releaseSegment && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500">Single release segment</span>
-                    <button
-                      className="text-[9px] text-red-400/60 hover:text-red-400"
-                      onClick={() => {
-                        const { releaseSegment: _, ...rest } = editingOscEffect;
-                        setEditingOscEffect(rest as OscEffect);
-                        setEditingOscReleaseSegment(false);
-                      }}
-                    >
-                      Remove release segment
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Per-segment fields */}
-              {selectedOscSeg && (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-[10px] uppercase text-gray-500 mb-1">Start Value</label>
-                      <input
-                        type="number"
-                        step={0.01}
-                        className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                        value={selectedOscSeg.startValue}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value) || 0;
-                          if (editingOscReleaseSegment) {
-                            setEditingOscEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, startValue: v } } : prev);
-                          } else {
-                            updateOscSegment(selectedOscSegIdx, { startValue: v });
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[10px] uppercase text-gray-500 mb-1">End Value</label>
-                      <input
-                        type="number"
-                        step={0.01}
-                        className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                        value={selectedOscSeg.endValue}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value) || 0;
-                          if (editingOscReleaseSegment) {
-                            setEditingOscEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, endValue: v } } : prev);
-                          } else {
-                            updateOscSegment(selectedOscSegIdx, { endValue: v });
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-[10px] uppercase text-gray-500 mb-1">Duration (ms)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                        value={selectedOscSeg.durationMs}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value) || 0;
-                          if (editingOscReleaseSegment) {
-                            setEditingOscEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, durationMs: v } } : prev);
-                          } else {
-                            updateOscSegment(selectedOscSegIdx, { durationMs: v });
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[10px] uppercase text-gray-500 mb-1">Hold (ms)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
-                        value={selectedOscSeg.holdMs}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value) || 0;
-                          if (editingOscReleaseSegment) {
-                            setEditingOscEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, holdMs: v } } : prev);
-                          } else {
-                            updateOscSegment(selectedOscSegIdx, { holdMs: v });
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] uppercase text-gray-500 mb-1">Curve</label>
-                    <CurveEditor
-                      curve={selectedOscSeg.curve}
-                      onChange={(curve) => {
-                        if (editingOscReleaseSegment) {
-                          setEditingOscEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, curve } } : prev);
-                        } else {
-                          updateOscSegment(selectedOscSegIdx, { curve });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  className="px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-black text-sm font-medium"
-                  onClick={handleSaveOscEffect}
-                >
-                  Save Effect
-                </button>
-                <button
-                  className="px-4 py-1.5 rounded-lg bg-black border border-white/10 text-gray-400 hover:text-gray-200 text-sm"
-                  onClick={() => setEditingOscEffect(null)}
-                >
-                  Cancel
-                </button>
               </div>
             </section>
           )}
@@ -1051,11 +692,371 @@ function DmxPanel() {
   );
 }
 
+// ─── OSC Effects Panel ────────────────────────────────────────────────────────
+
+function OscEffectsPanel() {
+  const { effects: oscEffects, saveEffect: saveOscEffect, deleteEffect: deleteOscEffect } = useOscEffects();
+  const [editingEffect, setEditingEffect] = useState<OscEffect | null>(null);
+  const [selectedSegIdx, setSelectedSegIdx] = useState(0);
+  const [editingRelease, setEditingRelease] = useState(false);
+
+  const startEdit = (effect?: OscEffect) => {
+    setEditingEffect(effect ? structuredClone(effect) : emptyOscEffect());
+    setSelectedSegIdx(0);
+    setEditingRelease(false);
+  };
+
+  const updateSegment = (idx: number, patch: Partial<OscEffectSegment>) => {
+    setEditingEffect((prev) => {
+      if (!prev) return prev;
+      const segs = [...prev.segments];
+      segs[idx] = { ...segs[idx], ...patch };
+      return { ...prev, segments: segs };
+    });
+  };
+
+  const addSegment = () => {
+    setEditingEffect((prev) => {
+      if (!prev) return prev;
+      const segments = [...prev.segments, emptyOscSegment()];
+      setSelectedSegIdx(segments.length - 1);
+      return { ...prev, segments };
+    });
+  };
+
+  const deleteSegment = (idx: number) => {
+    setEditingEffect((prev) => {
+      if (!prev || prev.segments.length <= 1) return prev;
+      const segs = prev.segments.filter((_, i) => i !== idx);
+      setSelectedSegIdx((sel) => Math.min(sel, segs.length - 1));
+      return { ...prev, segments: segs };
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editingEffect) return;
+    await saveOscEffect(editingEffect);
+    setEditingEffect(null);
+  };
+
+  const selectedSeg = editingEffect
+    ? (editingRelease
+        ? (editingEffect.releaseSegment ?? null)
+        : (editingEffect.segments[selectedSegIdx] ?? null))
+    : null;
+
+  return (
+    <div className="flex flex-col h-full overflow-auto">
+      <div className="flex-1 flex flex-col gap-5 min-w-0 max-w-2xl">
+        {/* Effect list */}
+        {!editingEffect && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">OSC Effects</h3>
+              <button className="text-xs text-blue-400 hover:text-blue-300" onClick={() => startEdit()}>
+                + New Effect
+              </button>
+            </div>
+            {oscEffects.length === 0 && (
+              <p className="text-xs text-gray-600">No OSC effects yet. Create one to get started.</p>
+            )}
+            <div className="flex flex-col gap-1.5">
+              {oscEffects.map((eff) => (
+                <div key={eff.id} className="flex items-center justify-between bg-elevated rounded-lg px-4 py-2.5 border border-white/5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white font-medium truncate" title={eff.name}>{eff.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">{eff.mode}</span>
+                      {eff.loop && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">loop</span>}
+                      {eff.velocitySensitive && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/80">velocity</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                      {eff.segments.map((seg, i) => (
+                        <span key={i} className="text-[10px] text-gray-500 font-mono">
+                          {seg.startValue}→{seg.endValue}
+                          {" "}{seg.durationMs}ms
+                          {seg.holdMs > 0 && <span> +{seg.holdMs}ms</span>}
+                          {" "}<span className="text-gray-600">{seg.curve.type}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button className="text-[10px] text-gray-400 hover:text-white" onClick={() => startEdit(eff)}>Edit</button>
+                    <button
+                      className="text-[10px] text-gray-400 hover:text-white"
+                      onClick={() => {
+                        const clone: OscEffect = {
+                          ...structuredClone(eff),
+                          id: crypto.randomUUID(),
+                          name: `${eff.name} (copy)`,
+                        };
+                        saveOscEffect(clone);
+                      }}
+                    >
+                      Duplicate
+                    </button>
+                    <button className="text-[10px] text-red-400/60 hover:text-red-400" onClick={() => deleteOscEffect(eff.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Effect editor */}
+        {editingEffect && (
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <button className="text-xs text-gray-500 hover:text-gray-300" onClick={() => setEditingEffect(null)}>← Back</button>
+              <h3 className="text-sm font-semibold text-white">{editingEffect.id ? "Edit Effect" : "New Effect"}</h3>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase text-gray-500 mb-1">Name</label>
+              <input
+                className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                value={editingEffect.name}
+                onChange={(e) => setEditingEffect({ ...editingEffect, name: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-4 flex-wrap">
+              <div>
+                <label className="block text-[10px] uppercase text-gray-500 mb-1">Mode</label>
+                <select
+                  className="bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                  value={editingEffect.mode}
+                  onChange={(e) => setEditingEffect({ ...editingEffect, mode: e.target.value as "one-shot" | "sustained" })}
+                >
+                  <option value="one-shot">One-shot</option>
+                  <option value="sustained">Sustained</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase text-gray-500 mb-1">Tick Rate (Hz)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  className="w-24 bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                  value={editingEffect.tickRateHz}
+                  onChange={(e) => setEditingEffect({ ...editingEffect, tickRateHz: Math.max(1, Math.min(120, parseInt(e.target.value) || 40)) })}
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer self-end pb-1.5">
+                <input
+                  type="checkbox"
+                  checked={editingEffect.loop}
+                  onChange={(e) => setEditingEffect({ ...editingEffect, loop: e.target.checked })}
+                  className="accent-blue-500"
+                />
+                <span className="text-xs text-gray-300">Loop</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer self-end pb-1.5">
+                <input
+                  type="checkbox"
+                  checked={editingEffect.velocitySensitive}
+                  onChange={(e) => setEditingEffect({ ...editingEffect, velocitySensitive: e.target.checked })}
+                  className="accent-blue-500"
+                />
+                <span className="text-xs text-gray-300">Velocity Sensitive</span>
+              </label>
+            </div>
+
+            {/* Segment selector */}
+            <div>
+              <div className="flex gap-1 mb-2">
+                <button
+                  className={`text-[10px] px-2.5 py-1 rounded transition-colors ${!editingRelease ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-gray-500 hover:text-gray-300"}`}
+                  onClick={() => setEditingRelease(false)}
+                >
+                  Attack Segments
+                </button>
+                {editingEffect.mode === "sustained" && (
+                  <button
+                    className={`text-[10px] px-2.5 py-1 rounded transition-colors ${editingRelease ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-gray-500 hover:text-gray-300"}`}
+                    onClick={() => {
+                      if (!editingEffect.releaseSegment) {
+                        setEditingEffect({ ...editingEffect, releaseSegment: emptyOscSegment() });
+                      }
+                      setEditingRelease(true);
+                    }}
+                  >
+                    Release Segment
+                  </button>
+                )}
+              </div>
+
+              {!editingRelease && (
+                <div>
+                  <div className="flex gap-1 items-end mb-2">
+                    {editingEffect.segments.map((seg, i) => {
+                      const total = editingEffect.segments.reduce((s, s2) => s + Math.max(1, s2.durationMs + s2.holdMs), 0);
+                      const w = Math.max(24, ((seg.durationMs + seg.holdMs) / Math.max(1, total)) * 300);
+                      const selected = i === selectedSegIdx;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedSegIdx(i)}
+                          className={`h-6 rounded text-[9px] font-mono transition-colors ${selected ? "bg-blue-500/30 border border-blue-500/50 text-blue-300" : "bg-white/5 border border-white/10 text-gray-500 hover:border-white/20"}`}
+                          style={{ width: w }}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    })}
+                    <button
+                      className="h-6 w-6 rounded bg-white/5 border border-white/10 text-gray-500 hover:text-gray-300 text-xs"
+                      onClick={addSegment}
+                    >
+                      +
+                    </button>
+                  </div>
+                  {editingEffect.segments.length > 1 && (
+                    <button
+                      className="text-[9px] text-red-400/60 hover:text-red-400"
+                      onClick={() => deleteSegment(selectedSegIdx)}
+                    >
+                      Delete segment {selectedSegIdx + 1}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {editingRelease && editingEffect.releaseSegment && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">Single release segment</span>
+                  <button
+                    className="text-[9px] text-red-400/60 hover:text-red-400"
+                    onClick={() => {
+                      const { releaseSegment: _, ...rest } = editingEffect;
+                      setEditingEffect(rest as OscEffect);
+                      setEditingRelease(false);
+                    }}
+                  >
+                    Remove release segment
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Per-segment fields */}
+            {selectedSeg && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase text-gray-500 mb-1">Start Value</label>
+                    <input
+                      type="number"
+                      step={0.01}
+                      className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                      value={selectedSeg.startValue}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value) || 0;
+                        if (editingRelease) {
+                          setEditingEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, startValue: v } } : prev);
+                        } else {
+                          updateSegment(selectedSegIdx, { startValue: v });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase text-gray-500 mb-1">End Value</label>
+                    <input
+                      type="number"
+                      step={0.01}
+                      className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                      value={selectedSeg.endValue}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value) || 0;
+                        if (editingRelease) {
+                          setEditingEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, endValue: v } } : prev);
+                        } else {
+                          updateSegment(selectedSegIdx, { endValue: v });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase text-gray-500 mb-1">Duration (ms)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                      value={selectedSeg.durationMs}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value) || 0;
+                        if (editingRelease) {
+                          setEditingEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, durationMs: v } } : prev);
+                        } else {
+                          updateSegment(selectedSegIdx, { durationMs: v });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase text-gray-500 mb-1">Hold (ms)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full bg-black border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                      value={selectedSeg.holdMs}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value) || 0;
+                        if (editingRelease) {
+                          setEditingEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, holdMs: v } } : prev);
+                        } else {
+                          updateSegment(selectedSegIdx, { holdMs: v });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-[10px] uppercase text-gray-500 mb-1">Curve</label>
+                  <CurveEditor
+                    curve={selectedSeg.curve}
+                    onChange={(curve) => {
+                      if (editingRelease) {
+                        setEditingEffect((prev) => prev ? { ...prev, releaseSegment: { ...prev.releaseSegment!, curve } } : prev);
+                      } else {
+                        updateSegment(selectedSegIdx, { curve });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                className="px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-black text-sm font-medium"
+                onClick={handleSave}
+              >
+                Save Effect
+              </button>
+              <button
+                className="px-4 py-1.5 rounded-lg bg-black border border-white/10 text-gray-400 hover:text-gray-200 text-sm"
+                onClick={() => setEditingEffect(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "sender", label: "OSC Sender" },
-  { id: "dmx",    label: "DMX" },
+  { id: "sender",  label: "OSC Sender" },
+  { id: "effects", label: "OSC Effects" },
+  { id: "dmx",     label: "DMX" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -1103,7 +1104,9 @@ export default function OutputPage() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === "sender" ? <SenderPanel /> : <DmxPanel />}
+            {activeTab === "sender" && <SenderPanel />}
+            {activeTab === "effects" && <OscEffectsPanel />}
+            {activeTab === "dmx" && <DmxPanel />}
           </motion.div>
         </AnimatePresence>
       </div>
