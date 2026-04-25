@@ -2,6 +2,7 @@
 
 import { useRef, useMemo, useState, useEffect, Fragment } from "react";
 import type { LaneAnalysis, LaneBadge, LaneKey, LaneMap, NoteGroupTag, NoteSpan, RecordedEvent, MidiMappingRule, OscMapping, SavedEndpoint, TimelineSection } from "@/lib/types";
+import type { OscEffect } from "@/lib/osc-effect-types";
 import { laneKeyString } from "@/lib/types";
 import { midiNoteName, findNoteTag } from "@/lib/timeline-util";
 import { resolveOscAddress } from "@/lib/osc-mapping";
@@ -64,7 +65,23 @@ interface DeviceSectionProps {
   onHideLane: (key: string) => void;
   onShowLane: (key: string) => void;
   noteFlashRef?: React.RefObject<NoteFlashRef>;
+  colorIndex?: number;
+  dmxEffects?: import("@/lib/dmx-types").DmxEffect[];
+  oscEffects?: OscEffect[];
 }
+
+const DEVICE_COLORS = [
+  "#4488ff", // blue
+  "#f59e0b", // amber
+  "#a78bfa", // violet
+  "#34d399", // emerald
+  "#f472b6", // pink
+  "#38bdf8", // sky
+  "#fb923c", // orange
+  "#c084fc", // purple
+  "#4ade80", // green
+  "#fbbf24", // yellow
+];
 
 const NOTES_HEIGHT = 48;
 const CONT_HEIGHT = 36;
@@ -110,12 +127,26 @@ function LaneControlsPopover({
  * Find an OSC address from a mapping rule that matches the given lane key, if any.
  * Used to show the user's named address (e.g. "/fader/master") alongside the lane label.
  */
+function dmxEffectLabel(effectId: string | undefined, effects?: import("@/lib/dmx-types").DmxEffect[]): string {
+  if (!effectId) return "DMX: —";
+  const eff = effects?.find((e) => e.id === effectId);
+  return `DMX: ${eff?.name ?? effectId.slice(0, 8)}`;
+}
+
+function oscEffectLabel(mapping: OscMapping, oscEffects: OscEffect[]): string | null {
+  if (!mapping.oscEffectId) return null;
+  const eff = oscEffects.find((e) => e.id === mapping.oscEffectId);
+  return `FX: ${eff ? eff.name : mapping.oscEffectId.slice(0, 8)}`;
+}
+
 function oscLabelFor(
   key: LaneKey,
   rules: MidiMappingRule[],
   oscMappings: OscMapping[],
   deviceAliases?: Record<string, string>,
   focusedSectionId?: string,
+  dmxEffects?: import("@/lib/dmx-types").DmxEffect[],
+  oscEffects?: OscEffect[],
 ): string | undefined {
   const keyStr = laneKeyString(key);
   const om = oscMappings.find(
@@ -124,7 +155,11 @@ function oscLabelFor(
       m.targetId === keyStr &&
       (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId),
   );
-  if (om) return resolveOscAddress(om, deviceAliases);
+  if (om) {
+    if (om.outputType === "dmx") return dmxEffectLabel(om.dmxEffectId, dmxEffects);
+    if (om.oscEffectId && oscEffects) return oscEffectLabel(om, oscEffects) ?? resolveOscAddress(om, deviceAliases);
+    return resolveOscAddress(om, deviceAliases);
+  }
   if (key.kind === "cc") {
     const r = rules.find((r) => r.type === "cc" && (r.channel === undefined || r.channel === key.channel) && (r.data1 === undefined || r.data1 === key.cc));
     return r?.address;
@@ -160,8 +195,10 @@ export function DeviceSection(props: DeviceSectionProps) {
     allGroups = [], hiddenNoteKeys, sidebarHiddenNoteKeys, sectionHiddenRanges, onToggleNoteGroup, onSelectGroup,
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
     oscMappings = [], endpoints = [], sections = [], focusedSectionId, onOpenLaneMapping, onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
-    hiddenLanes, onHideLane, onShowLane, noteFlashRef,
+    hiddenLanes, onHideLane, onShowLane, noteFlashRef, colorIndex = 0, dmxEffects, oscEffects = [],
   } = props;
+
+  const deviceColor = DEVICE_COLORS[colorIndex % DEVICE_COLORS.length];
 
   const laneEntries = useMemo(() => {
     const list = Array.from(laneMap.values()).filter((entry) => keyDevice(entry.key) === device);
@@ -326,11 +363,14 @@ export function DeviceSection(props: DeviceSectionProps) {
   }, [lanesOpen]);
 
   return (
-    <div className="border-b border-white/5">
+    <div className="border-b border-white/10">
       {/* Device header row */}
       <div
         onClick={onToggleCollapsed}
-        className="group flex items-center gap-2 px-3 py-1.5 bg-black/20 text-timeline text-xs font-semibold cursor-pointer select-none hover:bg-black/30"
+        className="group flex items-center gap-2 px-3 py-1.5 text-xs font-semibold cursor-pointer select-none transition-colors text-white"
+        style={{ background: `${deviceColor}18`, borderLeft: `3px solid ${deviceColor}` }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = `${deviceColor}28`; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = `${deviceColor}18`; }}
       >
         <span>{collapsed ? "▸" : "▾"}</span>
         {isEditingName ? (
@@ -345,8 +385,8 @@ export function DeviceSection(props: DeviceSectionProps) {
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-elevated border border-timeline/40 rounded px-1 text-xs text-timeline font-semibold focus:outline-none min-w-[60px]"
-            style={{ width: Math.max(60, editValue.length * 7) }}
+            className="bg-elevated rounded px-1 text-xs text-white font-semibold focus:outline-none min-w-[60px]"
+            style={{ width: Math.max(60, editValue.length * 7), borderWidth: 1, borderStyle: "solid", borderColor: `${deviceColor}66` }}
           />
         ) : (
           <span
@@ -370,9 +410,10 @@ export function DeviceSection(props: DeviceSectionProps) {
             onClick={(e) => { e.stopPropagation(); setPanelOpen((v) => !v); }}
             className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               panelOpen
-                ? "bg-timeline/20 text-timeline border-timeline/30"
+                ? ""
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
+            style={panelOpen ? { color: deviceColor, background: `${deviceColor}33`, borderColor: `${deviceColor}4d` } : undefined}
             title="Note groups"
           >
             <span>Notes</span>
@@ -396,9 +437,10 @@ export function DeviceSection(props: DeviceSectionProps) {
             onClick={(e) => { e.stopPropagation(); setLanesOpen((v) => !v); }}
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               lanesOpen
-                ? "bg-timeline/20 text-timeline border-timeline/30"
+                ? ""
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
             }`}
+            style={lanesOpen ? { color: deviceColor, background: `${deviceColor}33`, borderColor: `${deviceColor}4d` } : undefined}
             title="Toggle lanes"
           >
             <span>Lanes</span>
@@ -420,8 +462,8 @@ export function DeviceSection(props: DeviceSectionProps) {
                     onClick={() => hidden ? onShowLane(key) : onHideLane(key)}
                     className="w-full flex items-center gap-2 px-3 py-1 text-[10px] hover:bg-white/5 transition-colors text-left"
                   >
-                    <span className={hidden ? "text-gray-600" : "text-timeline"}>
-                      {hidden ? "○" : "●"}
+                    <span style={hidden ? undefined : { color: deviceColor }}>
+                      {hidden ? <span className="text-gray-600">○</span> : "●"}
                     </span>
                     <span className={hidden ? "text-gray-600" : "text-gray-300"}>
                       {laneLabelShort(entry.key)}
@@ -491,6 +533,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           anchorRect={oscEditor.anchorRect}
           deviceAliases={deviceAliases}
           sectionId={focusedSectionId}
+          dmxEffects={dmxEffects}
           editingMapping={oscEditor.editingMapping}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
           onUpdate={(mapping) => { onUpdateOscMapping?.(mapping); setOscEditor(null); }}
@@ -510,7 +553,7 @@ export function DeviceSection(props: DeviceSectionProps) {
       ) : (
         <>
           {laneEntries.map((entry) => {
-            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases, focusedSectionId ?? undefined);
+            const osc = oscLabelFor(entry.key, mappingRules, oscMappings, deviceAliases, focusedSectionId ?? undefined, dmxEffects, oscEffects);
             const keyStr = laneKeyString(entry.key);
             if (hiddenLanes.has(keyStr)) return null;
             switch (entry.key.kind) {
@@ -566,15 +609,16 @@ export function DeviceSection(props: DeviceSectionProps) {
                       </div>
                     </div>
                     {panelOpen && allGroups.length > 0 && (
-                      <div className="border-t border-white/5 bg-black/10">
+                      <div className="border-t border-white/10 bg-black/10">
                         <div className="flex items-center gap-1.5 px-3 py-1 border-b border-white/[0.04]">
                           <button
                             onClick={() => setFilterTagged((v) => !v)}
                             className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                               filterTagged
-                                ? "bg-timeline/20 text-timeline border-timeline/30"
+                                ? ""
                                 : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
                             }`}
+                            style={filterTagged ? { color: deviceColor, background: `${deviceColor}33`, borderColor: `${deviceColor}4d` } : undefined}
                           >
                             tagged only
                           </button>
@@ -582,9 +626,10 @@ export function DeviceSection(props: DeviceSectionProps) {
                             onClick={() => setCombineVelocity((v) => !v)}
                             className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                               combineVelocity
-                                ? "bg-timeline/20 text-timeline border-timeline/30"
+                                ? ""
                                 : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
                             }`}
+                            style={combineVelocity ? { color: deviceColor, background: `${deviceColor}33`, borderColor: `${deviceColor}4d` } : undefined}
                           >
                             combine vel
                           </button>
@@ -626,7 +671,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                               onClick={handleSelect}
                             >
                               <div
-                                className="flex items-center gap-2 px-3 border-r border-white/5 h-full shrink-0"
+                                className="flex items-center gap-2 px-3 border-r border-white/10 h-full shrink-0"
                                 style={{
                                   width: leftGutterPx,
                                   borderLeft: hasMidi ? (hasOsc ? "2px solid rgba(74,222,128,0.7)" : "2px solid rgba(248,113,113,0.7)") : isSelected ? "2px solid rgba(142,203,255,0.5)" : "2px solid transparent",
@@ -635,8 +680,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleToggle(); }}
                                   className={`text-[11px] leading-none transition-colors ${
-                                    hidden ? "text-gray-600 hover:text-gray-300" : "text-timeline hover:text-white"
+                                    hidden ? "text-gray-600 hover:text-gray-300" : "hover:text-white"
                                   }`}
+                                  style={hidden ? undefined : { color: deviceColor }}
                                   title={hidden ? "Show" : "Hide"}
                                 >
                                   {hidden ? "○" : "●"}
@@ -682,7 +728,9 @@ export function DeviceSection(props: DeviceSectionProps) {
                                         anchorRect: (e.currentTarget as HTMLElement).getBoundingClientRect(),
                                       });
                                     }}
-                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 hover:text-timeline transition-all px-2 py-0.5 rounded border border-white/5 hover:border-timeline/30 leading-none shrink-0"
+                                    className="opacity-30 group-hover/row:opacity-100 text-[10px] text-gray-500 transition-all px-2 py-0.5 rounded border border-white/5 leading-none shrink-0 hover:opacity-100"
+                                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = deviceColor; (e.currentTarget as HTMLElement).style.borderColor = `${deviceColor}4d`; }}
+                                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = ""; (e.currentTarget as HTMLElement).style.borderColor = ""; }}
                                   >
                                     + OSC
                                   </button>
@@ -707,7 +755,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                     {/* Chips — grouped by section, positioned at section startMs */}
                                     {Array.from(grouped.entries()).map(([sKey, chips]) => {
                                       const sec = sKey !== "__none__" ? sections.find((s) => s.name === sKey) : undefined;
-                                      if (sec && (sec.startMs < viewStartMs || sec.startMs > viewEndMs)) return null;
+                                      if (sec && (sec.endMs < viewStartMs || sec.startMs > viewEndMs)) return null;
                                       const secColor = sec?.color;
                                       return (
                                         <div
@@ -723,6 +771,14 @@ export function DeviceSection(props: DeviceSectionProps) {
                                                 borderColor: `${secColor}55`,
                                                 background: `${secColor}18`,
                                                 color: secColor,
+                                              } : m.outputType === "dmx" ? {
+                                                borderColor: "rgba(168,85,247,0.3)",
+                                                background: "rgba(168,85,247,0.08)",
+                                                color: "rgba(168,85,247,0.85)",
+                                              } : m.oscEffectId ? {
+                                                borderColor: "rgba(20,184,166,0.3)",
+                                                background: "rgba(20,184,166,0.08)",
+                                                color: "rgba(45,212,191,0.9)",
                                               } : {
                                                 borderColor: "rgba(142,203,255,0.2)",
                                                 background: "rgba(142,203,255,0.05)",
@@ -738,7 +794,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                                 });
                                               }}
                                             >
-                                              <span className="font-mono truncate max-w-[120px]">{resolveOscAddress(m, deviceAliases)}</span>
+                                              <span className="font-mono truncate max-w-[120px]">{m.outputType === "dmx" ? dmxEffectLabel(m.dmxEffectId, dmxEffects) : (m.oscEffectId ? oscEffectLabel(m, oscEffects) : null) ?? resolveOscAddress(m, deviceAliases)}</span>
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
                                                 className="opacity-40 hover:text-red-400 leading-none transition-colors"
@@ -1013,9 +1069,9 @@ function CollapsedSummaryRow({ entries, events, viewStartMs, viewEndMs, leftGutt
   const maxCount = Math.max(1, ...bins);
 
   return (
-    <div className="relative flex border-t border-white/5" style={{ height: SUMMARY_HEIGHT }}>
+    <div className="relative flex border-t border-white/10" style={{ height: SUMMARY_HEIGHT }}>
       <div
-        className="text-[10px] text-gray-700 px-3 flex items-center border-r border-white/5"
+        className="text-[10px] text-gray-700 px-3 flex items-center border-r border-white/10"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         (expand)

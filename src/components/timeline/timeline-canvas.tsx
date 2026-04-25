@@ -121,6 +121,8 @@ interface TimelineCanvasProps {
   onOpenLaneMapping: (laneKey: LaneKey) => void;
   activityLaneKeys?: Set<string>;
   noteFlashRef?: React.RefObject<NoteFlashRef>;
+  dmxEffects?: import("@/lib/dmx-types").DmxEffect[];
+  oscEffects?: import("@/lib/osc-effect-types").OscEffect[];
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -693,10 +695,11 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
         </div>
       )}
 
-      {devices.map((device) => (
+      {devices.map((device, deviceIdx) => (
         <DeviceSection
           key={device}
           device={device}
+          colorIndex={deviceIdx}
           laneMap={laneMap}
           events={events}
           noteSpans={noteSpans}
@@ -752,6 +755,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           onHideLane={(key) => setHiddenLanes((prev) => new Set([...prev, key]))}
           onShowLane={(key) => setHiddenLanes((prev) => { const n = new Set(prev); n.delete(key); return n; })}
           noteFlashRef={props.noteFlashRef}
+          dmxEffects={props.dmxEffects}
+          oscEffects={props.oscEffects}
         />
       ))}
 

@@ -8,6 +8,8 @@ import { useTriggerAnalysis } from "@/hooks/use-trigger-analysis";
 import { useRecorderContext } from "@/contexts/recorder-context";
 import { useToast } from "@/contexts/toast-context";
 import { useOscPlayback, type NoteFlashUpdate } from "@/hooks/use-osc-playback";
+import { useDmx } from "@/hooks/use-dmx";
+import { useOscEffects } from "@/hooks/use-osc-effects";
 import type { NoteFlashRef } from "@/components/timeline/notes-lane";
 import { TimelineToolbar } from "@/components/timeline/timeline-toolbar";
 import { TimelineCanvas } from "@/components/timeline/timeline-canvas";
@@ -23,6 +25,8 @@ const LEFT_GUTTER = 140;
 
 export default function TimelinePage() {
   const { addToast } = useToast();
+  const { effects: dmxEffects } = useDmx();
+  const { effects: oscEffects } = useOscEffects();
   const { running: bridgeRunning, devices: midiDevices, start: startBridge, stop: stopBridge, refreshDevices } = useMidiControl();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
@@ -225,12 +229,12 @@ export default function TimelinePage() {
 
   const handleSaveAs = useCallback(async () => {
     if (!recorder.recording) return;
-    const savedPath = await io.saveAs(recorder.recording);
+    const savedPath = await io.saveAs(recorder.recording, saveSuggestedPath ?? undefined);
     if (savedPath) {
       setSaveSuggestedPath(savedPath);
       recorder.markSaved();
     }
-  }, [io, recorder]);
+  }, [io, recorder, saveSuggestedPath]);
 
   /** Persist current audio.tracks to recording, keeping unloaded (missing) tracks intact. */
   const syncAudioTracksToRecording = useCallback(() => {
@@ -365,8 +369,6 @@ export default function TimelinePage() {
 
     (async () => {
       await refreshProjectDirInfo();
-      const loaded = await tryLoadProject();
-      if (loaded) return;
       const recent = io.recent[0];
       if (!recent) return;
       const res = await io.loadPath(recent.path);
@@ -789,6 +791,8 @@ export default function TimelinePage() {
           onOpenLaneMapping={handleOpenLaneMapping}
           activityLaneKeys={activityLaneKeys}
           noteFlashRef={noteFlashRef}
+          dmxEffects={dmxEffects}
+          oscEffects={oscEffects}
         />
       </div>
 
