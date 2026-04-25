@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useFlash } from "@/hooks/use-flash";
+import { useOscEffects } from "@/hooks/use-osc-effects";
 import { resolveOscAddress } from "@/lib/osc-mapping";
 import type { OscMapping, OscPreset, SavedEndpoint } from "@/lib/types";
 
@@ -44,6 +45,7 @@ function MappingRow({
   onUpdate,
 }: MappingRowProps) {
   const isFlashing = useFlash(flashTrigger);
+  const { effects: oscEffects } = useOscEffects();
   const displayDevice = aliases?.[mapping.deviceId] ?? mapping.deviceId;
   const endpoint = endpoints.find((e) => e.id === mapping.endpointId);
   const address = resolveOscAddress(mapping, aliases);
@@ -65,25 +67,40 @@ function MappingRow({
         />
         <span className="text-gray-400 w-28 truncate shrink-0">{displayDevice}</span>
         <span className="text-gray-500 w-24 truncate shrink-0 font-mono">{formatTrigger(mapping)}</span>
-        <span
-          className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
-            mapping.preset === "resolume"
-              ? "bg-orange-500/20 text-orange-400"
-              : mapping.preset === "unreal"
-              ? "bg-blue-500/20 text-blue-400"
-              : "bg-gray-500/20 text-gray-400"
-          }`}
-        >
-          {mapping.preset}
+        {mapping.outputType === "dmx" ? (
+          <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0 bg-purple-500/20 text-purple-400">
+            DMX
+          </span>
+        ) : (
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+              mapping.preset === "resolume"
+                ? "bg-orange-500/20 text-orange-400"
+                : mapping.preset === "unreal"
+                ? "bg-blue-500/20 text-blue-400"
+                : "bg-gray-500/20 text-gray-400"
+            }`}
+          >
+            {mapping.preset}
+          </span>
+        )}
+        <span className="text-deck font-mono flex-1 truncate">
+          {mapping.outputType === "dmx" ? (mapping.dmxEffectId || "—") : address}
         </span>
-        <span className="text-deck font-mono flex-1 truncate">{address}</span>
-        <span className="text-gray-500 shrink-0 truncate max-w-[160px]">
-          {endpoint ? endpoint.name : <span className="text-red-400/80">missing</span>}
-          {(mapping.extraEndpointIds?.length ?? 0) > 0 && (
-            <span className="ml-1 text-[10px] text-deck/80">
-              +{mapping.extraEndpointIds!.length}
-            </span>
-          )}
+        <span className="flex items-center gap-1.5 shrink-0">
+          {[mapping.endpointId, ...(mapping.extraEndpointIds ?? [])].map((epId) => {
+            const ep = endpoints.find((e) => e.id === epId);
+            return (
+              <span
+                key={epId}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${
+                  ep ? "bg-white/5 text-gray-400" : "bg-red-500/10 text-red-400/80"
+                }`}
+              >
+                {ep?.name ?? "missing"}
+              </span>
+            );
+          })}
         </span>
         <button
           onClick={onToggleEdit}
@@ -290,6 +307,23 @@ function MappingRow({
               )}
             </>
           )}
+
+          {/* OSC Effect — only for OSC mappings */}
+          {mapping.outputType !== "dmx" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 w-24 shrink-0">OSC Effect</span>
+              <select
+                className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300 flex-1"
+                value={mapping.oscEffectId ?? ""}
+                onChange={(e) => onUpdate({ ...mapping, oscEffectId: e.target.value || undefined })}
+              >
+                <option value="">None (single value)</option>
+                {oscEffects.map((eff) => (
+                  <option key={eff.id} value={eff.id}>{eff.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -298,6 +332,8 @@ function MappingRow({
 
 // ─── MappingConfigPanel ────────────────────────────────────────────────────────
 
+type BatchAction = "add" | "remove" | "set-primary";
+
 interface MappingConfigPanelProps {
   mappings: OscMapping[];
   endpoints: SavedEndpoint[];
@@ -305,6 +341,7 @@ interface MappingConfigPanelProps {
   flashTriggers: Record<string, number>;
   onUpdateMappings: (mappings: OscMapping[]) => void;
   recordingId?: string;
+  activeSectionId?: string | null;
 }
 
 export function MappingConfigPanel({
@@ -314,14 +351,17 @@ export function MappingConfigPanel({
   flashTriggers,
   onUpdateMappings,
   recordingId,
+  activeSectionId,
 }: MappingConfigPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filterPreset, setFilterPreset] = useState<OscPreset | "all">("all");
   const [filterEndpointId, setFilterEndpointId] = useState<"all" | string>("all");
+  const [filterOutputType, setFilterOutputType] = useState<"all" | "osc" | "dmx">("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [localMappings, setLocalMappings] = useState<OscMapping[]>(mappings);
   const [batchEndpointId, setBatchEndpointId] = useState<string>("");
+  const [batchAction, setBatchAction] = useState<BatchAction>("add");
 
   // Reset all local state when a different recording is loaded
   useEffect(() => {
@@ -330,11 +370,17 @@ export function MappingConfigPanel({
     setEditingId(null);
     setFilterPreset("all");
     setFilterEndpointId("all");
+    setFilterOutputType("all");
   }, [recordingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = localMappings.filter((m) => {
+    if (activeSectionId && m.sectionId && m.sectionId !== activeSectionId) return false;
     if (filterPreset !== "all" && m.preset !== filterPreset) return false;
     if (filterEndpointId !== "all" && m.endpointId !== filterEndpointId) return false;
+    if (filterOutputType !== "all") {
+      const output = m.outputType ?? "osc";
+      if (output !== filterOutputType) return false;
+    }
     return true;
   });
 
@@ -352,14 +398,37 @@ export function MappingConfigPanel({
     });
   };
 
-  const applyBatchEndpoint = () => {
+  const applyBatch = () => {
     if (!batchEndpointId) return;
     const next = localMappings.map((m) => {
       if (!selectedIds.has(m.id)) return m;
-      if (m.endpointId === batchEndpointId) return m;
-      const extras = m.extraEndpointIds ?? [];
-      if (extras.includes(batchEndpointId)) return m;
-      return { ...m, extraEndpointIds: [...extras, batchEndpointId] };
+
+      if (batchAction === "add") {
+        if (m.endpointId === batchEndpointId) return m;
+        const extras = m.extraEndpointIds ?? [];
+        if (extras.includes(batchEndpointId)) return m;
+        return { ...m, extraEndpointIds: [...extras, batchEndpointId] };
+      }
+
+      if (batchAction === "remove") {
+        if (m.endpointId === batchEndpointId) {
+          const extras = m.extraEndpointIds ?? [];
+          if (extras.length === 0) return m;
+          const [newPrimary, ...rest] = extras;
+          return { ...m, endpointId: newPrimary, extraEndpointIds: rest.length > 0 ? rest : undefined };
+        }
+        const extras = (m.extraEndpointIds ?? []).filter((id) => id !== batchEndpointId);
+        return { ...m, extraEndpointIds: extras.length > 0 ? extras : undefined };
+      }
+
+      if (batchAction === "set-primary") {
+        if (m.endpointId === batchEndpointId) return m;
+        const extras = (m.extraEndpointIds ?? []).filter((id) => id !== batchEndpointId);
+        if (m.endpointId) extras.unshift(m.endpointId);
+        return { ...m, endpointId: batchEndpointId, extraEndpointIds: extras.length > 0 ? extras : undefined };
+      }
+
+      return m;
     });
     setLocalMappings(next);
     onUpdateMappings(next);
@@ -379,8 +448,8 @@ export function MappingConfigPanel({
         className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
       >
         <span>
-          OSC Mapping Config
-          <span className="ml-2 text-gray-600">({localMappings.length})</span>
+          Mapping Config
+          <span className="ml-2 text-gray-600">({filtered.length}/{localMappings.length})</span>
         </span>
         <span className="text-gray-600 text-[10px]">{isOpen ? "▲" : "▼"}</span>
       </button>
@@ -411,6 +480,15 @@ export function MappingConfigPanel({
                   {ep.name} ({ep.host}:{ep.port})
                 </option>
               ))}
+            </select>
+            <select
+              value={filterOutputType}
+              onChange={(e) => setFilterOutputType(e.target.value as "all" | "osc" | "dmx")}
+              className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
+            >
+              <option value="all">OSC + DMX</option>
+              <option value="osc">OSC only</option>
+              <option value="dmx">DMX only</option>
             </select>
             <div className="flex-1" />
             <button
@@ -460,7 +538,15 @@ export function MappingConfigPanel({
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 bg-panel shrink-0">
               <span className="text-xs text-gray-400">{selectedIds.size} selected</span>
-              <span className="text-xs text-gray-600">Add endpoint:</span>
+              <select
+                value={batchAction}
+                onChange={(e) => setBatchAction(e.target.value as BatchAction)}
+                className="text-xs bg-black border border-white/10 rounded px-2 py-1 text-gray-300"
+              >
+                <option value="add">Add endpoint</option>
+                <option value="remove">Remove endpoint</option>
+                <option value="set-primary">Set primary endpoint</option>
+              </select>
               <select
                 value={batchEndpointId}
                 onChange={(e) => setBatchEndpointId(e.target.value)}
@@ -474,12 +560,15 @@ export function MappingConfigPanel({
                 ))}
               </select>
               <button
-                onClick={applyBatchEndpoint}
+                onClick={applyBatch}
                 disabled={!batchEndpointId}
-                className="text-xs px-3 py-1 rounded bg-deck/80 hover:bg-deck text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="Add this endpoint as an extra send target on all selected mappings"
+                className={`text-xs px-3 py-1 rounded text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
+                  batchAction === "remove"
+                    ? "bg-red-500/80 hover:bg-red-500"
+                    : "bg-deck/80 hover:bg-deck"
+                }`}
               >
-                Add to selected
+                Apply
               </button>
               <button
                 onClick={() => setSelectedIds(new Set())}
