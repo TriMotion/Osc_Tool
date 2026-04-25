@@ -210,6 +210,7 @@ export interface OscMapping {
   resolumeClipMax?: number;
   outputType?: "osc" | "dmx";
   dmxEffectId?: string;
+  oscEffectId?: string;
 }
 
 export interface ActivityEntry {
