@@ -27,6 +27,7 @@ interface UseOscPlaybackArgs {
 
 export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints, deviceAliases, onActivity, onNoteFlash }: UseOscPlaybackArgs) {
   const firedRef = useRef<Set<string>>(new Set());
+  const oscEffectInstances = useRef<Map<string, string>>(new Map());
   const lastPlayheadRef = useRef<number>(0);
   const wasPlayingRef = useRef<boolean>(false);
   const activityCursorRef = useRef<number>(0);
@@ -97,6 +98,7 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
 
       if (seekedBackward) {
         firedRef.current.clear();
+        oscEffectInstances.current.clear();
         activityCursorRef.current = 0;
       }
       lastPlayheadRef.current = playheadMs;
@@ -143,14 +145,24 @@ export function useOscPlayback({ recording, playheadMsRef, isPlaying, endpoints,
 
           if (item.oscEffectId && item.midiType === "noteon") {
             const velocityScale = item.velocity / 127;
+            const instanceKey = `${item.mappingId}|${item.pitch}`;
             window.electronAPI?.invoke("osc-effect:trigger", item.oscEffectId, {
               host: endpoint.host,
               port: endpoint.port,
               address: item.address,
               argType: item.argType,
-            }, velocityScale);
+            }, velocityScale).then((instanceId: unknown) => {
+              if (typeof instanceId === "string" && instanceId) {
+                oscEffectInstances.current.set(instanceKey, instanceId);
+              }
+            });
           } else if (item.oscEffectId && item.midiType === "noteoff") {
-            // noteoff release is handled per-instance; for playback we just skip
+            const instanceKey = `${item.mappingId}|${item.pitch}`;
+            const instanceId = oscEffectInstances.current.get(instanceKey);
+            if (instanceId) {
+              window.electronAPI?.invoke("osc-effect:release", instanceId);
+              oscEffectInstances.current.delete(instanceKey);
+            }
           } else if (!item.oscEffectId) {
             batch.push({
               config: { host: endpoint.host, port: endpoint.port },
