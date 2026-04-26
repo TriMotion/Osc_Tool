@@ -207,6 +207,7 @@ export interface OscMapping {
   velocityExact?: number;
   resolumeClipMax?: number;
   resolumeClipMode?: "random" | "sequential";
+  sequenceGroup?: string;
   outputType?: "osc" | "dmx";
   dmxEffectId?: string;
   oscEffectId?: string;

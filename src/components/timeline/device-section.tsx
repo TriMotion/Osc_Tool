@@ -529,6 +529,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           deviceAliases={deviceAliases}
           sectionId={focusedSectionId}
           dmxEffects={dmxEffects}
+          sequenceGroups={[...new Set(oscMappings.map((m) => m.sequenceGroup).filter((g): g is string => !!g))]}
           editingMapping={oscEditor.editingMapping}
           onAdd={(mapping) => { onAddOscMapping?.(mapping); }}
           onUpdate={(mapping) => { onUpdateOscMapping?.(mapping); setOscEditor(null); }}

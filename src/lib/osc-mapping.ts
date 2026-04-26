@@ -29,9 +29,10 @@ export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, 
       let clip = clipMin;
       if (clipMax && clipMax > clipMin) {
         if (mapping.resolumeClipMode === "sequential") {
-          const prev = sequentialCounters.get(mapping.id) ?? clipMin;
+          const counterKey = mapping.sequenceGroup || mapping.id;
+          const prev = sequentialCounters.get(counterKey) ?? clipMin;
           clip = prev > clipMax ? clipMin : prev;
-          sequentialCounters.set(mapping.id, clip + 1);
+          sequentialCounters.set(counterKey, clip + 1);
         } else {
           clip = Math.floor(Math.random() * (clipMax - clipMin + 1)) + clipMin;
         }
