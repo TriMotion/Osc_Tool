@@ -3,7 +3,6 @@ import { OscManager } from "./osc-manager";
 import { DiagnosticsRunner } from "./diagnostics";
 import { WebServer } from "./web-server";
 import { EndpointsStore } from "./endpoints-store";
-import { DeckStore } from "./deck-store";
 import { MidiManager } from "./midi-manager";
 import { MidiStore } from "./midi-store";
 import { RecordingStore } from "./recording-store";
@@ -17,8 +16,7 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const oscManager = new OscManager();
   const diagnostics = new DiagnosticsRunner();
   const endpointsStore = new EndpointsStore();
-  const deckStore = new DeckStore();
-  const webServer = new WebServer(oscManager, deckStore);
+  const webServer = new WebServer(oscManager);
   const midiStore = new MidiStore();
   const midiManager = new MidiManager(oscManager);
   const recordingStore = new RecordingStore();
@@ -46,12 +44,7 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle("endpoints:get-all", (_e, type?: "listener" | "sender") => endpointsStore.getAll(type));
   ipcMain.handle("endpoints:add", (_e, endpoint) => endpointsStore.add(endpoint));
   ipcMain.handle("endpoints:update", (_e, id: string, updates) => {
-    const result = endpointsStore.update(id, updates);
-    if (result && (updates.host !== undefined || updates.port !== undefined)) {
-      deckStore.updateEndpointTargets(id, result.host, result.port);
-      webServer.broadcastDeckUpdate(deckStore.getDecks());
-    }
-    return result;
+    return endpointsStore.update(id, updates);
   });
   ipcMain.handle("endpoints:remove", (_e, id: string) => endpointsStore.remove(id));
 
@@ -73,24 +66,6 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
     }
     return "unknown";
   });
-
-  // --- Deck ---
-  ipcMain.handle("deck:get-all", () => deckStore.getDecks());
-  ipcMain.handle("deck:get", (_e, id: string) => deckStore.getDeck(id));
-  ipcMain.handle("deck:create", (_e, name: string) => { const r = deckStore.createDeck(name); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:update", (_e, id: string, updates) => { const r = deckStore.updateDeck(id, updates); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:delete", (_e, id: string) => { const r = deckStore.deleteDeck(id); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:create-page", (_e, deckId: string, name: string) => { const r = deckStore.createPage(deckId, name); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:update-page", (_e, deckId: string, pageId: string, updates) => { const r = deckStore.updatePage(deckId, pageId, updates); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:delete-page", (_e, deckId: string, pageId: string) => { const r = deckStore.deletePage(deckId, pageId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:add-item", (_e, deckId: string, pageId: string, item) => { const r = deckStore.addItem(deckId, pageId, item); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:update-item", (_e, deckId: string, pageId: string, itemId: string, updates) => { const r = deckStore.updateItem(deckId, pageId, itemId, updates); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:remove-item", (_e, deckId: string, pageId: string, itemId: string) => { const r = deckStore.removeItem(deckId, pageId, itemId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:add-group", (_e, deckId: string, pageId: string, group) => { const r = deckStore.addGroup(deckId, pageId, group); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:update-group", (_e, deckId: string, pageId: string, groupId: string, updates) => { const r = deckStore.updateGroup(deckId, pageId, groupId, updates); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:remove-group", (_e, deckId: string, pageId: string, groupId: string) => { const r = deckStore.removeGroup(deckId, pageId, groupId); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:move-item-to-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number) => { const r = deckStore.moveItemToGroup(deckId, pageId, itemId, groupId, absCol, absRow); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
-  ipcMain.handle("deck:move-item-out-of-group", (_e, deckId: string, pageId: string, itemId: string, groupId: string, absCol?: number, absRow?: number) => { const r = deckStore.moveItemOutOfGroup(deckId, pageId, itemId, groupId, absCol, absRow); webServer.broadcastDeckUpdate(deckStore.getDecks()); return r; });
 
   // --- Deck live values (synced across all clients) ---
   const itemValues: Map<string, unknown> = new Map();
