@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg, SavedEndpoint } from "@/lib/types";
+import type { DeckItem, DeckGroup, ButtonConfig, SliderConfig, XYPadConfig, OscArg, SavedEndpoint, MappingToggleConfig, OscMapping, NoteGroupTag, LaneBadge } from "@/lib/types";
 import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig, DmxEffect } from "@/lib/dmx-types";
+import { DeckMappingPicker } from "./deck-mapping-picker";
 import { useEndpoints } from "@/hooks/use-osc";
 
 function SavedEndpointRow({ endpoint, onSelect, onUpdate }: {
@@ -61,6 +62,10 @@ interface ConfigPanelProps {
   inGroup?: boolean;
   onClose: () => void;
   dmxEffects?: DmxEffect[];
+  oscMappings?: OscMapping[];
+  noteTags?: NoteGroupTag[];
+  laneBadges?: LaneBadge[];
+  deviceAliases?: Record<string, string>;
 }
 
 const colorSwatches = ["blue", "green", "purple", "red", "orange", "yellow", "gray"];
@@ -69,7 +74,7 @@ const swatchColors: Record<string, string> = {
   red: "#ef4444", orange: "#f59e0b", yellow: "#eab308", gray: "#6b7280",
 };
 
-export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onRemoveFromGroup, inGroup, onClose, dmxEffects }: ConfigPanelProps) {
+export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDelete, onRemoveFromGroup, inGroup, onClose, dmxEffects, oscMappings, noteTags, laneBadges, deviceAliases }: ConfigPanelProps) {
   const { endpoints: senderEndpoints, update: updateSenderEndpoint } = useEndpoints("sender");
   const { endpoints: listenerEndpoints, update: updateListenerEndpoint } = useEndpoints("listener");
   const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
@@ -476,6 +481,20 @@ export function DeckConfigPanel({ item, group, onUpdateItem, onUpdateGroup, onDe
                     onChange={(e) => onUpdateItem?.({ config: { ...(item.config as DmxFlashConfig), value: parseInt(e.target.value) || 255 } as DmxFlashConfig })}
                   />
                 </div>
+              </div>
+            )}
+
+            {item?.type === "mapping-toggle" && (
+              <div className="space-y-3">
+                <div className="text-[10px] uppercase tracking-wider text-gray-500">Controlled Mappings</div>
+                <DeckMappingPicker
+                  mappings={oscMappings ?? []}
+                  selectedIds={(item.config as MappingToggleConfig).mappingIds}
+                  onChange={(ids) => onUpdateItem?.({ config: { mappingIds: ids } as MappingToggleConfig })}
+                  noteTags={noteTags}
+                  laneBadges={laneBadges}
+                  aliases={deviceAliases}
+                />
               </div>
             )}
           </>
