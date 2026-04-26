@@ -48,10 +48,10 @@ export function useOscSender() {
 }
 
 export function useListenerControl() {
-  const start = useCallback(async (config: ListenerConfig) => {
+  const start = useCallback(async (config: ListenerConfig): Promise<{ ok: true } | { error: string }> => {
     const api = getAPI();
-    if (!api) return;
-    await api.invoke("osc:start-listener", config);
+    if (!api) return { error: "No API available" };
+    return (await api.invoke("osc:start-listener", config)) as { ok: true } | { error: string };
   }, []);
 
   const stop = useCallback(async (port: number) => {
@@ -150,10 +150,12 @@ export function useEndpoints(type: "listener" | "sender") {
     ? allRecEndpoints.filter((ep) => ep.type === type)
     : globalEndpoints;
 
+  const recEndpoints = recording?.endpoints;
+
   const add = useCallback(async (endpoint: Omit<SavedEndpoint, "id">) => {
     const full: SavedEndpoint = { ...endpoint, id: crypto.randomUUID() };
-    if (recording) {
-      patchRecording({ endpoints: [...(recording.endpoints ?? []), full] });
+    if (recEndpoints) {
+      patchRecording({ endpoints: [...recEndpoints, full] });
       const api = getAPI();
       if (api) await api.invoke("endpoints:add", endpoint);
       return;
@@ -165,12 +167,12 @@ export function useEndpoints(type: "listener" | "sender") {
     }
     await api.invoke("endpoints:add", endpoint);
     await refresh();
-  }, [recording, patchRecording, refresh]);
+  }, [recEndpoints, patchRecording, refresh]);
 
   const update = useCallback(async (id: string, updates: Partial<Omit<SavedEndpoint, "id">>) => {
-    if (recording) {
+    if (recEndpoints) {
       patchRecording({
-        endpoints: (recording.endpoints ?? []).map((ep) =>
+        endpoints: recEndpoints.map((ep) =>
           ep.id === id ? { ...ep, ...updates } : ep
         ),
       });
@@ -185,11 +187,11 @@ export function useEndpoints(type: "listener" | "sender") {
     }
     await api.invoke("endpoints:update", id, updates);
     await refresh();
-  }, [recording, patchRecording, refresh]);
+  }, [recEndpoints, patchRecording, refresh]);
 
   const remove = useCallback(async (id: string) => {
-    if (recording) {
-      patchRecording({ endpoints: (recording.endpoints ?? []).filter((ep) => ep.id !== id) });
+    if (recEndpoints) {
+      patchRecording({ endpoints: recEndpoints.filter((ep) => ep.id !== id) });
       const api = getAPI();
       if (api) await api.invoke("endpoints:remove", id);
       return;
@@ -201,7 +203,7 @@ export function useEndpoints(type: "listener" | "sender") {
     }
     await api.invoke("endpoints:remove", id);
     await refresh();
-  }, [recording, patchRecording, refresh]);
+  }, [recEndpoints, patchRecording, refresh]);
 
   return { endpoints, add, update, remove, refresh };
 }

@@ -122,8 +122,19 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
 
   // --- Listener ---
   ipcMain.handle("osc:start-listener", async (_e, config: ListenerConfig) => {
-    await oscManager.startListener(config);
-    return { ok: true };
+    try {
+      await oscManager.startListener(config);
+      return { ok: true };
+    } catch (err: any) {
+      const code = err?.code ?? "";
+      if (code === "EADDRINUSE") {
+        return { error: `Port ${config.port} is already in use by another application` };
+      }
+      if (code === "EACCES") {
+        return { error: `Permission denied for port ${config.port} (ports below 1024 require elevated privileges)` };
+      }
+      return { error: err?.message ?? String(err) };
+    }
   });
 
   ipcMain.handle("osc:stop-listener", (_e, port: number) => {
