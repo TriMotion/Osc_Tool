@@ -778,6 +778,14 @@ export default function TimelinePage() {
           noteFlashRef={noteFlashRef}
           dmxEffects={dmxEffects}
           oscEffects={oscEffects}
+          combineVelocityDevices={recorder.recording?.combineVelocityDevices}
+          onCombineVelocityChange={(device, enabled) => {
+            const current = recorder.recording?.combineVelocityDevices ?? [];
+            const next = enabled
+              ? [...current, device]
+              : current.filter((d) => d !== device);
+            recorder.patchRecording({ combineVelocityDevices: next });
+          }}
         />
       </div>
 

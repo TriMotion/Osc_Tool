@@ -271,6 +271,7 @@ export interface Recording {
   dmxTriggers?: import("./dmx-types").OscDmxTrigger[];
   oscEffects?: import("./osc-effect-types").OscEffect[];
   oscEffectTriggers?: OscEffectTrigger[];
+  combineVelocityDevices?: string[];
 }
 
 // Pairing of note-on with its matching note-off.

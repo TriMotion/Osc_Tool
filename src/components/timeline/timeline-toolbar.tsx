@@ -76,8 +76,7 @@ export function TimelineToolbar(props: TimelineToolbarProps) {
       <div ref={fileRef} className="relative">
         <button
           onClick={() => setOpenFile((v) => !v)}
-          disabled={!hasRecording}
-          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-timeline/40 disabled:opacity-30"
+          className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:text-white hover:border-timeline/40"
         >
           File ▾
         </button>

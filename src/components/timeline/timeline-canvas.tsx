@@ -123,6 +123,8 @@ interface TimelineCanvasProps {
   noteFlashRef?: React.RefObject<NoteFlashRef>;
   dmxEffects?: import("@/lib/dmx-types").DmxEffect[];
   oscEffects?: import("@/lib/osc-effect-types").OscEffect[];
+  combineVelocityDevices?: string[];
+  onCombineVelocityChange?: (device: string, enabled: boolean) => void;
 }
 
 export function TimelineCanvas(props: TimelineCanvasProps) {
@@ -757,6 +759,8 @@ export function TimelineCanvas(props: TimelineCanvasProps) {
           noteFlashRef={props.noteFlashRef}
           dmxEffects={props.dmxEffects}
           oscEffects={props.oscEffects}
+          initialCombineVelocity={props.combineVelocityDevices?.includes(device)}
+          onCombineVelocityChange={props.onCombineVelocityChange}
         />
       ))}
 

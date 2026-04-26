@@ -68,6 +68,8 @@ interface DeviceSectionProps {
   colorIndex?: number;
   dmxEffects?: import("@/lib/dmx-types").DmxEffect[];
   oscEffects?: OscEffect[];
+  initialCombineVelocity?: boolean;
+  onCombineVelocityChange?: (device: string, enabled: boolean) => void;
 }
 
 const DEVICE_COLORS = [
@@ -196,6 +198,7 @@ export function DeviceSection(props: DeviceSectionProps) {
     noteTags = [], onSaveNoteTag, onDeleteNoteTag,
     oscMappings = [], endpoints = [], sections = [], focusedSectionId, onOpenLaneMapping, onAddOscMapping, onUpdateOscMapping, onDeleteOscMapping,
     hiddenLanes, onHideLane, onShowLane, noteFlashRef, colorIndex = 0, dmxEffects, oscEffects = [],
+    initialCombineVelocity, onCombineVelocityChange,
   } = props;
 
   const deviceColor = DEVICE_COLORS[colorIndex % DEVICE_COLORS.length];
@@ -225,7 +228,7 @@ export function DeviceSection(props: DeviceSectionProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [lanesOpen, setLanesOpen] = useState(false);
   const [filterTagged, setFilterTagged] = useState(false);
-  const [combineVelocity, setCombineVelocity] = useState(false);
+  const [combineVelocity, setCombineVelocity] = useState(initialCombineVelocity ?? false);
   const [tagEditor, setTagEditor] = useState<{
     pitch: number;
     velocity: number;
@@ -408,7 +411,7 @@ export function DeviceSection(props: DeviceSectionProps) {
         {allGroups.length > 0 && (
           <button
             onClick={(e) => { e.stopPropagation(); setPanelOpen((v) => !v); }}
-            className={`ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
               panelOpen
                 ? ""
                 : "text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
@@ -422,15 +425,7 @@ export function DeviceSection(props: DeviceSectionProps) {
           </button>
         )}
 
-        {allGroups.length > 0 && endpoints.length > 0 && (
-          <button
-            onClick={handleAddAllUnrealMappings}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-colors text-gray-500 border-white/10 hover:text-gray-300 hover:border-white/20"
-            title="Add Unreal Engine OSC mapping for all note groups"
-          >
-            + OSC
-          </button>
-        )}
+        <div className="ml-auto" />
 
         <div className="relative" ref={lanesMenuRef}>
           <button
@@ -623,7 +618,11 @@ export function DeviceSection(props: DeviceSectionProps) {
                             tagged only
                           </button>
                           <button
-                            onClick={() => setCombineVelocity((v) => !v)}
+                            onClick={() => {
+                              const next = !combineVelocity;
+                              setCombineVelocity(next);
+                              onCombineVelocityChange?.(device, next);
+                            }}
                             className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                               combineVelocity
                                 ? ""
