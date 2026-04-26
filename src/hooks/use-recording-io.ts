@@ -42,11 +42,11 @@ export function useRecordingIO() {
   );
 
   const saveAs = useCallback(
-    async (rec: Recording) => {
+    async (rec: Recording, suggestedPath?: string) => {
       setLastError(null);
       const api = getAPI();
       if (!api) return null;
-      const res = (await api.invoke("recording:save-as", rec)) as
+      const res = (await api.invoke("recording:save-as", rec, suggestedPath)) as
         | { path: string }
         | { cancelled: true }
         | { error: string };

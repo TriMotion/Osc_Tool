@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
 import path from "path";
 import express from "express";
 import http from "http";
@@ -50,7 +50,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#000000",
     titleBarStyle: "hiddenInset",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -66,6 +66,94 @@ function createWindow() {
       setupAutoUpdater(getMainWindow);
     }
   }
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
+        { role: "about" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "Open…",
+          accelerator: "CmdOrCtrl+O",
+          click: () => mainWindow?.webContents.send("app:menu-load"),
+        },
+        { type: "separator" },
+        {
+          label: "Save",
+          accelerator: "CmdOrCtrl+S",
+          click: () => mainWindow?.webContents.send("app:menu-save"),
+        },
+        {
+          label: "Save As…",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => mainWindow?.webContents.send("app:menu-save-as"),
+        },
+      ],
+    },
+    { label: "Edit", submenu: [
+      { role: "undo" }, { role: "redo" }, { type: "separator" },
+      { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "selectAll" },
+    ]},
+    { label: "View", submenu: [
+      { role: "reload" }, { role: "forceReload" }, { role: "toggleDevTools" },
+      { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" },
+      { type: "separator" }, { role: "togglefullscreen" },
+    ]},
+    { label: "Window", submenu: [
+      { role: "minimize" }, { role: "zoom" }, { type: "separator" }, { role: "front" },
+    ]},
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+  let forceClose = false;
+
+  mainWindow.on("close", (e) => {
+    if (forceClose) return;
+    e.preventDefault();
+    mainWindow!.webContents.send("app:check-unsaved");
+  });
+
+  ipcMain.on("app:unsaved-status", (_event, hasUnsaved: boolean) => {
+    if (!hasUnsaved) {
+      forceClose = true;
+      mainWindow?.close();
+      return;
+    }
+    dialog
+      .showMessageBox(mainWindow!, {
+        type: "warning",
+        buttons: ["Save", "Don’t Save", "Cancel"],
+        defaultId: 0,
+        cancelId: 2,
+        message: "You have unsaved changes",
+        detail: "Do you want to save before closing?",
+      })
+      .then(async ({ response }) => {
+        if (response === 2) return;
+        if (response === 0) {
+          mainWindow!.webContents.send("app:save-before-close");
+          return;
+        }
+        forceClose = true;
+        mainWindow?.close();
+      });
+  });
+
+  ipcMain.on("app:save-done", () => {
+    forceClose = true;
+    mainWindow?.close();
+  });
 
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:3000");

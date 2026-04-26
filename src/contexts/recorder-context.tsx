@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRecorder } from "@/hooks/use-recorder";
 import { useMidiConfig } from "@/hooks/use-midi";
 import type { MidiMappingRule, Recording } from "@/lib/types";
@@ -138,6 +138,31 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     setLoadedFromPath(res.path);
     return res.path;
   }, [recorder]);
+
+  const hasUnsavedRef = useRef(recorder.hasUnsaved);
+  hasUnsavedRef.current = recorder.hasUnsaved;
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const saveAsRef = useRef(saveAs);
+  saveAsRef.current = saveAs;
+  const loadFileRef = useRef(loadFile);
+  loadFileRef.current = loadFile;
+
+  useEffect(() => {
+    const api = getAPI();
+    if (!api) return;
+    const offCheck = api.on("app:check-unsaved", () => {
+      api.send("app:unsaved-status", hasUnsavedRef.current);
+    });
+    const offSave = api.on("app:save-before-close", async () => {
+      await saveRef.current();
+      api.send("app:save-done");
+    });
+    const offMenuSave = api.on("app:menu-save", () => { saveRef.current(); });
+    const offMenuSaveAs = api.on("app:menu-save-as", () => { saveAsRef.current(); });
+    const offMenuLoad = api.on("app:menu-load", () => { loadFileRef.current(); });
+    return () => { offCheck(); offSave(); offMenuSave(); offMenuSaveAs(); offMenuLoad(); };
+  }, []);
 
   const value: RecorderContextValue = {
     ...recorder,
