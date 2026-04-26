@@ -74,7 +74,7 @@ export interface DeckGroup {
 export interface DeckItem {
   id: string;
   name: string;
-  type: "button" | "slider" | "xy-pad" | "dmx-trigger" | "dmx-fader" | "dmx-flash";
+  type: "button" | "slider" | "xy-pad" | "dmx-trigger" | "dmx-fader" | "dmx-flash" | "mapping-toggle";
   col: number;
   row: number;
   colSpan: number;
@@ -83,7 +83,7 @@ export interface DeckItem {
   oscTarget: { host: string; port: number };
   oscTargetEndpointId?: string;
   color: string;
-  config: ButtonConfig | SliderConfig | XYPadConfig | DmxTriggerConfig | DmxFaderConfig | DmxFlashConfig;
+  config: ButtonConfig | SliderConfig | XYPadConfig | DmxTriggerConfig | DmxFaderConfig | DmxFlashConfig | MappingToggleConfig;
 }
 
 export interface ButtonConfig {
@@ -107,6 +107,10 @@ export interface XYPadConfig {
   xMax: number;
   yMin: number;
   yMax: number;
+}
+
+export interface MappingToggleConfig {
+  mappingIds: string[];
 }
 
 // --- MIDI types ---
@@ -276,6 +280,8 @@ export interface Recording {
   oscEffects?: import("./osc-effect-types").OscEffect[];
   oscEffectTriggers?: OscEffectTrigger[];
   combineVelocityDevices?: string[];
+  deckPresets?: Deck[];
+  sectionDeckLinks?: Record<string, string>;
 }
 
 // Pairing of note-on with its matching note-off.
