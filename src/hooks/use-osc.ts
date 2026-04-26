@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import type { OscMessage, ListenerConfig, SenderConfig, OscArg, DiagnosticsResult, SavedEndpoint } from "@/lib/types";
+import { useRecorderContext } from "@/contexts/recorder-context";
 
 function getAPI() {
   return typeof window !== "undefined" ? window.electronAPI : undefined;
@@ -131,39 +132,76 @@ export function useWebServer() {
 }
 
 export function useEndpoints(type: "listener" | "sender") {
-  const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
+  const { recording, patchRecording } = useRecorderContext();
+
+  const [globalEndpoints, setGlobalEndpoints] = useState<SavedEndpoint[]>([]);
 
   const refresh = useCallback(async () => {
     const api = getAPI();
     if (!api) return;
     const all = (await api.invoke("endpoints:get-all", type)) as SavedEndpoint[];
-    setEndpoints(all);
+    setGlobalEndpoints(all);
   }, [type]);
 
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const allRecEndpoints = recording?.endpoints ?? null;
+  const endpoints = allRecEndpoints
+    ? allRecEndpoints.filter((ep) => ep.type === type)
+    : globalEndpoints;
+
   const add = useCallback(async (endpoint: Omit<SavedEndpoint, "id">) => {
+    const full: SavedEndpoint = { ...endpoint, id: crypto.randomUUID() };
+    if (recording) {
+      patchRecording({ endpoints: [...(recording.endpoints ?? []), full] });
+      const api = getAPI();
+      if (api) await api.invoke("endpoints:add", endpoint);
+      return;
+    }
     const api = getAPI();
-    if (!api) return;
+    if (!api) {
+      setGlobalEndpoints((prev) => [...prev, full]);
+      return;
+    }
     await api.invoke("endpoints:add", endpoint);
     await refresh();
-  }, [refresh]);
+  }, [recording, patchRecording, refresh]);
 
   const update = useCallback(async (id: string, updates: Partial<Omit<SavedEndpoint, "id">>) => {
+    if (recording) {
+      patchRecording({
+        endpoints: (recording.endpoints ?? []).map((ep) =>
+          ep.id === id ? { ...ep, ...updates } : ep
+        ),
+      });
+      const api = getAPI();
+      if (api) await api.invoke("endpoints:update", id, updates);
+      return;
+    }
     const api = getAPI();
-    if (!api) return;
+    if (!api) {
+      setGlobalEndpoints((prev) => prev.map((ep) => ep.id === id ? { ...ep, ...updates } : ep));
+      return;
+    }
     await api.invoke("endpoints:update", id, updates);
     await refresh();
-  }, [refresh]);
+  }, [recording, patchRecording, refresh]);
 
   const remove = useCallback(async (id: string) => {
+    if (recording) {
+      patchRecording({ endpoints: (recording.endpoints ?? []).filter((ep) => ep.id !== id) });
+      const api = getAPI();
+      if (api) await api.invoke("endpoints:remove", id);
+      return;
+    }
     const api = getAPI();
-    if (!api) return;
+    if (!api) {
+      setGlobalEndpoints((prev) => prev.filter((ep) => ep.id !== id));
+      return;
+    }
     await api.invoke("endpoints:remove", id);
     await refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  }, [recording, patchRecording, refresh]);
 
   return { endpoints, add, update, remove, refresh };
 }
