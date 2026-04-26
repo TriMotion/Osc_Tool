@@ -15,6 +15,7 @@ import { DeviceStrip } from "@/components/live/device-strip";
 import { ActivityFeed } from "@/components/live/activity-feed";
 import { MappingConfigPanel } from "@/components/live/mapping-config-panel";
 import { useLiveMonitor } from "@/hooks/use-live-monitor";
+import { useOscTriggerMonitor } from "@/hooks/use-osc-trigger-monitor";
 import { useRecorderContext } from "@/contexts/recorder-context";
 import { useMidiControl } from "@/hooks/use-midi";
 
@@ -83,6 +84,11 @@ export default function DeckPage() {
   const { entries, deviceActivity } = useLiveMonitor({
     recording: recorder.recording,
     endpoints: senderEndpoints,
+    activeSectionId,
+  });
+
+  useOscTriggerMonitor({
+    recording: recorder.recording,
     activeSectionId,
   });
 
