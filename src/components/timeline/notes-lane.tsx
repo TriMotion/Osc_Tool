@@ -293,11 +293,11 @@ export function NotesLane(props: NotesLaneProps) {
 
   return (
     <div
-      className={`relative border-t border-white/5 ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
+      className={`relative border-t border-white/10 ${isFlashing ? "ring-1 ring-accent/60" : ""}`}
       style={{ height: heightPx }}
     >
       <div
-        className="group/gutter absolute left-0 top-0 h-full text-[10px] text-gray-500 px-3 flex flex-col justify-center gap-0.5 border-r border-white/5 z-[2] bg-black/0 overflow-hidden"
+        className="group/gutter absolute left-0 top-0 h-full text-[10px] text-gray-500 px-3 flex flex-col justify-center gap-0.5 border-r border-white/10 z-[2] bg-black/0 overflow-hidden"
         style={{ width: leftGutterPx }}
       >
         <div className="flex items-center gap-2">

@@ -101,7 +101,7 @@ export function AudioLane({
     >
       {/* Gutter with audio controls */}
       <div
-        className="absolute left-0 top-0 h-full flex flex-col justify-center px-3 gap-0.5 border-r border-white/5 z-[2] overflow-hidden"
+        className="absolute left-0 top-0 h-full flex flex-col justify-center px-3 gap-0.5 border-r border-white/10 z-[2] overflow-hidden"
         style={{ width: leftGutterPx }}
       >
         {audioLoaded ? (

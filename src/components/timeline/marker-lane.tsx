@@ -72,10 +72,10 @@ export function MarkerLane({
   const systemCount = markers.filter((m) => m.kind !== "user").length;
 
   return (
-    <div className="relative flex border-b border-white/5 select-none" style={{ height: 24 }}>
+    <div className="relative flex border-b border-white/10 select-none" style={{ height: 24 }}>
       {/* Gutter */}
       <div
-        className="group/gutter text-[10px] text-gray-600 px-3 flex items-center gap-2 border-r border-white/5 shrink-0"
+        className="group/gutter text-[10px] text-gray-600 px-3 flex items-center gap-2 border-r border-white/10 shrink-0"
         style={{ width: leftGutterPx }}
       >
         <span>Markers</span>

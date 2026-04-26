@@ -48,7 +48,7 @@ export function ContinuousLane({
   leftGutterPx,
   valueMapper,
   color = "#c7f168",
-  fill = "rgba(199,241,104,0.10)",
+  fill = "rgba(199,241,104,0.15)",
   bufferVersion,
   onHover,
   onResize,
@@ -172,13 +172,13 @@ export function ContinuousLane({
   return (
     <div
       ref={wrapRef}
-      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
+      className={`relative border-t border-white/10 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
       style={{ height: heightPx }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
       <div
-        className="group/gutter text-[10px] text-gray-500 px-3 border-r border-white/5 flex items-center gap-1.5 overflow-hidden"
+        className="group/gutter text-[10px] text-gray-500 px-3 border-r border-white/10 flex items-center gap-1.5 overflow-hidden"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         <div className="flex flex-col justify-center min-w-0 flex-1 overflow-hidden">

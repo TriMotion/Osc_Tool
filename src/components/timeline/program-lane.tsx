@@ -62,11 +62,11 @@ export function ProgramLane(props: ProgramLaneProps) {
 
   return (
     <div
-      className={`relative border-t border-white/5 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
+      className={`relative border-t border-white/10 flex ${isFlashing ? "ring-1 ring-timeline/60" : ""}`}
       style={{ height: heightPx }}
     >
       <div
-        className="group/gutter text-[10px] text-gray-500 px-3 py-1 border-r border-white/5 flex flex-col justify-center overflow-hidden relative"
+        className="group/gutter text-[10px] text-gray-500 px-3 py-1 border-r border-white/10 flex flex-col justify-center overflow-hidden relative"
         style={{ width: leftGutterPx, flexShrink: 0 }}
       >
         <span className="truncate">{label}</span>
