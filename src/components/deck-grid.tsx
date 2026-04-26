@@ -29,6 +29,8 @@ interface DeckGridProps {
   onDmxTrigger?: (effectId: string) => void;
   onDmxSetChannel?: (channel: number, value: number) => void;
   onDmxReleaseChannel?: (channel: number) => void;
+  onToggle?: (itemId: string) => void;
+  isToggleOn?: (itemId: string) => boolean;
 }
 
 export function DeckGrid({
@@ -37,6 +39,7 @@ export function DeckGrid({
   onPlaceItem, onMoveItem, onResizeItem, onMoveGroup, onResizeGroup,
   onMoveItemToGroup, onMoveItemOutOfGroup, onPushItems,
   dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel,
+  onToggle, isToggleOn,
 }: DeckGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragPreview, setDragPreview] = useState<{ col: number; row: number; colSpan: number; rowSpan: number } | null>(null);
@@ -302,6 +305,8 @@ export function DeckGrid({
             onDmxTrigger={onDmxTrigger}
             onDmxSetChannel={onDmxSetChannel}
             onDmxReleaseChannel={onDmxReleaseChannel}
+            onToggle={onToggle}
+            isToggleOn={isToggleOn?.(item.id)}
           />
           {editMode && (
             <div
