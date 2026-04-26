@@ -17,6 +17,8 @@ interface DeckGroupProps {
   onDmxTrigger?: (effectId: string) => void;
   onDmxSetChannel?: (channel: number, value: number) => void;
   onDmxReleaseChannel?: (channel: number) => void;
+  onToggle?: (itemId: string) => void;
+  isToggleOn?: (itemId: string) => boolean;
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string }> = {
@@ -29,7 +31,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string }> = {
   gray:   { bg: "rgba(255,255,255,0.02)", border: "rgba(255,255,255,0.08)", text: "#9ca3af" },
 };
 
-export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel }: DeckGroupProps) {
+export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemValues, onSelectItem, onSelectGroup, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel, onToggle, isToggleOn }: DeckGroupProps) {
   const colors = colorMap[group.color] ?? colorMap.gray;
 
   return (
@@ -73,6 +75,8 @@ export function DeckGroupView({ group, editMode, onSendOsc, onValueChange, itemV
               onDmxTrigger={onDmxTrigger}
               onDmxSetChannel={onDmxSetChannel}
               onDmxReleaseChannel={onDmxReleaseChannel}
+              onToggle={onToggle}
+              isToggleOn={isToggleOn?.(item.id)}
             />
           </div>
         ))}

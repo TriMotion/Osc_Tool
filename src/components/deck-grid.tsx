@@ -273,6 +273,8 @@ export function DeckGrid({
             onDmxTrigger={onDmxTrigger}
             onDmxSetChannel={onDmxSetChannel}
             onDmxReleaseChannel={onDmxReleaseChannel}
+            onToggle={onToggle}
+            isToggleOn={isToggleOn}
           />
           {editMode && (
             <div
