@@ -6,15 +6,16 @@ import type { OscDmxTrigger, DmxEffect } from "@/lib/dmx-types";
 interface OscTriggerPanelProps {
   triggers: OscDmxTrigger[];
   effects: DmxEffect[];
+  sections: import("@/lib/types").TimelineSection[];
   onSave: (trigger: OscDmxTrigger) => void;
   onDelete: (id: string) => void;
 }
 
 function emptyTrigger(): OscDmxTrigger {
-  return { id: "", name: "", oscAddress: "", mode: "match-only", dmxEffectId: "", dmxChannels: [], inputMin: 0, inputMax: 1, outputMin: 0, outputMax: 255 };
+  return { id: "", name: "", oscAddress: "", mode: "match-only", dmxEffectId: "", dmxChannels: [], inputMin: 0, inputMax: 1, outputMin: 0, outputMax: 255, sectionId: undefined };
 }
 
-export function OscTriggerPanel({ triggers, effects, onSave, onDelete }: OscTriggerPanelProps) {
+export function OscTriggerPanel({ triggers, effects, sections, onSave, onDelete }: OscTriggerPanelProps) {
   const [editing, setEditing] = useState<OscDmxTrigger | null>(null);
 
   const startEdit = (t?: OscDmxTrigger) => setEditing(t ? { ...t } : emptyTrigger());
@@ -135,6 +136,20 @@ export function OscTriggerPanel({ triggers, effects, onSave, onDelete }: OscTrig
           </>
         )}
 
+        <div>
+          <label className="block text-[10px] uppercase text-gray-500 mb-1">Section</label>
+          <select
+            className="w-full bg-[#1a1a2e] border border-white/10 rounded px-2 py-1 text-sm text-white"
+            value={editing.sectionId ?? ""}
+            onChange={(e) => setEditing({ ...editing, sectionId: e.target.value || undefined })}
+          >
+            <option value="">All sections</option>
+            {sections.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex gap-2">
           <button className="px-3 py-1 rounded bg-output hover:bg-output-dim text-white text-xs" onClick={handleSave}>Save</button>
           <button className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-xs" onClick={() => setEditing(null)}>Cancel</button>
@@ -154,7 +169,12 @@ export function OscTriggerPanel({ triggers, effects, onSave, onDelete }: OscTrig
         <div key={t.id} className="flex items-center justify-between bg-[#1a1a2e] rounded px-3 py-2 border border-white/5">
           <div>
             <div className="text-xs text-white">{t.name || t.oscAddress}</div>
-            <div className="text-[9px] text-gray-500">{t.oscAddress} · {t.mode}</div>
+            <div className="text-[9px] text-gray-500">
+              {t.oscAddress} · {t.mode}
+              {t.sectionId && sections.find((s) => s.id === t.sectionId) && (
+                <span> · <span className="text-output/60">{sections.find((s) => s.id === t.sectionId)!.name}</span></span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <button className="text-[10px] text-gray-400 hover:text-white" onClick={() => startEdit(t)}>Edit</button>

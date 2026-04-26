@@ -14,6 +14,8 @@ import { SegmentStrip } from "@/components/dmx/segment-strip";
 import type { OscArg, SavedEndpoint } from "@/lib/types";
 import type { DmxEffect, DmxSegment } from "@/lib/dmx-types";
 import type { OscEffect, OscEffectSegment } from "@/lib/osc-effect-types";
+import { OscEffectTriggerPanel } from "@/components/osc-effect-trigger-panel";
+import { useRecorderContext } from "@/contexts/recorder-context";
 
 // ─── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -322,6 +324,8 @@ function SenderPanel() {
 // ─── DMX Panel ─────────────────────────────────────────────────────────────────
 
 function DmxPanel() {
+  const recorder = useRecorderContext();
+  const sections = recorder.recording?.sections ?? [];
   const {
     config, setConfig,
     effects, saveEffect, deleteEffect, triggerEffect,
@@ -682,6 +686,7 @@ function DmxPanel() {
             <OscTriggerPanel
               triggers={triggers}
               effects={effects}
+              sections={sections}
               onSave={saveTrigger}
               onDelete={deleteTrigger}
             />
