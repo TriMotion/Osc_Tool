@@ -129,10 +129,12 @@ function LaneControlsPopover({
  * Find an OSC address from a mapping rule that matches the given lane key, if any.
  * Used to show the user's named address (e.g. "/fader/master") alongside the lane label.
  */
-function dmxEffectLabel(effectId: string | undefined, effects?: import("@/lib/dmx-types").DmxEffect[]): string {
-  if (!effectId) return "DMX: —";
-  const eff = effects?.find((e) => e.id === effectId);
-  return `DMX: ${eff?.name ?? effectId.slice(0, 8)}`;
+function dmxMappingLabel(mapping: OscMapping, effects?: import("@/lib/dmx-types").DmxEffect[]): string {
+  if (mapping.dmxSequenceMode === "channel") return `DMX: seq→ch ${mapping.dmxBaseChannel ?? 1}+`;
+  if (mapping.dmxSequenceMode === "value") return `DMX: seq→val ch${mapping.dmxFixedChannel ?? 1}`;
+  if (!mapping.dmxEffectId) return "DMX: —";
+  const eff = effects?.find((e) => e.id === mapping.dmxEffectId);
+  return `DMX: ${eff?.name ?? mapping.dmxEffectId.slice(0, 8)}`;
 }
 
 function oscEffectLabel(mapping: OscMapping, oscEffects: OscEffect[]): string | null {
@@ -158,7 +160,7 @@ function oscLabelFor(
       (focusedSectionId ? m.sectionId === focusedSectionId : !m.sectionId),
   );
   if (om) {
-    if (om.outputType === "dmx") return dmxEffectLabel(om.dmxEffectId, dmxEffects);
+    if (om.outputType === "dmx") return dmxMappingLabel(om, dmxEffects);
     if (om.oscEffectId && oscEffects) return oscEffectLabel(om, oscEffects) ?? resolveOscAddress(om, deviceAliases);
     return resolveOscAddress(om, deviceAliases);
   }
@@ -794,7 +796,7 @@ export function DeviceSection(props: DeviceSectionProps) {
                                                 });
                                               }}
                                             >
-                                              <span className="font-mono truncate max-w-[120px]">{m.outputType === "dmx" ? dmxEffectLabel(m.dmxEffectId, dmxEffects) : (m.oscEffectId ? oscEffectLabel(m, oscEffects) : null) ?? resolveOscAddress(m, deviceAliases)}</span>
+                                              <span className="font-mono truncate max-w-[120px]">{m.outputType === "dmx" ? dmxMappingLabel(m, dmxEffects) : (m.oscEffectId ? oscEffectLabel(m, oscEffects) : null) ?? resolveOscAddress(m, deviceAliases)}</span>
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); onDeleteOscMapping?.(m.id); }}
                                                 className="opacity-40 hover:text-red-400 leading-none transition-colors"

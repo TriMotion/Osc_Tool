@@ -68,6 +68,10 @@ export function OscMappingEditor({
   const [velocityExact, setVelocityExact] = useState(seed?.velocityExact ?? 100);
   const [outputType, setOutputType] = useState<"osc" | "dmx">(seed?.outputType ?? "osc");
   const [dmxEffectId, setDmxEffectId] = useState(seed?.dmxEffectId ?? "");
+  const [dmxSequenceMode, setDmxSequenceMode] = useState<"channel" | "value" | "">(seed?.dmxSequenceMode ?? "");
+  const [dmxBaseChannel, setDmxBaseChannel] = useState(seed?.dmxBaseChannel ?? 1);
+  const [dmxFixedValue, setDmxFixedValue] = useState(seed?.dmxFixedValue ?? 255);
+  const [dmxFixedChannel, setDmxFixedChannel] = useState(seed?.dmxFixedChannel ?? 1);
   const [oscEffectId, setOscEffectId] = useState(seed?.oscEffectId ?? "");
   const { effects: oscEffects } = useOscEffects();
 
@@ -95,7 +99,11 @@ export function OscMappingEditor({
     velocityMin: velocityFilter === "min" ? velocityMin : undefined,
     velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
     outputType,
-    dmxEffectId: outputType === "dmx" ? dmxEffectId : undefined,
+    dmxEffectId: outputType === "dmx" && !dmxSequenceMode ? dmxEffectId : undefined,
+    dmxSequenceMode: outputType === "dmx" && dmxSequenceMode ? dmxSequenceMode : undefined,
+    dmxBaseChannel: outputType === "dmx" && dmxSequenceMode === "channel" ? dmxBaseChannel : undefined,
+    dmxFixedValue: outputType === "dmx" && dmxSequenceMode === "channel" ? dmxFixedValue : undefined,
+    dmxFixedChannel: outputType === "dmx" && dmxSequenceMode === "value" ? dmxFixedChannel : undefined,
     oscEffectId: outputType === "osc" ? (oscEffectId || undefined) : undefined,
   });
 
@@ -195,18 +203,80 @@ export function OscMappingEditor({
         </div>
 
         {outputType === "dmx" ? (
-          <div>
-            <label className="block text-[10px] text-gray-500 mb-1">DMX Effect</label>
-            <select
-              value={dmxEffectId}
-              onChange={(e) => setDmxEffectId(e.target.value)}
-              className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
-            >
-              <option value="">None</option>
-              {(dmxEffects ?? []).map((eff) => (
-                <option key={eff.id} value={eff.id}>{eff.name}</option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-1">DMX Mode</label>
+              <div className="flex gap-1">
+                <button
+                  className={`flex-1 text-xs py-1 rounded border ${!dmxSequenceMode ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-elevated border-white/10 text-gray-500"}`}
+                  onClick={() => setDmxSequenceMode("")}
+                >Effect</button>
+                <button
+                  className={`flex-1 text-xs py-1 rounded border ${dmxSequenceMode === "channel" ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-elevated border-white/10 text-gray-500"}`}
+                  onClick={() => setDmxSequenceMode("channel")}
+                >Seq → Ch</button>
+                <button
+                  className={`flex-1 text-xs py-1 rounded border ${dmxSequenceMode === "value" ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-elevated border-white/10 text-gray-500"}`}
+                  onClick={() => setDmxSequenceMode("value")}
+                >Seq → Val</button>
+              </div>
+            </div>
+            {!dmxSequenceMode && (
+              <div>
+                <label className="block text-[10px] text-gray-500 mb-1">DMX Effect</label>
+                <select
+                  value={dmxEffectId}
+                  onChange={(e) => setDmxEffectId(e.target.value)}
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
+                >
+                  <option value="">None</option>
+                  {(dmxEffects ?? []).map((eff) => (
+                    <option key={eff.id} value={eff.id}>{eff.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {dmxSequenceMode === "channel" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-gray-500 mb-1">Base channel</label>
+                  <input type="number" min={1} max={512} value={dmxBaseChannel}
+                    onChange={(e) => setDmxBaseChannel(Math.max(1, Math.min(512, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-gray-500 mb-1">Value</label>
+                  <input type="number" min={0} max={255} value={dmxFixedValue}
+                    onChange={(e) => setDmxFixedValue(Math.max(0, Math.min(255, parseInt(e.target.value) || 0)))}
+                    className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18" />
+                </div>
+              </div>
+            )}
+            {dmxSequenceMode === "value" && (
+              <div>
+                <label className="block text-[10px] text-gray-500 mb-1">Channel</label>
+                <input type="number" min={1} max={512} value={dmxFixedChannel}
+                  onChange={(e) => setDmxFixedChannel(Math.max(1, Math.min(512, parseInt(e.target.value) || 1)))}
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18" />
+              </div>
+            )}
+            {dmxSequenceMode && (
+              <div>
+                <label className="block text-[10px] text-gray-500 mb-1">Sequence group</label>
+                <input
+                  list="sequence-groups-dmx"
+                  value={sequenceGroup}
+                  onChange={(e) => setSequenceGroup(e.target.value)}
+                  placeholder="required — shared with OSC mappings"
+                  className="w-full bg-elevated border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-timeline/18"
+                />
+                <datalist id="sequence-groups-dmx">
+                  {sequenceGroups.map((g) => (
+                    <option key={g} value={g} />
+                  ))}
+                </datalist>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -467,7 +537,7 @@ export function OscMappingEditor({
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              disabled={(outputType === "osc" && !endpointId) || (outputType === "dmx" && !dmxEffectId)}
+              disabled={(outputType === "osc" && !endpointId) || (outputType === "dmx" && (dmxSequenceMode ? !sequenceGroup : !dmxEffectId))}
               className="flex-1 py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Save
@@ -482,7 +552,7 @@ export function OscMappingEditor({
         ) : (
           <button
             onClick={handleAdd}
-            disabled={(outputType === "osc" && (!endpointId || endpoints.length === 0)) || (outputType === "dmx" && !dmxEffectId)}
+            disabled={(outputType === "osc" && (!endpointId || endpoints.length === 0)) || (outputType === "dmx" && (dmxSequenceMode ? !sequenceGroup : !dmxEffectId))}
             className="w-full py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
           >
             + Add Mapping

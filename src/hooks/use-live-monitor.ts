@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMidiEvents } from "@/hooks/use-midi";
-import { matchesMapping, resolveOscAddress, computeOscArgValue } from "@/lib/osc-mapping";
+import { matchesMapping, resolveOscAddress, computeOscArgValue, getSequenceIndex } from "@/lib/osc-mapping";
 import type { ActivityEntry, MidiEvent, Recording, RecordedEvent, SavedEndpoint } from "@/lib/types";
 
 const RING_SIZE = 500;
@@ -83,7 +83,20 @@ export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiv
           const value = computeOscArgValue(fakeEvt, mapping);
           const allEndpointIds = [mapping.endpointId, ...(mapping.extraEndpointIds ?? [])];
 
-          if (mapping.outputType === "dmx" && mapping.dmxEffectId && event.midi.type === "noteon") {
+          if (mapping.outputType === "dmx" && mapping.dmxSequenceMode && mapping.sequenceGroup && event.midi.type === "noteon") {
+            const clipMin = mapping.resolumeClip ?? 1;
+            const clipMax = mapping.resolumeClipMax ?? clipMin;
+            const idx = getSequenceIndex(mapping.sequenceGroup, clipMin, clipMax);
+            const offset = idx - clipMin;
+            if (mapping.dmxSequenceMode === "channel") {
+              const ch = (mapping.dmxBaseChannel ?? 1) + offset;
+              if (ch >= 1 && ch <= 512) window.electronAPI?.invoke("dmx:set-channel", ch, mapping.dmxFixedValue ?? 255);
+            } else {
+              const range = Math.max(1, clipMax - clipMin + 1);
+              const val = Math.round((offset / (range - 1)) * 255);
+              window.electronAPI?.invoke("dmx:set-channel", mapping.dmxFixedChannel ?? 1, val);
+            }
+          } else if (mapping.outputType === "dmx" && mapping.dmxEffectId && event.midi.type === "noteon") {
             const velocityScale = event.midi.data2 / 127;
             window.electronAPI?.invoke("dmx:trigger-effect", mapping.dmxEffectId, velocityScale);
           } else if (mapping.outputType === "dmx") {

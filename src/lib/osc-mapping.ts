@@ -8,6 +8,11 @@ export function resolveDeviceName(name: string, aliases?: Record<string, string>
 
 const sequentialCounters = new Map<string, number>();
 
+export function getSequenceIndex(groupOrId: string, clipMin: number, clipMax: number): number {
+  const current = sequentialCounters.get(groupOrId) ?? clipMin;
+  return current > clipMax ? clipMin : current;
+}
+
 export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>, eventVelocity?: number): string {
   switch (mapping.preset) {
     case "custom":

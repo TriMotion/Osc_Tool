@@ -209,6 +209,10 @@ export interface OscMapping {
   resolumeClipMode?: "random" | "sequential";
   sequenceGroup?: string;
   outputType?: "osc" | "dmx";
+  dmxSequenceMode?: "channel" | "value";
+  dmxBaseChannel?: number;
+  dmxFixedValue?: number;
+  dmxFixedChannel?: number;
   dmxEffectId?: string;
   oscEffectId?: string;
 }
