@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig, OscArg } from "@/lib/types";
+import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig, OscArg, MappingToggleConfig } from "@/lib/types";
 import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx-types";
 import type { DmxEffect } from "@/lib/dmx-types";
 import { DmxTriggerTile } from "./dmx/dmx-trigger-tile";
@@ -21,6 +21,8 @@ interface DeckItemProps {
   onDmxTrigger?: (effectId: string) => void;
   onDmxSetChannel?: (channel: number, value: number) => void;
   onDmxReleaseChannel?: (channel: number) => void;
+  onToggle?: (itemId: string) => void;
+  isToggleOn?: boolean;
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string; fill: string }> = {
@@ -33,13 +35,18 @@ const colorMap: Record<string, { bg: string; border: string; text: string; fill:
   gray:   { bg: "#222244", border: "rgba(255,255,255,0.08)", text: "#9ca3af", fill: "#6b7280" },
 };
 
-export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, onSelect, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel }: DeckItemProps) {
+export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, onSelect, onDragStart, dmxEffects, onDmxTrigger, onDmxSetChannel, onDmxReleaseChannel, onToggle, isToggleOn }: DeckItemProps) {
   const extVal = value as Record<string, unknown> | undefined;
   const toggled = !!(extVal?.toggled);
   const sliderValue = typeof extVal?.slider === "number" ? extVal.slider : 0.5;
   const xyValue = extVal?.xy as { x: number; y: number } | undefined ?? { x: 0.5, y: 0.5 };
 
   const colors = colorMap[item.color] ?? colorMap.gray;
+
+  const handleToggleClick = () => {
+    if (editMode) { onSelect?.(); return; }
+    onToggle?.(item.id);
+  };
 
   const handleButtonClick = () => {
     if (editMode) { onSelect?.(); return; }
@@ -118,6 +125,37 @@ export function DeckItemView({ item, editMode, value, onSendOsc, onValueChange, 
     window.addEventListener("mouseup", onMouseUp);
     updateValue(e.clientX, e.clientY);
   }, [editMode, item, onSendOsc, onSelect]);
+
+  if (item.type === "mapping-toggle") {
+    const config = item.config as MappingToggleConfig;
+    const isOn = isToggleOn ?? true;
+    return (
+      <motion.div
+        className="relative w-full h-full rounded-lg flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden"
+        style={{
+          background: isOn ? colors.bg : "#1a1a2e",
+          border: `1px solid ${isOn ? colors.border : "rgba(255,255,255,0.05)"}`,
+        }}
+        whileTap={editMode ? undefined : { scale: 0.95 }}
+        onClick={handleToggleClick}
+        onMouseDown={editMode ? onDragStart : undefined}
+      >
+        <div
+          className="w-2 h-2 rounded-full mb-1"
+          style={{ background: isOn ? "#22c55e" : "#ef4444" }}
+        />
+        <span
+          className="text-[10px] font-medium leading-tight text-center px-1"
+          style={{ color: isOn ? colors.text : "#6b7280" }}
+        >
+          {item.name}
+        </span>
+        <span className="text-[8px] text-gray-500 mt-0.5">
+          {config.mappingIds.length} mapping{config.mappingIds.length !== 1 ? "s" : ""}
+        </span>
+      </motion.div>
+    );
+  }
 
   if (item.type === "button") {
     const config = item.config as ButtonConfig;
