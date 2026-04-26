@@ -34,6 +34,15 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   const oscEffectStore = new OscEffectStore();
   const oscEffectEngine = new OscEffectEngine(oscManager);
   oscEffectEngine.loadEffects(oscEffectStore.getAll());
+
+  ipcMain.handle("stores:get-seed-data", () => ({
+    endpoints: endpointsStore.getAll(),
+    dmxConfig: dmxStore.getConfig(),
+    dmxEffects: dmxStore.getEffects(),
+    dmxTriggers: dmxStore.getTriggers(),
+    oscEffects: oscEffectStore.getAll(),
+  }));
+
   const dmxConfig = dmxStore.getConfig();
   if (dmxConfig.enabled) dmxEngine.start(dmxConfig);
 
