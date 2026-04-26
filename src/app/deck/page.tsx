@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useDeck } from "@/hooks/use-deck";
 import { useEndpoints } from "@/hooks/use-osc";
 import { DeckTopbar } from "@/components/deck-topbar";
@@ -13,10 +13,11 @@ import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx
 import { SectionSelector } from "@/components/live/section-selector";
 import { DeviceStrip } from "@/components/live/device-strip";
 import { ActivityFeed } from "@/components/live/activity-feed";
+import { MappingConfigPanel } from "@/components/live/mapping-config-panel";
 import { useLiveMonitor } from "@/hooks/use-live-monitor";
 import { useRecorderContext } from "@/contexts/recorder-context";
 import { useMidiControl } from "@/hooks/use-midi";
-import type { SavedEndpoint } from "@/lib/types";
+
 
 function defaultButtonConfig(): ButtonConfig {
   return {
@@ -66,7 +67,7 @@ export default function DeckPage() {
 
   const { effects: dmxEffects, triggerEffect, setChannel, releaseChannel } = useDmx();
 
-  const [mode, setMode] = useState<"edit" | "live">("edit");
+  const [mode, setMode] = useState<"edit" | "live">("live");
   const [editMode, setEditMode] = useState(false);
   const [placingType, setPlacingType] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -77,20 +78,39 @@ export default function DeckPage() {
   const recorder = useRecorderContext();
   const { devices: connectedPorts } = useMidiControl();
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
-  const [liveEndpoints, setLiveEndpoints] = useState<SavedEndpoint[]>([]);
   const [showUnmapped, setShowUnmapped] = useState(false);
-
-  useEffect(() => {
-    window.electronAPI?.invoke("endpoints:get-all", "sender").then((res: any) => {
-      setLiveEndpoints((res as SavedEndpoint[]) ?? []);
-    });
-  }, []);
 
   const { entries, deviceActivity } = useLiveMonitor({
     recording: recorder.recording,
-    endpoints: liveEndpoints,
+    endpoints: senderEndpoints,
     activeSectionId,
   });
+
+  const flashTriggers = useMemo(() => {
+    const triggers: Record<string, number> = {};
+    for (const entry of entries) {
+      if (entry.mapping) {
+        triggers[entry.mapping.id] = (triggers[entry.mapping.id] ?? 0) + 1;
+      }
+    }
+    return triggers;
+  }, [entries]);
+
+  const handleUpdateMappings = useCallback((mappings: import("@/lib/types").OscMapping[]) => {
+    recorder.patchRecording({ oscMappings: mappings });
+  }, [recorder]);
+
+  const handleUpdateDeviceLinks = useCallback((links: Record<string, string>) => {
+    recorder.patchRecording({ liveDeviceLinks: links });
+  }, [recorder]);
+
+  const handleToggleDevice = useCallback((deviceName: string, disabled: boolean) => {
+    const current = recorder.recording?.disabledLiveDevices ?? [];
+    const next = disabled
+      ? [...current, deviceName]
+      : current.filter((d) => d !== deviceName);
+    recorder.patchRecording({ disabledLiveDevices: next });
+  }, [recorder]);
 
   const selectedItem = activePage
     ? activePage.items.find((i) => i.id === selectedItemId) ??
@@ -190,16 +210,6 @@ export default function DeckPage() {
         />
         <div className="ml-auto flex bg-elevated rounded-lg p-0.5 border border-white/[0.06] mr-4">
           <button
-            onClick={() => setMode("edit")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              mode === "edit"
-                ? "bg-deck text-white"
-                : "text-[#666] hover:text-[#aaa]"
-            }`}
-          >
-            Edit
-          </button>
-          <button
             onClick={() => setMode("live")}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               mode === "live"
@@ -208,6 +218,16 @@ export default function DeckPage() {
             }`}
           >
             Live
+          </button>
+          <button
+            onClick={() => setMode("edit")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "edit"
+                ? "bg-deck text-white"
+                : "text-[#666] hover:text-[#aaa]"
+            }`}
+          >
+            Edit
           </button>
         </div>
       </div>
@@ -340,7 +360,16 @@ export default function DeckPage() {
             activeSectionId={activeSectionId}
             onSelect={setActiveSectionId}
           />
-          <DeviceStrip devices={connectedPorts} deviceActivity={deviceActivity} />
+          <DeviceStrip
+            devices={connectedPorts}
+            deviceActivity={deviceActivity}
+            aliases={recorder.recording?.deviceAliases}
+            liveDeviceLinks={recorder.recording?.liveDeviceLinks}
+            connectedLivePorts={connectedPorts}
+            disabledDevices={recorder.recording?.disabledLiveDevices}
+            onUpdateLinks={handleUpdateDeviceLinks}
+            onToggleDevice={handleToggleDevice}
+          />
           <div className="flex-1 flex overflow-hidden">
             {activePage && activeDeck ? (
               <div className="flex-1 overflow-auto">
@@ -378,9 +407,20 @@ export default function DeckPage() {
               entries={entries}
               showUnmapped={showUnmapped}
               onToggleUnmapped={setShowUnmapped}
-              endpoints={liveEndpoints}
+              endpoints={senderEndpoints}
             />
           </div>
+          {recorder.recording?.oscMappings && recorder.recording.oscMappings.length > 0 && (
+            <MappingConfigPanel
+              mappings={recorder.recording.oscMappings}
+              endpoints={senderEndpoints}
+              aliases={recorder.recording.deviceAliases}
+              flashTriggers={flashTriggers}
+              onUpdateMappings={handleUpdateMappings}
+              recordingId={recorder.recording.id}
+              activeSectionId={activeSectionId}
+            />
+          )}
         </div>
       )}
     </div>

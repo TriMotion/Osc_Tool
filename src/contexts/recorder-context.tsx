@@ -9,6 +9,7 @@ type RecorderBase = ReturnType<typeof useRecorder>;
 
 interface RecorderContextValue extends RecorderBase {
   loadedFromPath: string | null;
+  setLoadedFromPath: (path: string | null) => void;
   save: (suggestedPath?: string) => Promise<string | null>;
   saveAs: (suggestedPath?: string) => Promise<string | null>;
   loadFile: () => Promise<boolean>;
@@ -141,6 +142,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const value: RecorderContextValue = {
     ...recorder,
     loadedFromPath,
+    setLoadedFromPath,
     save,
     saveAs,
     loadFile,

@@ -18,6 +18,7 @@ import { RecordingInfoPanel } from "@/components/timeline/recording-info";
 import { BadgeEditorModal } from "@/components/timeline/badge-editor-modal";
 import { buildLaneMap, pairNoteSpans } from "@/lib/timeline-util";
 import { migrateOscMappings } from "@/lib/osc-mapping-migration";
+import { useEndpoints } from "@/hooks/use-osc";
 import type { LaneBadge, LaneKey, LaneMap, Moment, NoteGroupTag, NoteSpan, Recording, OscMapping, SavedEndpoint } from "@/lib/types";
 import { laneKeyString } from "@/lib/types";
 
@@ -62,13 +63,7 @@ export default function TimelinePage() {
     onPlayheadChange: setPlayheadDisplayMs,
   });
 
-  const [endpoints, setEndpoints] = useState<SavedEndpoint[]>([]);
-
-  useEffect(() => {
-    window.electronAPI?.invoke("endpoints:get-all", "sender").then((res) => {
-      setEndpoints((res as SavedEndpoint[]) ?? []);
-    });
-  }, []);
+  const { endpoints: senderEndpoints } = useEndpoints("sender");
 
   const [activityLaneKeys, setActivityLaneKeys] = useState<Set<string>>(new Set());
   const activityPendingRef = useRef<Set<string>>(new Set());
@@ -114,7 +109,7 @@ export default function TimelinePage() {
     recording: recorder.recording ?? null,
     playheadMsRef: audio.playheadMsRef,
     isPlaying: audio.isPlaying,
-    endpoints,
+    endpoints: senderEndpoints,
     deviceAliases: recorder.recording?.deviceAliases,
     onActivity: handleActivity,
     onNoteFlash: handleNoteFlash,
@@ -122,7 +117,6 @@ export default function TimelinePage() {
 
   const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
   const [pendingMidiMerge, setPendingMidiMerge] = useState<Recording | null>(null);
-  const [saveSuggestedPath, setSaveSuggestedPath] = useState<string | null>(null);
   const [canvasWidthPx, setCanvasWidthPx] = useState(800);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
   const [triggersSidebarOpen, setTriggersSidebarOpen] = useState(false);
@@ -220,21 +214,13 @@ export default function TimelinePage() {
 
   const handleSave = useCallback(async () => {
     if (!recorder.recording) return;
-    const savedPath = await io.save(recorder.recording, saveSuggestedPath ?? undefined);
-    if (savedPath) {
-      setSaveSuggestedPath(savedPath);
-      recorder.markSaved();
-    }
-  }, [io, recorder, saveSuggestedPath]);
+    await recorder.save();
+  }, [recorder]);
 
   const handleSaveAs = useCallback(async () => {
     if (!recorder.recording) return;
-    const savedPath = await io.saveAs(recorder.recording, saveSuggestedPath ?? undefined);
-    if (savedPath) {
-      setSaveSuggestedPath(savedPath);
-      recorder.markSaved();
-    }
-  }, [io, recorder, saveSuggestedPath]);
+    await recorder.saveAs();
+  }, [recorder]);
 
   /** Persist current audio.tracks to recording, keeping unloaded (missing) tracks intact. */
   const syncAudioTracksToRecording = useCallback(() => {
@@ -257,8 +243,8 @@ export default function TimelinePage() {
         migrated.moments = migrated.moments!.filter((m) => m.kind === "user");
       }
       recorder.setLoaded(migrated);
+      recorder.setLoadedFromPath(loadedFromPath);
       setFocusedSectionId(null);
-      setSaveSuggestedPath(loadedFromPath);
       audio.unloadAll();
 
       // Support both old single-audio and new multi-track recordings.
@@ -303,15 +289,14 @@ export default function TimelinePage() {
 
   const handleSaveProject = useCallback(async () => {
     if (!recorder.recording) return;
-    const savedPath = await io.saveProject(recorder.recording);
+    const savedPath = await recorder.saveProject();
     if (!savedPath) return;
-    setSaveSuggestedPath(savedPath);
     // Re-apply: saveProject rewrites audio paths to project-relative, so reload
     // from disk to pick up the new paths (and resolved absolute versions).
     const res = await io.loadProject();
     if (res) await applyLoadedRecording(res.recording, res.path);
     setProjectFound(true);
-  }, [io, recorder.recording, applyLoadedRecording]);
+  }, [io, recorder, applyLoadedRecording]);
 
   const handleRelinkAudio = useCallback(
     async (trackId: string) => {
@@ -389,7 +374,7 @@ export default function TimelinePage() {
       setPendingMidiMerge(res.recording);
     } else {
       recorder.setLoaded(res.recording);
-      setSaveSuggestedPath(null);
+      recorder.setLoadedFromPath(null);
       audio.unloadAll();
     }
   }, [io, recorder, audio]);
@@ -778,7 +763,7 @@ export default function TimelinePage() {
           onSaveNoteTag={saveNoteTag}
           onDeleteNoteTag={deleteNoteTag}
           oscMappings={recorder.recording?.oscMappings ?? []}
-          endpoints={endpoints}
+          endpoints={senderEndpoints}
           onAddOscMapping={addOscMapping}
           onUpdateOscMapping={updateOscMapping}
           onDeleteOscMapping={deleteOscMapping}
@@ -825,7 +810,7 @@ export default function TimelinePage() {
               <button
                 onClick={() => {
                   recorder.setLoaded(pendingMidiMerge);
-                  setSaveSuggestedPath(null);
+                  recorder.setLoadedFromPath(null);
                   audio.unloadAll();
                   setPendingMidiMerge(null);
                 }}
@@ -836,7 +821,7 @@ export default function TimelinePage() {
               <button
                 onClick={() => {
                   recorder.mergeRecording(pendingMidiMerge);
-                  setSaveSuggestedPath(null);
+                  recorder.setLoadedFromPath(null);
                   setPendingMidiMerge(null);
                 }}
                 className="px-3 py-1.5 text-xs bg-timeline/20 text-timeline border border-timeline/30 hover:bg-timeline/30 rounded"
