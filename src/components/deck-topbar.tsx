@@ -127,6 +127,7 @@ export function DeckTopbar({
           }}
           className="bg-elevated border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:border-deck/18"
         >
+          {decks.length === 0 && <option value="" disabled>No decks</option>}
           {decks.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
