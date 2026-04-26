@@ -37,6 +37,11 @@ export function OscMappingEditor({
   const seed = editingMapping ?? lastMapping ?? defaultMapping ?? prefill;
 
   const [endpointId, setEndpointId] = useState(seed?.endpointId ?? defaultEndpointId ?? endpoints[0]?.id ?? "");
+  useEffect(() => {
+    if (!endpointId && endpoints.length > 0) {
+      setEndpointId(endpoints[0].id);
+    }
+  }, [endpoints]);
   const [preset, setPreset] = useState<OscPreset>(seed?.preset ?? "resolume");
   const [trigger, setTrigger] = useState<OscTrigger>(seed?.trigger ?? "on");
   const [argType, setArgType] = useState<"f" | "i">(seed?.argType ?? "f");
