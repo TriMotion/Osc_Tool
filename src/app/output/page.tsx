@@ -700,7 +700,9 @@ function DmxPanel() {
 // ─── OSC Effects Panel ────────────────────────────────────────────────────────
 
 function OscEffectsPanel() {
-  const { effects: oscEffects, saveEffect: saveOscEffect, deleteEffect: deleteOscEffect } = useOscEffects();
+  const { effects: oscEffects, saveEffect: saveOscEffect, deleteEffect: deleteOscEffect, triggers: oscTriggers, saveTrigger: saveOscTrigger, deleteTrigger: deleteOscTrigger } = useOscEffects();
+  const recorder = useRecorderContext();
+  const sections = recorder.recording?.sections ?? [];
   const [editingEffect, setEditingEffect] = useState<OscEffect | null>(null);
   const [selectedSegIdx, setSelectedSegIdx] = useState(0);
   const [editingRelease, setEditingRelease] = useState(false);
@@ -1049,6 +1051,19 @@ function OscEffectsPanel() {
                 Cancel
               </button>
             </div>
+          </section>
+        )}
+
+        {!editingEffect && (
+          <section className="bg-elevated rounded-lg border border-white/5 p-4">
+            <OscEffectTriggerPanel
+              triggers={oscTriggers}
+              effects={oscEffects}
+              endpoints={recorder.recording?.endpoints ?? []}
+              sections={sections}
+              onSave={saveOscTrigger}
+              onDelete={deleteOscTrigger}
+            />
           </section>
         )}
       </div>
