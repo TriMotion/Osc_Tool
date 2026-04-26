@@ -1,91 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useDeck } from "@/hooks/use-deck";
 import { useDmx } from "@/hooks/use-dmx";
 import { DeckGrid } from "@/components/deck-grid";
-import type { Deck } from "@/lib/types";
+import type { Deck, OscArg } from "@/lib/types";
 
 interface LiveDeckProps {
+  decks: Deck[];
+  activeSectionId: string | null;
+  sectionDeckLinks: Record<string, string>;
+  sendOsc: (host: string, port: number, address: string, args: OscArg[]) => void;
+  setValue: (itemId: string, value: unknown) => void;
+  itemValues: Record<string, unknown>;
+  onToggle: (itemId: string) => void;
+  isToggleOn: (itemId: string) => boolean;
   className?: string;
 }
 
-export function LiveDeck({ className }: LiveDeckProps) {
-  const {
-    decks, activeDeck, activePage,
-    selectDeck, selectPage,
-    sendOsc, setValue, itemValues,
-  } = useDeck();
-
+export function LiveDeck({
+  decks,
+  activeSectionId,
+  sectionDeckLinks,
+  sendOsc,
+  setValue,
+  itemValues,
+  onToggle,
+  isToggleOn,
+  className,
+}: LiveDeckProps) {
   const { effects: dmxEffects, triggerEffect, setChannel, releaseChannel } = useDmx();
 
-  const [collapsed, setCollapsed] = useState(false);
+  let visibleDecks: Deck[];
+  if (activeSectionId === null) {
+    visibleDecks = decks;
+  } else {
+    const linkedDeckId = sectionDeckLinks[activeSectionId];
+    if (linkedDeckId) {
+      const deck = decks.find((d) => d.id === linkedDeckId);
+      visibleDecks = deck ? [deck] : [];
+    } else {
+      visibleDecks = [];
+    }
+  }
 
-  if (decks.length === 0) return null;
+  if (visibleDecks.length === 0) {
+    return (
+      <div className={`flex items-center justify-center py-6 text-xs text-gray-500 border-t border-white/5 ${className ?? ""}`}>
+        No deck linked
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex flex-col border-t border-white/5 ${className ?? ""}`}>
-      {/* Deck header bar */}
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-panel/30 shrink-0">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-500 hover:text-gray-300 transition-colors text-xs"
-        >
-          {collapsed ? "▶" : "▼"}
-        </button>
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 mr-1">
-          Deck
-        </span>
-
-        {/* Deck selector */}
-        <select
-          value={activeDeck?.id ?? ""}
-          onChange={(e) => selectDeck(e.target.value)}
-          className="bg-black border border-white/10 rounded text-xs text-gray-300 px-2 py-0.5 outline-none focus:border-deck/18"
-        >
-          {decks.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Page tabs */}
-        {activeDeck && activeDeck.pages.length > 1 && (
-          <div className="flex items-center gap-1 ml-2">
-            {activeDeck.pages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => selectPage(page.id)}
-                className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
-                  activePage?.id === page.id
-                    ? "bg-deck/15 text-deck border border-deck/30"
-                    : "text-gray-500 hover:text-gray-300 border border-transparent"
-                }`}
-              >
-                {page.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Deck grid */}
-      <AnimatePresence initial={false}>
-        {!collapsed && activeDeck && activePage && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div style={{ height: Math.max(200, activeDeck.gridRows * 64) }}>
+    <div className={`flex flex-col border-t border-white/5 overflow-y-auto ${className ?? ""}`}>
+      {visibleDecks.map((deck) => {
+        const page = deck.pages[0];
+        if (!page) return null;
+        return (
+          <div key={deck.id} className="flex flex-col">
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-panel/30 shrink-0">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500">
+                {deck.name}
+              </span>
+            </div>
+            <div style={{ height: Math.max(200, deck.gridRows * 64) }}>
               <DeckGrid
-                page={activePage}
-                gridColumns={activeDeck.gridColumns}
-                gridRows={activeDeck.gridRows}
+                page={page}
+                gridColumns={deck.gridColumns}
+                gridRows={deck.gridRows}
                 editMode={false}
                 placingType={null}
                 onSendOsc={sendOsc}
@@ -105,11 +86,13 @@ export function LiveDeck({ className }: LiveDeckProps) {
                 onDmxTrigger={triggerEffect}
                 onDmxSetChannel={setChannel}
                 onDmxReleaseChannel={releaseChannel}
+                onToggle={onToggle}
+                isToggleOn={isToggleOn}
               />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        );
+      })}
     </div>
   );
 }
