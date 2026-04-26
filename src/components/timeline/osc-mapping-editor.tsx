@@ -59,6 +59,7 @@ export function OscMappingEditor({
   const [resolumeLayer, setResolumeLayer] = useState(seed?.resolumeLayer ?? 1);
   const [resolumeClip, setResolumeClip] = useState(seed?.resolumeClip ?? 1);
   const [resolumeClipMax, setResolumeClipMax] = useState(seed?.resolumeClipMax ?? 0);
+  const [resolumeClipMode, setResolumeClipMode] = useState<"random" | "sequential">(seed?.resolumeClipMode ?? "random");
   // velocity filter
   const [velocityFilter, setVelocityFilter] = useState<"all" | "min" | "exact">(seed?.velocityFilter ?? "all");
   const [velocityMin, setVelocityMin] = useState(seed?.velocityMin ?? 64);
@@ -74,7 +75,7 @@ export function OscMappingEditor({
     preset, trigger, argType, address,
     sectionName,
     unrealType, unrealName,
-    resolumeMode, resolumeColumn, resolumeLayer, resolumeClip, resolumeClipMax: resolumeClipMax || undefined,
+    resolumeMode, resolumeColumn, resolumeLayer, resolumeClip, resolumeClipMax: resolumeClipMax || undefined, resolumeClipMode: resolumeClipMax ? resolumeClipMode : undefined,
     velocityFilter: velocityFilter !== "all" ? velocityFilter : undefined,
     velocityMin: velocityFilter === "min" ? velocityMin : undefined,
     velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
@@ -86,6 +87,7 @@ export function OscMappingEditor({
     sectionName, unrealType, unrealName: unrealName || "param",
     resolumeMode, resolumeColumn, resolumeLayer, resolumeClip,
     resolumeClipMax: resolumeClipMax || undefined,
+    resolumeClipMode: resolumeClipMax ? resolumeClipMode : undefined,
     velocityFilter: velocityFilter !== "all" ? velocityFilter : undefined,
     velocityMin: velocityFilter === "min" ? velocityMin : undefined,
     velocityExact: velocityFilter === "exact" ? velocityExact : undefined,
@@ -332,8 +334,25 @@ export function OscMappingEditor({
                       </div>
                     </div>
                     {resolumeClipMax > 0 && (
-                      <div className="text-[10px] text-gray-600">
-                        Random clip {resolumeClip}–{resolumeClipMax}
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          {(["random", "sequential"] as const).map((m) => (
+                            <button
+                              key={m}
+                              className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                                resolumeClipMode === m
+                                  ? "bg-timeline/15 text-timeline border-timeline/30"
+                                  : "text-gray-600 border-white/10 hover:text-gray-400 hover:border-white/20"
+                              }`}
+                              onClick={() => setResolumeClipMode(m)}
+                            >
+                              {m === "random" ? "Random" : "Sequential"}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-gray-600">
+                          clip {resolumeClip}–{resolumeClipMax}
+                        </span>
                       </div>
                     )}
                   </>

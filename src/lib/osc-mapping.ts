@@ -6,6 +6,8 @@ export function resolveDeviceName(name: string, aliases?: Record<string, string>
   return display.replace(/\.(mid|midi)$/i, "");
 }
 
+const sequentialCounters = new Map<string, number>();
+
 export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, string>, eventVelocity?: number): string {
   switch (mapping.preset) {
     case "custom":
@@ -24,9 +26,16 @@ export function resolveOscAddress(mapping: OscMapping, aliases?: Record<string, 
       const layer = mapping.resolumeLayer ?? 1;
       const clipMin = mapping.resolumeClip ?? 1;
       const clipMax = mapping.resolumeClipMax;
-      const clip = clipMax && clipMax > clipMin
-        ? Math.floor(Math.random() * (clipMax - clipMin + 1)) + clipMin
-        : clipMin;
+      let clip = clipMin;
+      if (clipMax && clipMax > clipMin) {
+        if (mapping.resolumeClipMode === "sequential") {
+          const prev = sequentialCounters.get(mapping.id) ?? clipMin;
+          clip = prev > clipMax ? clipMin : prev;
+          sequentialCounters.set(mapping.id, clip + 1);
+        } else {
+          clip = Math.floor(Math.random() * (clipMax - clipMin + 1)) + clipMin;
+        }
+      }
       return `/composition/layers/${layer}/clips/${clip}/connect`;
     }
   }

@@ -205,9 +205,8 @@ export interface OscMapping {
   velocityFilter?: "all" | "min" | "exact";
   velocityMin?: number;
   velocityExact?: number;
-  /** Resolume clip: random range. When set, clip is chosen randomly between
-   * resolumeClip and resolumeClipMax (inclusive). */
   resolumeClipMax?: number;
+  resolumeClipMode?: "random" | "sequential";
   outputType?: "osc" | "dmx";
   dmxEffectId?: string;
   oscEffectId?: string;
