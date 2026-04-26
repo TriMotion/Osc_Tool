@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { AudioLines, Send, Radio, Clock, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useRecorderContext } from "@/contexts/recorder-context";
 
 interface NavItem {
   href: string;
@@ -61,8 +60,6 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const recorder = useRecorderContext();
-  const recName = recorder.recording?.name;
 
   return (
     <nav className="w-56 bg-black border-r border-white/[0.04] flex flex-col pt-3 pb-6 px-3 gap-1">
@@ -98,16 +95,6 @@ export function Sidebar() {
         );
       })}
       <div className="flex-1" />
-      {recName && (
-        <div className="px-3 py-2 border-t border-white/[0.04]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {recorder.hasUnsaved && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-            )}
-            <span className="text-[11px] text-gray-500 truncate" title={recName}>{recName}</span>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }
