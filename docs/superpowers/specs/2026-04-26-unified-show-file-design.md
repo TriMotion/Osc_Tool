@@ -2,17 +2,68 @@
 
 ## Goal
 
-Consolidate all show data into a single self-contained recording file. Add an OSC-to-OSC-effects trigger system mirroring the existing OSC-to-DMX triggers. Add section linking to both trigger types so they only fire during a specific timeline section.
+Consolidate all show data into a single self-contained recording file. Share recording state across all tabs so every page sees and can edit the same show. Add an OSC-to-OSC-effects trigger system mirroring the existing OSC-to-DMX triggers. Add section linking to both trigger types so they only fire during a specific timeline section.
 
 ## Architecture
 
-The recording file becomes the single source of truth for a show. Everything needed to reproduce output — endpoints, effects, triggers, mappings, sections — lives inside the `Recording` object. Global stores remain as seed data for new recordings and as the editing target when no recording is loaded (e.g., designing effects on the output page).
+The recording file becomes the single source of truth for a show. Everything needed to reproduce output — endpoints, effects, triggers, mappings, sections — lives inside the `Recording` object. A shared recording context at the layout level ensures all pages work with the same recording, surviving Next.js app router page navigation. Global stores remain as seed data for new recordings and for standalone editing when no recording is loaded.
 
 Incoming OSC message dispatch moves from the Electron main process (`OscDmxBridge`) to the renderer, matching how MIDI dispatch already works via `use-live-monitor`. Main process forwards incoming OSC messages to the renderer via IPC; the renderer filters by active section and dispatches to engines via IPC.
 
 ---
 
-## 1. Unified Recording Type
+## 1. Shared Recording Context
+
+### Problem
+
+Currently each page manages its own `useRecorder` instance. The timeline, deck, and output pages have independent recording state. When everything lives in the recording, all tabs need to see and edit the same recording, and save must be available from any tab.
+
+### Solution
+
+A `RecordingProvider` context at the root layout level wraps all pages:
+
+```typescript
+interface RecordingContextValue {
+  recording: Recording | null;
+  hasUnsaved: boolean;
+  loadedFromPath: string | null;
+
+  setLoaded: (rec: Recording, path?: string) => void;
+  patchRecording: (patch: Partial<Recording>) => void;
+  clear: () => void;
+
+  // Recording flow
+  start: () => void;
+  stop: () => void;
+  state: "idle" | "recording" | "stopped";
+
+  // Save/load
+  save: () => Promise<void>;
+  saveAs: () => Promise<void>;
+  load: () => Promise<void>;
+
+  // Buffer access for timeline playback
+  bufferRef: React.MutableRefObject<RecordedEvent[]>;
+  bufferVersion: number;
+}
+```
+
+The existing `useRecorder` hook logic moves into this provider. Pages consume it via `useSharedRecording()` instead of each creating their own `useRecorder`.
+
+### What changes per page
+
+- **Timeline page** — replaces its `useRecorder()` call with `useSharedRecording()`. All playback, editing, section management works the same but on the shared state.
+- **Deck/Live page** — replaces its `useRecorder()` call with `useSharedRecording()`. Loading a recording on the deck page makes it available on all other pages.
+- **Output page** — gains recording awareness. When a recording is loaded, effects/triggers/endpoints are read from and written to the recording. When no recording is loaded, falls back to global stores for standalone editing.
+- **Sidebar** — can show the recording name and unsaved indicator since it has access to the shared context. Save can be triggered from the sidebar.
+
+### Navigation behavior
+
+Because the provider lives at the layout level, navigating between pages preserves the recording state. Loading a recording on the timeline page, then navigating to the deck page, shows the same recording. This replaces the current behavior where each page loads independently.
+
+---
+
+## 2. Unified Recording Type
 
 ### New fields on `Recording`
 
@@ -69,7 +120,7 @@ No passthrough mode — OSC effects are always triggered. `velocityFromValue` pr
 
 ---
 
-## 2. OSC Message Forwarding to Renderer
+## 3. OSC Message Forwarding to Renderer
 
 ### Remove `OscDmxBridge`
 
@@ -100,7 +151,7 @@ This matches how `use-live-monitor` handles MIDI → OSC/DMX dispatch in the ren
 
 ---
 
-## 3. Save/Load & Migration
+## 4. Save/Load & Migration
 
 ### Saving
 
@@ -125,33 +176,31 @@ When starting a new recording or creating a blank project, copy the current glob
 
 ---
 
-## 4. Frontend Hook Changes
+## 5. Frontend Hook Changes
 
 ### Recording-aware hooks
 
-`useDmx`, `useOscEffects`, and `useEndpoints` gain an optional `recording` parameter:
+`useDmx`, `useOscEffects`, and `useEndpoints` consume the shared recording context internally:
 
 ```typescript
-function useDmx(recording?: Recording | null)
-function useOscEffects(recording?: Recording | null)
-function useEndpoints(recording?: Recording | null)
+function useDmx()       // reads from shared recording if loaded, else global store
+function useOscEffects() // same pattern
+function useEndpoints()  // same pattern
 ```
 
-When `recording` is provided, the hook reads from the recording and mutations patch the recording (via `recorder.patchRecording()`). When `recording` is null, the hook reads/writes from the global store via IPC as before.
+Each hook calls `useSharedRecording()` internally. When a recording is loaded, reads and mutations target the recording (via `patchRecording()`). When no recording is loaded, they fall back to the global store via IPC.
 
 This means:
-- **Timeline page and deck/live page** pass the loaded recording → edits go to the recording
-- **Output page** → always uses the global store (standalone effect/trigger design, no recording context)
-
-The output page is the workshop for designing effects and triggers. The timeline and deck pages are where recordings are loaded and where the recording-embedded copies are used at runtime.
+- **Any page with a loaded recording** → edits go to the recording
+- **Any page without a recording** → edits go to the global store (standalone effect/trigger design)
 
 ### New `useOscTriggerMonitor` hook
 
-Used on the deck/live page alongside `useLiveMonitor`. Receives the recording and `activeSectionId`. Handles both DMX trigger and OSC effect trigger dispatch from incoming OSC messages.
+Used on the deck/live page alongside `useLiveMonitor`. Consumes the shared recording context and `activeSectionId`. Handles both DMX trigger and OSC effect trigger dispatch from incoming OSC messages.
 
 ---
 
-## 5. UI Changes
+## 6. UI Changes
 
 ### OSC Effects tab — trigger panel
 
@@ -179,7 +228,7 @@ No new UI. `useOscTriggerMonitor` runs alongside `useLiveMonitor`, sharing `acti
 
 ---
 
-## 6. Deletion of Legacy Code
+## 7. Deletion of Legacy Code
 
 - **`electron/osc-dmx-bridge.ts`** — removed entirely
 - **`ipc-handlers.ts`** — remove `OscDmxBridge` instantiation and trigger-reload calls
