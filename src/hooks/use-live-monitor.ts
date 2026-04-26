@@ -83,57 +83,64 @@ export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiv
           const value = computeOscArgValue(fakeEvt, mapping);
           const allEndpointIds = [mapping.endpointId, ...(mapping.extraEndpointIds ?? [])];
 
-          for (const epId of allEndpointIds) {
-            const endpoint = eps.find((e) => e.id === epId);
-            if (!endpoint) continue;
+          if (mapping.outputType === "dmx" && mapping.dmxEffectId && event.midi.type === "noteon") {
+            const velocityScale = event.midi.data2 / 127;
+            window.electronAPI?.invoke("dmx:trigger-effect", mapping.dmxEffectId, velocityScale);
+          } else if (mapping.outputType === "dmx") {
+            // dmx noteoff or no effect — nothing to do
+          } else {
+            for (const epId of allEndpointIds) {
+              const endpoint = eps.find((e) => e.id === epId);
+              if (!endpoint) continue;
 
-            if (mapping.oscEffectId && event.midi.type === "noteon") {
-              const instanceKey = `${mapping.id}|${event.midi.data1}`;
-              const velocityScale = event.midi.data2 / 127;
-              window.electronAPI?.invoke("osc-effect:trigger", mapping.oscEffectId, {
-                host: endpoint.host,
-                port: endpoint.port,
-                address,
-                argType: mapping.argType,
-              }, velocityScale).then((instanceId: unknown) => {
-                if (typeof instanceId === "string" && instanceId) {
-                  oscEffectInstances.current.set(instanceKey, instanceId);
+              if (mapping.oscEffectId && event.midi.type === "noteon") {
+                const instanceKey = `${mapping.id}|${event.midi.data1}`;
+                const velocityScale = event.midi.data2 / 127;
+                window.electronAPI?.invoke("osc-effect:trigger", mapping.oscEffectId, {
+                  host: endpoint.host,
+                  port: endpoint.port,
+                  address,
+                  argType: mapping.argType,
+                }, velocityScale).then((instanceId: unknown) => {
+                  if (typeof instanceId === "string" && instanceId) {
+                    oscEffectInstances.current.set(instanceKey, instanceId);
+                  }
+                });
+              } else if (mapping.oscEffectId && event.midi.type === "noteoff") {
+                const instanceKey = `${mapping.id}|${event.midi.data1}`;
+                const instanceId = oscEffectInstances.current.get(instanceKey);
+                if (instanceId) {
+                  window.electronAPI?.invoke("osc-effect:release", instanceId);
+                  oscEffectInstances.current.delete(instanceKey);
                 }
-              });
-            } else if (mapping.oscEffectId && event.midi.type === "noteoff") {
-              const instanceKey = `${mapping.id}|${event.midi.data1}`;
-              const instanceId = oscEffectInstances.current.get(instanceKey);
-              if (instanceId) {
-                window.electronAPI?.invoke("osc-effect:release", instanceId);
-                oscEffectInstances.current.delete(instanceKey);
+              } else if (!mapping.oscEffectId) {
+                window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, address, [
+                  { type: mapping.argType, value },
+                ]);
               }
-            } else if (!mapping.oscEffectId) {
-              window.electronAPI?.invoke("osc:send", { host: endpoint.host, port: endpoint.port }, address, [
-                { type: mapping.argType, value },
-              ]);
             }
-
-            activityUpdates[device].lastOscAt = now;
-            if (liveDevice !== device) {
-              activityUpdates[liveDevice].lastOscAt = now;
-            }
-
-            newEntries.push({
-              id: crypto.randomUUID(),
-              wallMs: now,
-              device,
-              eventType: event.midi.type,
-              data1: event.midi.data1,
-              data2: event.midi.data2,
-              mapping,
-              address,
-              endpointId: epId,
-              value,
-              argType: mapping.argType,
-            });
-
-            fired = true;
           }
+
+          activityUpdates[device].lastOscAt = now;
+          if (liveDevice !== device) {
+            activityUpdates[liveDevice].lastOscAt = now;
+          }
+
+          newEntries.push({
+            id: crypto.randomUUID(),
+            wallMs: now,
+            device,
+            eventType: event.midi.type,
+            data1: event.midi.data1,
+            data2: event.midi.data2,
+            mapping,
+            address,
+            endpointId: mapping.endpointId,
+            value,
+            argType: mapping.argType,
+          });
+
+          fired = true;
         }
       }
 

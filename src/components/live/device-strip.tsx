@@ -219,11 +219,15 @@ export function DeviceStrip({
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 overflow-x-auto shrink-0">
-      {devices.map((rec) => (
+      {devices.map((rec) => {
+        const liveSource = liveSourceForRecording(rec);
+        const activity = deviceActivity[rec]
+          ?? (liveSource && liveSource !== rec ? deviceActivity[liveSource] : undefined);
+        return (
         <DeviceCard
           key={`rec:${rec}`}
           name={rec}
-          activity={deviceActivity[rec]}
+          activity={activity}
           aliases={aliases}
           liveSources={allLivePorts}
           currentLiveSource={liveSourceForRecording(rec)}
@@ -231,7 +235,8 @@ export function DeviceStrip({
           onToggleDisabled={onToggleDevice}
           onSetSource={handleSetSource}
         />
-      ))}
+        );
+      })}
       {unlinkedLivePorts.map((live) => (
         <DeviceCard
           key={`live:${live}`}

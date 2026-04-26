@@ -9,6 +9,7 @@ import { DeckGrid } from "@/components/deck-grid";
 import { DeckConfigPanel } from "@/components/deck-config-panel";
 import type { DeckItem, ButtonConfig, SliderConfig, XYPadConfig } from "@/lib/types";
 import { useDmx } from "@/hooks/use-dmx";
+import { useOscEffects } from "@/hooks/use-osc-effects";
 import type { DmxTriggerConfig, DmxFaderConfig, DmxFlashConfig } from "@/lib/dmx-types";
 import { SectionSelector } from "@/components/live/section-selector";
 import { DeviceStrip } from "@/components/live/device-strip";
@@ -66,7 +67,8 @@ export default function DeckPage() {
   const { endpoints: listenerEndpoints } = useEndpoints("listener");
   const allEndpoints = [...senderEndpoints, ...listenerEndpoints];
 
-  const { effects: dmxEffects, triggerEffect, setChannel, releaseChannel } = useDmx();
+  const { effects: dmxEffects, triggers: dmxTriggers, triggerEffect, setChannel, releaseChannel } = useDmx();
+  const { effects: oscEffects, triggers: oscEffectTriggers } = useOscEffects();
 
   const [mode, setMode] = useState<"edit" | "live">("live");
   const [editMode, setEditMode] = useState(false);
@@ -376,9 +378,9 @@ export default function DeckPage() {
             onUpdateLinks={handleUpdateDeviceLinks}
             onToggleDevice={handleToggleDevice}
           />
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             {activePage && activeDeck ? (
-              <div className="flex-1 overflow-auto">
+              <div className="h-full overflow-auto">
                 <DeckGrid
                   page={activePage}
                   gridColumns={activeDeck.gridColumns}
@@ -409,13 +411,13 @@ export default function DeckPage() {
                 No deck selected.
               </div>
             )}
-            <ActivityFeed
-              entries={entries}
-              showUnmapped={showUnmapped}
-              onToggleUnmapped={setShowUnmapped}
-              endpoints={senderEndpoints}
-            />
           </div>
+          <ActivityFeed
+            entries={entries}
+            showUnmapped={showUnmapped}
+            onToggleUnmapped={setShowUnmapped}
+            endpoints={senderEndpoints}
+          />
           {recorder.recording?.oscMappings && recorder.recording.oscMappings.length > 0 && (
             <MappingConfigPanel
               mappings={recorder.recording.oscMappings}
@@ -425,6 +427,11 @@ export default function DeckPage() {
               onUpdateMappings={handleUpdateMappings}
               recordingId={recorder.recording.id}
               activeSectionId={activeSectionId}
+              dmxTriggers={dmxTriggers}
+              dmxEffects={dmxEffects}
+              oscEffectTriggers={oscEffectTriggers}
+              oscEffects={oscEffects}
+              sections={recorder.recording.sections}
             />
           )}
         </div>

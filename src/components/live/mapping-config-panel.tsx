@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useFlash } from "@/hooks/use-flash";
 import { useOscEffects } from "@/hooks/use-osc-effects";
 import { resolveOscAddress } from "@/lib/osc-mapping";
-import type { OscMapping, OscPreset, SavedEndpoint } from "@/lib/types";
+import type { OscMapping, OscPreset, OscEffectTrigger, SavedEndpoint, TimelineSection } from "@/lib/types";
+import type { OscDmxTrigger, DmxEffect } from "@/lib/dmx-types";
+import type { OscEffect } from "@/lib/osc-effect-types";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 function midiNoteToName(note: number): string {
@@ -342,6 +344,11 @@ interface MappingConfigPanelProps {
   onUpdateMappings: (mappings: OscMapping[]) => void;
   recordingId?: string;
   activeSectionId?: string | null;
+  dmxTriggers?: OscDmxTrigger[];
+  dmxEffects?: DmxEffect[];
+  oscEffectTriggers?: OscEffectTrigger[];
+  oscEffects?: OscEffect[];
+  sections?: TimelineSection[];
 }
 
 export function MappingConfigPanel({
@@ -352,6 +359,11 @@ export function MappingConfigPanel({
   onUpdateMappings,
   recordingId,
   activeSectionId,
+  dmxTriggers = [],
+  dmxEffects = [],
+  oscEffectTriggers = [],
+  oscEffects = [],
+  sections = [],
 }: MappingConfigPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filterPreset, setFilterPreset] = useState<OscPreset | "all">("all");
@@ -533,6 +545,46 @@ export function MappingConfigPanel({
               ))
             )}
           </div>
+
+          {/* OSC Effect Triggers */}
+          {oscEffectTriggers.length > 0 && (
+            <div className="border-t border-white/5 px-4 py-2">
+              <div className="text-[10px] uppercase text-gray-600 mb-1.5">OSC → Effect Triggers</div>
+              {oscEffectTriggers.map((t) => {
+                const eff = oscEffects.find((e) => e.id === t.oscEffectId);
+                const sec = t.sectionId ? sections.find((s) => s.id === t.sectionId) : null;
+                return (
+                  <div key={t.id} className="flex items-center gap-2 py-1 text-xs">
+                    <span className="text-teal-400 font-mono truncate flex-1">{t.oscAddress}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-400 shrink-0">
+                      FX: {eff?.name ?? t.oscEffectId.slice(0, 8)}
+                    </span>
+                    {sec && <span className="text-[10px] text-gray-600">{sec.name}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* DMX Triggers */}
+          {dmxTriggers.length > 0 && (
+            <div className="border-t border-white/5 px-4 py-2">
+              <div className="text-[10px] uppercase text-gray-600 mb-1.5">OSC → DMX Triggers</div>
+              {dmxTriggers.map((t) => {
+                const eff = dmxEffects.find((e) => e.id === t.dmxEffectId);
+                const sec = t.sectionId ? sections.find((s) => s.id === t.sectionId) : null;
+                return (
+                  <div key={t.id} className="flex items-center gap-2 py-1 text-xs">
+                    <span className="text-purple-400 font-mono truncate flex-1">{t.oscAddress}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 shrink-0">
+                      {t.mode === "passthrough" ? "DMX pass" : `DMX: ${eff?.name ?? t.name}`}
+                    </span>
+                    {sec && <span className="text-[10px] text-gray-600">{sec.name}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Batch action bar — visible when ≥1 row selected */}
           {selectedIds.size > 0 && (
