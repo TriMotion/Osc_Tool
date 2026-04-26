@@ -1,15 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { TimelineSection } from "@/lib/types";
+import type { TimelineSection, Deck } from "@/lib/types";
 
 interface SectionSelectorProps {
   sections: TimelineSection[];
   activeSectionId: string | null;
   onSelect: (sectionId: string | null) => void;
+  deckPresets?: Deck[];
+  sectionDeckLinks?: Record<string, string>;
+  onLinkDeck?: (sectionId: string, deckId: string | null) => void;
 }
 
-export function SectionSelector({ sections, activeSectionId, onSelect }: SectionSelectorProps) {
+export function SectionSelector({ sections, activeSectionId, onSelect, deckPresets, sectionDeckLinks, onLinkDeck }: SectionSelectorProps) {
   if (sections.length === 0) return null;
 
   return (
@@ -37,35 +40,48 @@ export function SectionSelector({ sections, activeSectionId, onSelect }: Section
       {sections.map((section) => {
         const isActive = activeSectionId === section.id;
         const color = section.color ?? "#6b7280";
+        const linkedDeckId = sectionDeckLinks?.[section.id];
         return (
-          <button
-            key={section.id}
-            onClick={() => onSelect(section.id)}
-            className={`relative text-xs px-3 py-1 rounded-md border transition-colors shrink-0 ${
-              isActive
-                ? "text-white"
-                : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300"
-            }`}
-            style={
-              isActive
-                ? {
-                    borderColor: `${color}80`,
-                    background: `${color}20`,
-                    color: color,
-                  }
-                : undefined
-            }
-          >
-            {section.name}
-            {isActive && (
-              <motion.div
-                layoutId="section-indicator"
-                className="absolute inset-0 rounded-md border"
-                style={{ borderColor: `${color}80` }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
+          <div key={section.id} className="flex flex-col items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => onSelect(section.id)}
+              className={`relative text-xs px-3 py-1 rounded-md border transition-colors ${
+                isActive
+                  ? "text-white"
+                  : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300"
+              }`}
+              style={
+                isActive
+                  ? { borderColor: `${color}80`, background: `${color}20`, color }
+                  : undefined
+              }
+            >
+              {section.name}
+              {isActive && (
+                <motion.div
+                  layoutId="section-indicator"
+                  className="absolute inset-0 rounded-md border"
+                  style={{ borderColor: `${color}80` }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+            {onLinkDeck && deckPresets && (
+              <select
+                value={linkedDeckId ?? "__none__"}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onLinkDeck(section.id, val === "__none__" ? null : val);
+                }}
+                className="bg-black border border-white/5 rounded text-[9px] text-gray-500 px-1 py-0 outline-none w-16 text-center"
+              >
+                <option value="__none__">None</option>
+                {deckPresets.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
             )}
-          </button>
+          </div>
         );
       })}
     </div>
