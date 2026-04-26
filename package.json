@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts electron/auto-updater.ts electron/midi-manager.ts electron/midi-store.ts electron/recording-store.ts electron/dmx-engine.ts electron/dmx-store.ts electron/osc-dmx-bridge.ts electron/osc-effect-store.ts electron/osc-effect-engine.ts --outdir=electron --platform=node --format=cjs --packages=external && esbuild src/lib/dmx-curves.ts --outfile=src/lib/dmx-curves.js --platform=node --format=cjs",
+    "electron:compile": "esbuild electron/main.ts electron/preload.ts electron/ipc-handlers.ts electron/osc-manager.ts electron/endpoints-store.ts electron/deck-store.ts electron/diagnostics.ts electron/web-server.ts electron/auto-updater.ts electron/midi-manager.ts electron/midi-store.ts electron/recording-store.ts electron/dmx-engine.ts electron/dmx-store.ts electron/osc-effect-store.ts electron/osc-effect-engine.ts --outdir=electron --platform=node --format=cjs --packages=external && esbuild src/lib/dmx-curves.ts --outfile=src/lib/dmx-curves.js --platform=node --format=cjs",
     "electron:compile:prod": "pnpm electron:compile",
     "electron:dev": "pnpm electron:compile && concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
     "electron:build": "pnpm electron:compile:prod && pnpm build && electron-builder --publish never",

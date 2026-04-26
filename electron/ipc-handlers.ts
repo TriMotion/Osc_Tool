@@ -9,7 +9,6 @@ import { MidiStore } from "./midi-store";
 import { RecordingStore } from "./recording-store";
 import { DmxEngine } from "./dmx-engine";
 import { DmxStore } from "./dmx-store";
-import { OscDmxBridge } from "./osc-dmx-bridge";
 import { OscEffectStore } from "./osc-effect-store";
 import { OscEffectEngine } from "./osc-effect-engine";
 import { ListenerConfig, SenderConfig, OscArg, MidiMappingRule, Recording } from "../src/lib/types";
@@ -26,10 +25,7 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
 
   const dmxStore = new DmxStore();
   const dmxEngine = new DmxEngine();
-  const oscDmxBridge = new OscDmxBridge(oscManager, dmxEngine);
-
   dmxEngine.loadEffects(dmxStore.getEffects());
-  oscDmxBridge.loadTriggers(dmxStore.getTriggers());
 
   const oscEffectStore = new OscEffectStore();
   const oscEffectEngine = new OscEffectEngine(oscManager);
@@ -335,12 +331,10 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle("dmx:get-triggers", () => dmxStore.getTriggers());
   ipcMain.handle("dmx:save-trigger", (_e, trigger) => {
     const saved = dmxStore.saveTrigger(trigger);
-    oscDmxBridge.loadTriggers(dmxStore.getTriggers());
     return saved;
   });
   ipcMain.handle("dmx:delete-trigger", (_e, id: string) => {
     dmxStore.deleteTrigger(id);
-    oscDmxBridge.loadTriggers(dmxStore.getTriggers());
   });
 
   // --- OSC Effects ---
