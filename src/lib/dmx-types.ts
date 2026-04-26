@@ -42,6 +42,7 @@ export interface OscDmxTrigger {
   inputMax?: number;
   outputMin?: number;
   outputMax?: number;
+  sectionId?: string;
 }
 
 export interface DmxTriggerConfig {

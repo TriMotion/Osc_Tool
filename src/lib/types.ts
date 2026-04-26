@@ -213,6 +213,18 @@ export interface OscMapping {
   oscEffectId?: string;
 }
 
+export interface OscEffectTrigger {
+  id: string;
+  name: string;
+  sectionId?: string;
+  oscAddress: string;
+  oscEffectId: string;
+  endpointId: string;
+  targetAddress: string;
+  argType: "f" | "i";
+  velocityFromValue?: boolean;
+}
+
 export interface ActivityEntry {
   id: string;
   wallMs: number;
@@ -253,6 +265,12 @@ export interface Recording {
    * these are dropped before firing OSC and before emitting ActivityEntries. */
   disabledLiveDevices?: string[];
   suppressedAnalysis?: string[];  // "${laneKey}:rhythm" | "${laneKey}:dynamic" | "${laneKey}:melody"
+  endpoints?: SavedEndpoint[];
+  dmxConfig?: import("./dmx-types").SacnConfig;
+  dmxEffects?: import("./dmx-types").DmxEffect[];
+  dmxTriggers?: import("./dmx-types").OscDmxTrigger[];
+  oscEffects?: import("./osc-effect-types").OscEffect[];
+  oscEffectTriggers?: OscEffectTrigger[];
 }
 
 // Pairing of note-on with its matching note-off.
