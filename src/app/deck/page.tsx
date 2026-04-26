@@ -18,6 +18,8 @@ import { MappingConfigPanel } from "@/components/live/mapping-config-panel";
 import { useLiveMonitor } from "@/hooks/use-live-monitor";
 import { useOscTriggerMonitor } from "@/hooks/use-osc-trigger-monitor";
 import { useRecorderContext } from "@/contexts/recorder-context";
+import { useDeckToggles } from "@/hooks/use-deck-toggles";
+import { LiveDeck } from "@/components/live/live-deck";
 import { useMidiControl } from "@/hooks/use-midi";
 
 
@@ -52,6 +54,8 @@ function defaultDmxFlashConfig(): DmxFlashConfig {
 }
 
 export default function DeckPage() {
+  const recorder = useRecorderContext();
+
   const {
     decks, activeDeck, activePage,
     selectDeck, selectPage,
@@ -61,7 +65,7 @@ export default function DeckPage() {
     addGroup, updateGroup, removeGroup,
     moveItemToGroup, moveItemOutOfGroup,
     sendOsc, setValue, itemValues,
-  } = useDeck();
+  } = useDeck({ recording: recorder.recording, patchRecording: recorder.patchRecording });
 
   const { endpoints: senderEndpoints } = useEndpoints("sender");
   const { endpoints: listenerEndpoints } = useEndpoints("listener");
@@ -78,15 +82,33 @@ export default function DeckPage() {
   const lastUsedEndpointId = useRef<string | undefined>(undefined);
 
   // Live mode hooks
-  const recorder = useRecorderContext();
   const { devices: connectedPorts } = useMidiControl();
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [showUnmapped, setShowUnmapped] = useState(false);
+
+  const sectionDeckLinks = recorder.recording?.sectionDeckLinks ?? {};
+  const allDecks = recorder.recording?.deckPresets ?? [];
+
+  const visibleDecks = useMemo(() => {
+    if (activeSectionId === null) return allDecks;
+    const linkedId = sectionDeckLinks[activeSectionId];
+    if (!linkedId) return [];
+    const d = allDecks.find((dk) => dk.id === linkedId);
+    return d ? [d] : [];
+  }, [activeSectionId, sectionDeckLinks, allDecks]);
+
+  const deckToggles = useDeckToggles(visibleDecks);
+
+  useEffect(() => {
+    deckToggles.resetAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSectionId]);
 
   const { entries, deviceActivity } = useLiveMonitor({
     recording: recorder.recording,
     endpoints: senderEndpoints,
     activeSectionId,
+    disabledMappingIds: deckToggles.disabledMappingIds,
   });
 
   useOscTriggerMonitor({
@@ -131,6 +153,25 @@ export default function DeckPage() {
     ? activePage.groups.find((g) => g.items.some((i) => i.id === selectedItemId)) ?? null
     : null;
 
+  const handleLinkDeck = useCallback((sectionId: string, deckId: string | null) => {
+    const current = recorder.recording?.sectionDeckLinks ?? {};
+    const next = { ...current };
+    if (deckId === null) {
+      delete next[sectionId];
+    } else {
+      next[sectionId] = deckId;
+    }
+    recorder.patchRecording({ sectionDeckLinks: next });
+  }, [recorder]);
+
+  if (!recorder.recording) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+        Load a recording to manage deck presets
+      </div>
+    );
+  }
+
   const handlePlaceItem = useCallback(async (col: number, row: number) => {
     if (!placingType) return;
 
@@ -148,6 +189,7 @@ export default function DeckPage() {
         "dmx-trigger": defaultDmxTriggerConfig(),
         "dmx-fader": defaultDmxFaderConfig(),
         "dmx-flash": defaultDmxFlashConfig(),
+        "mapping-toggle": { mappingIds: [] },
       };
       const spans: Record<string, { colSpan: number; rowSpan: number }> = {
         button: { colSpan: 2, rowSpan: 1 },
@@ -156,13 +198,15 @@ export default function DeckPage() {
         "dmx-trigger": { colSpan: 2, rowSpan: 1 },
         "dmx-fader": { colSpan: 1, rowSpan: 3 },
         "dmx-flash": { colSpan: 2, rowSpan: 1 },
+        "mapping-toggle": { colSpan: 2, rowSpan: 1 },
       };
       const s = spans[placingType] ?? { colSpan: 1, rowSpan: 1 };
       const lastEp = lastUsedEndpointId.current
         ? allEndpoints.find((e) => e.id === lastUsedEndpointId.current)
         : undefined;
+      const itemName = placingType === "mapping-toggle" ? "Toggle" : placingType.charAt(0).toUpperCase() + placingType.slice(1);
       await addItem({
-        name: placingType.charAt(0).toUpperCase() + placingType.slice(1),
+        name: itemName,
         type: placingType as DeckItem["type"],
         col, row, ...s,
         oscAddress: placingType.startsWith("dmx-") ? "" : "/address",
@@ -339,6 +383,10 @@ export default function DeckPage() {
             item={selectedItem}
             group={selectedGroup}
             dmxEffects={dmxEffects}
+            oscMappings={recorder.recording?.oscMappings}
+            noteTags={recorder.recording?.noteTags}
+            laneBadges={recorder.recording?.badges}
+            deviceAliases={recorder.recording?.deviceAliases}
             onUpdateItem={selectedItemId ? (updates) => {
               if (updates.oscTargetEndpointId) {
                 lastUsedEndpointId.current = updates.oscTargetEndpointId;
@@ -367,6 +415,9 @@ export default function DeckPage() {
             sections={recorder.recording?.sections ?? []}
             activeSectionId={activeSectionId}
             onSelect={setActiveSectionId}
+            deckPresets={allDecks}
+            sectionDeckLinks={sectionDeckLinks}
+            onLinkDeck={handleLinkDeck}
           />
           <DeviceStrip
             devices={connectedPorts}
@@ -378,40 +429,16 @@ export default function DeckPage() {
             onUpdateLinks={handleUpdateDeviceLinks}
             onToggleDevice={handleToggleDevice}
           />
-          <div className="flex-1 overflow-hidden">
-            {activePage && activeDeck ? (
-              <div className="h-full overflow-auto">
-                <DeckGrid
-                  page={activePage}
-                  gridColumns={activeDeck.gridColumns}
-                  gridRows={activeDeck.gridRows}
-                  editMode={false}
-                  placingType={null}
-                  onSendOsc={sendOsc}
-                  onValueChange={setValue}
-                  itemValues={itemValues}
-                  onSelectItem={() => {}}
-                  onSelectGroup={() => {}}
-                  onPlaceItem={() => {}}
-                  onMoveItem={() => {}}
-                  onResizeItem={() => {}}
-                  onMoveGroup={() => {}}
-                  onResizeGroup={() => {}}
-                  onMoveItemToGroup={() => {}}
-                  dmxEffects={dmxEffects}
-                  onDmxTrigger={triggerEffect}
-                  onDmxSetChannel={setChannel}
-                  onDmxReleaseChannel={releaseChannel}
-                  onMoveItemOutOfGroup={() => {}}
-                  onPushItems={() => {}}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-600">
-                No deck selected.
-              </div>
-            )}
-          </div>
+          <LiveDeck
+            decks={allDecks}
+            activeSectionId={activeSectionId}
+            sectionDeckLinks={sectionDeckLinks}
+            sendOsc={sendOsc}
+            setValue={setValue}
+            itemValues={itemValues}
+            onToggle={deckToggles.toggle}
+            isToggleOn={deckToggles.isToggleOn}
+          />
           <ActivityFeed
             entries={entries}
             showUnmapped={showUnmapped}
