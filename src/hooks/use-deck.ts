@@ -1,34 +1,46 @@
 "use client";
 
-import { useEffect, useCallback, useState, useRef } from "react";
-import type { Deck, DeckPage, DeckItem, DeckGroup, OscArg } from "@/lib/types";
+import { useCallback, useState, useEffect } from "react";
+import type { Deck, DeckPage, DeckItem, DeckGroup, OscArg, Recording } from "@/lib/types";
 
 function getAPI() {
   return typeof window !== "undefined" ? window.electronAPI : undefined;
 }
 
-export function useDeck() {
-  const [decks, setDecks] = useState<Deck[]>([]);
+function uuid(): string {
+  return crypto.randomUUID();
+}
+
+interface UseDeckArgs {
+  recording: Recording | null;
+  patchRecording: (patch: Partial<Recording>) => void;
+}
+
+export function useDeck({ recording, patchRecording }: UseDeckArgs) {
+  const decks = recording?.deckPresets ?? [];
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [activePageId, setActivePageId] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const api = getAPI();
-    if (!api) return;
-    const all = (await api.invoke("deck:get-all")) as Deck[];
-    setDecks(all);
-    if (!activeDeckId && all.length > 0) {
-      setActiveDeckId(all[0].id);
-      setActivePageId(all[0].pages[0]?.id ?? null);
-    }
-  }, [activeDeckId]);
-
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (decks.length > 0 && !decks.find((d) => d.id === activeDeckId)) {
+      setActiveDeckId(decks[0].id);
+      setActivePageId(decks[0].pages[0]?.id ?? null);
+    } else if (decks.length === 0) {
+      setActiveDeckId(null);
+      setActivePageId(null);
+    }
+  }, [decks, activeDeckId]);
 
   const activeDeck = decks.find((d) => d.id === activeDeckId) ?? null;
   const activePage = activeDeck?.pages.find((p) => p.id === activePageId) ?? null;
+
+  const patchDecks = useCallback(
+    (updater: (prev: Deck[]) => Deck[]) => {
+      const updated = updater(decks);
+      patchRecording({ deckPresets: updated });
+    },
+    [decks, patchRecording],
+  );
 
   const selectDeck = useCallback((deckId: string) => {
     setActiveDeckId(deckId);
@@ -40,111 +52,244 @@ export function useDeck() {
     setActivePageId(pageId);
   }, []);
 
-  const createDeck = useCallback(async (name: string) => {
-    const api = getAPI();
-    if (!api) return;
-    const deck = (await api.invoke("deck:create", name)) as Deck;
-    await refresh();
-    setActiveDeckId(deck.id);
-    setActivePageId(deck.pages[0]?.id ?? null);
-  }, [refresh]);
+  const createDeck = useCallback((name: string) => {
+    const newDeck: Deck = {
+      id: uuid(),
+      name,
+      gridColumns: 8,
+      gridRows: 6,
+      pages: [{ id: uuid(), name: "Main", items: [], groups: [] }],
+    };
+    patchDecks((prev) => [...prev, newDeck]);
+    setActiveDeckId(newDeck.id);
+    setActivePageId(newDeck.pages[0].id);
+  }, [patchDecks]);
 
-  const updateDeck = useCallback(async (id: string, updates: Partial<Pick<Deck, "name" | "gridColumns" | "gridRows">>) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("deck:update", id, updates);
-    await refresh();
-  }, [refresh]);
+  const updateDeck = useCallback((id: string, updates: Partial<Pick<Deck, "name" | "gridColumns" | "gridRows">>) => {
+    patchDecks((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+  }, [patchDecks]);
 
-  const deleteDeck = useCallback(async (id: string) => {
-    const api = getAPI();
-    if (!api) return;
-    await api.invoke("deck:delete", id);
-    setActiveDeckId(null);
-    setActivePageId(null);
-    await refresh();
-  }, [refresh]);
-
-  const createPage = useCallback(async (name: string) => {
-    const api = getAPI();
-    if (!api || !activeDeckId) return;
-    const page = (await api.invoke("deck:create-page", activeDeckId, name)) as DeckPage;
-    await refresh();
-    setActivePageId(page.id);
-  }, [activeDeckId, refresh]);
-
-  const updatePage = useCallback(async (pageId: string, updates: Partial<Pick<DeckPage, "name">>) => {
-    const api = getAPI();
-    if (!api || !activeDeckId) return;
-    await api.invoke("deck:update-page", activeDeckId, pageId, updates);
-    await refresh();
-  }, [activeDeckId, refresh]);
-
-  const deletePage = useCallback(async (pageId: string) => {
-    const api = getAPI();
-    if (!api || !activeDeckId) return;
-    const success = (await api.invoke("deck:delete-page", activeDeckId, pageId)) as boolean;
-    if (success && activePageId === pageId) {
+  const deleteDeck = useCallback((id: string) => {
+    patchDecks((prev) => prev.filter((d) => d.id !== id));
+    if (activeDeckId === id) {
+      setActiveDeckId(null);
       setActivePageId(null);
     }
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  }, [patchDecks, activeDeckId]);
 
-  const addItem = useCallback(async (item: Omit<DeckItem, "id">) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:add-item", activeDeckId, activePageId, item);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const createPage = useCallback((name: string) => {
+    if (!activeDeckId) return;
+    const newPage: DeckPage = { id: uuid(), name, items: [], groups: [] };
+    patchDecks((prev) =>
+      prev.map((d) => (d.id === activeDeckId ? { ...d, pages: [...d.pages, newPage] } : d)),
+    );
+    setActivePageId(newPage.id);
+  }, [activeDeckId, patchDecks]);
 
-  const updateItem = useCallback(async (itemId: string, updates: Partial<Omit<DeckItem, "id">>) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:update-item", activeDeckId, activePageId, itemId, updates);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const updatePage = useCallback((pageId: string, updates: Partial<Pick<DeckPage, "name">>) => {
+    if (!activeDeckId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? { ...d, pages: d.pages.map((p) => (p.id === pageId ? { ...p, ...updates } : p)) }
+          : d,
+      ),
+    );
+  }, [activeDeckId, patchDecks]);
 
-  const removeItem = useCallback(async (itemId: string) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:remove-item", activeDeckId, activePageId, itemId);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const deletePage = useCallback((pageId: string) => {
+    if (!activeDeckId) return;
+    patchDecks((prev) =>
+      prev.map((d) => {
+        if (d.id !== activeDeckId || d.pages.length <= 1) return d;
+        return { ...d, pages: d.pages.filter((p) => p.id !== pageId) };
+      }),
+    );
+    if (activePageId === pageId) setActivePageId(null);
+  }, [activeDeckId, activePageId, patchDecks]);
 
-  const addGroup = useCallback(async (group: Omit<DeckGroup, "id" | "items">) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:add-group", activeDeckId, activePageId, group);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const addItem = useCallback((item: Omit<DeckItem, "id">) => {
+    if (!activeDeckId || !activePageId) return;
+    const newItem = { ...item, id: uuid() } as DeckItem;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? { ...d, pages: d.pages.map((p) => (p.id === activePageId ? { ...p, items: [...p.items, newItem] } : p)) }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
 
-  const updateGroup = useCallback(async (groupId: string, updates: Partial<Omit<DeckGroup, "id" | "items">>) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:update-group", activeDeckId, activePageId, groupId, updates);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const updateItem = useCallback((itemId: string, updates: Partial<Omit<DeckItem, "id">>) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) => {
+                if (p.id !== activePageId) return p;
+                const inLoose = p.items.some((i) => i.id === itemId);
+                if (inLoose) {
+                  return { ...p, items: p.items.map((i) => (i.id === itemId ? { ...i, ...updates } : i)) };
+                }
+                return {
+                  ...p,
+                  groups: p.groups.map((g) => ({
+                    ...g,
+                    items: g.items.map((i) => (i.id === itemId ? { ...i, ...updates } : i)),
+                  })),
+                };
+              }),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
 
-  const removeGroup = useCallback(async (groupId: string) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:remove-group", activeDeckId, activePageId, groupId);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const removeItem = useCallback((itemId: string) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) => {
+                if (p.id !== activePageId) return p;
+                return {
+                  ...p,
+                  items: p.items.filter((i) => i.id !== itemId),
+                  groups: p.groups.map((g) => ({
+                    ...g,
+                    items: g.items.filter((i) => i.id !== itemId),
+                  })),
+                };
+              }),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
 
-  const moveItemToGroup = useCallback(async (itemId: string, groupId: string, absCol?: number, absRow?: number) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:move-item-to-group", activeDeckId, activePageId, itemId, groupId, absCol, absRow);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const addGroup = useCallback((group: Omit<DeckGroup, "id" | "items">) => {
+    if (!activeDeckId || !activePageId) return;
+    const newGroup = { ...group, id: uuid(), items: [] } as DeckGroup;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? { ...d, pages: d.pages.map((p) => (p.id === activePageId ? { ...p, groups: [...p.groups, newGroup] } : p)) }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
 
-  const moveItemOutOfGroup = useCallback(async (itemId: string, groupId: string, absCol?: number, absRow?: number) => {
-    const api = getAPI();
-    if (!api || !activeDeckId || !activePageId) return;
-    await api.invoke("deck:move-item-out-of-group", activeDeckId, activePageId, itemId, groupId, absCol, absRow);
-    await refresh();
-  }, [activeDeckId, activePageId, refresh]);
+  const updateGroup = useCallback((groupId: string, updates: Partial<Omit<DeckGroup, "id" | "items">>) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) =>
+                p.id === activePageId
+                  ? { ...p, groups: p.groups.map((g) => (g.id === groupId ? { ...g, ...updates } : g)) }
+                  : p,
+              ),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
+
+  const removeGroup = useCallback((groupId: string) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) => {
+                if (p.id !== activePageId) return p;
+                const group = p.groups.find((g) => g.id === groupId);
+                const extractedItems = group?.items ?? [];
+                return {
+                  ...p,
+                  items: [...p.items, ...extractedItems],
+                  groups: p.groups.filter((g) => g.id !== groupId),
+                };
+              }),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
+
+  const moveItemToGroup = useCallback((itemId: string, groupId: string, absCol?: number, absRow?: number) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) => {
+                if (p.id !== activePageId) return p;
+                let item: DeckItem | undefined;
+                const filteredItems = p.items.filter((i) => {
+                  if (i.id === itemId) { item = i; return false; }
+                  return true;
+                });
+                const filteredGroups = p.groups.map((g) => ({
+                  ...g,
+                  items: g.items.filter((i) => {
+                    if (i.id === itemId) { item = i; return false; }
+                    return true;
+                  }),
+                }));
+                if (!item) return p;
+                const positioned = { ...item, col: absCol ?? item.col, row: absRow ?? item.row };
+                return {
+                  ...p,
+                  items: filteredItems,
+                  groups: filteredGroups.map((g) =>
+                    g.id === groupId ? { ...g, items: [...g.items, positioned] } : g,
+                  ),
+                };
+              }),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
+
+  const moveItemOutOfGroup = useCallback((itemId: string, groupId: string, absCol?: number, absRow?: number) => {
+    if (!activeDeckId || !activePageId) return;
+    patchDecks((prev) =>
+      prev.map((d) =>
+        d.id === activeDeckId
+          ? {
+              ...d,
+              pages: d.pages.map((p) => {
+                if (p.id !== activePageId) return p;
+                let item: DeckItem | undefined;
+                const updatedGroups = p.groups.map((g) => {
+                  if (g.id !== groupId) return g;
+                  return {
+                    ...g,
+                    items: g.items.filter((i) => {
+                      if (i.id === itemId) { item = i; return false; }
+                      return true;
+                    }),
+                  };
+                });
+                if (!item) return p;
+                const positioned = { ...item, col: absCol ?? item.col, row: absRow ?? item.row };
+                return { ...p, items: [...p.items, positioned], groups: updatedGroups };
+              }),
+            }
+          : d,
+      ),
+    );
+  }, [activeDeckId, activePageId, patchDecks]);
 
   const sendOsc = useCallback(async (host: string, port: number, address: string, args: OscArg[]) => {
     const api = getAPI();
@@ -152,7 +297,6 @@ export function useDeck() {
     await api.invoke("deck:send-osc", host, port, address, args);
   }, []);
 
-  // --- Live value syncing ---
   const [itemValues, setItemValues] = useState<Record<string, unknown>>({});
 
   const setValue = useCallback(async (itemId: string, value: unknown) => {
@@ -165,11 +309,9 @@ export function useDeck() {
   useEffect(() => {
     const api = getAPI();
     if (!api) return;
-    // Load initial values
     api.invoke("deck:get-values").then((vals) => {
       if (vals) setItemValues(vals as Record<string, unknown>);
     });
-    // Listen for value updates from other clients
     const unsub = api.on("deck:value", (payload) => {
       const { itemId, value } = payload as { itemId: string; value: unknown };
       setItemValues((prev) => ({ ...prev, [itemId]: value }));
@@ -185,6 +327,6 @@ export function useDeck() {
     addItem, updateItem, removeItem,
     addGroup, updateGroup, removeGroup,
     moveItemToGroup, moveItemOutOfGroup,
-    sendOsc, setValue, itemValues, refresh,
+    sendOsc, setValue, itemValues,
   };
 }
