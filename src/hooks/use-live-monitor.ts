@@ -11,6 +11,7 @@ interface UseLiveMonitorArgs {
   recording: Recording | null;
   endpoints: SavedEndpoint[];
   activeSectionId?: string | null;
+  disabledMappingIds?: Set<string>;
 }
 
 export interface DeviceActivity {
@@ -23,16 +24,18 @@ interface UseLiveMonitorReturn {
   deviceActivity: Record<string, DeviceActivity>;
 }
 
-export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiveMonitorArgs): UseLiveMonitorReturn {
+export function useLiveMonitor({ recording, endpoints, activeSectionId, disabledMappingIds }: UseLiveMonitorArgs): UseLiveMonitorReturn {
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [deviceActivity, setDeviceActivity] = useState<Record<string, DeviceActivity>>({});
 
   const recordingRef = useRef(recording);
   const endpointsRef = useRef(endpoints);
   const activeSectionIdRef = useRef(activeSectionId);
+  const disabledMappingIdsRef = useRef(disabledMappingIds);
   useEffect(() => { recordingRef.current = recording; }, [recording]);
   useEffect(() => { endpointsRef.current = endpoints; }, [endpoints]);
   useEffect(() => { activeSectionIdRef.current = activeSectionId; }, [activeSectionId]);
+  useEffect(() => { disabledMappingIdsRef.current = disabledMappingIds; }, [disabledMappingIds]);
 
   const oscEffectInstances = useRef<Map<string, string>>(new Map());
 
@@ -73,6 +76,7 @@ export function useLiveMonitor({ recording, endpoints, activeSectionId }: UseLiv
         const sectionFilter = activeSectionIdRef.current;
         for (const mapping of rec.oscMappings) {
           if (sectionFilter && mapping.sectionId && mapping.sectionId !== sectionFilter) continue;
+          if (disabledMappingIdsRef.current?.has(mapping.id)) continue;
           if (!matchesMapping(fakeEvt, mapping)) continue;
 
           const address = resolveOscAddress(
